@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "218444499828",
+    "project_id": "codeodysseyph",
+    "storage_bucket": "codeodysseyph.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:218444499828:android:1893bcbf3e9c55cc94ba21",
+        "android_client_info": {
+          "package_name": "com.example.codeodysseyph"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCQx1TX54INACOlZuiaTy-ikWBwFTuF24"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
