@@ -1,3 +1,4 @@
+import 'package:codeodysseyph/components/student/student_appbar.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
@@ -11,15 +12,9 @@ class StudentDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Student Dashboard'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: authService.signOut,
-            icon: const Icon(Icons.logout_rounded),
-          )
-        ],
+      appBar: PreferredSize(
+        preferredSize: const Size(double.infinity, 75),
+        child: StudentAppbar(),
       ),
     );
   }

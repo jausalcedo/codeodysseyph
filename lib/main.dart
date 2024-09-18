@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:codeodysseyph/firebase_options.dart';
 import 'package:codeodysseyph/screens/auth/login.dart';
 import 'package:codeodysseyph/screens/instructor/instructor_dashboard.dart';
-// import 'package:codeodysseyph/screens/student/codeplayground.dart';
 import 'package:codeodysseyph/screens/student/student_dashboard.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -53,8 +52,6 @@ class CodeOdyssey extends StatelessWidget {
 
                 if (snapshot.hasData) {
                   String accountType = snapshot.data!.data()!['accountType'];
-
-                  print(accountType);
 
                   if (accountType == 'Instructor') {
                     return InstructorDashboardScreen(userId: userId);
