@@ -27,7 +27,7 @@ class StudentAppbar extends StatelessWidget {
       ),
       title: Image.asset(
         'assets/images/Logo - Long Row.png',
-        height: 75,
+        height: 100,
       ),
       actions: [
         const Icon(

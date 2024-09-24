@@ -41,6 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // ignore: use_build_context_synchronously
       Navigator.of(context).pop();
     } catch (ex) {
+      // ignore: use_build_context_synchronously
       Navigator.of(context).pop();
 
       String errorTitle = 'Login Error';
