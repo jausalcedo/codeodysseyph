@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:codeodysseyph/firebase_options.dart';
 import 'package:codeodysseyph/screens/auth/login.dart';
+import 'package:codeodysseyph/screens/auth/verification.dart';
 import 'package:codeodysseyph/screens/instructor/instructor_dashboard.dart';
 import 'package:codeodysseyph/screens/student/student_codeplayground.dart';
 import 'package:codeodysseyph/screens/student/student_dashboard.dart';
@@ -68,7 +69,7 @@ class CodeOdyssey extends StatelessWidget {
             );
           }
 
-          return const LoginScreen();
+          return const VerificationScreen();
         },
       ),
     );

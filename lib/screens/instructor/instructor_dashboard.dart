@@ -178,7 +178,7 @@ class InstructorDashboardScreen extends StatelessWidget {
                                   ),
                                   Padding(
                                     padding:
-                                        const EdgeInsets.fromLTRB(85, 30, 0, 0),
+                                        const EdgeInsets.fromLTRB(40, 30, 0, 0),
                                     child: Row(
                                       children: [
                                         Column(
