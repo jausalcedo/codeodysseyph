@@ -1,18 +1,33 @@
 import 'package:codeodysseyph/constants/colors.dart';
+import 'package:codeodysseyph/main.dart';
 import 'package:codeodysseyph/screens/student/student_profile.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
-class StudentAppbar extends StatelessWidget {
-  StudentAppbar({super.key});
+class StudentAppbar extends StatefulWidget {
+  const StudentAppbar({super.key});
 
+  @override
+  State<StudentAppbar> createState() => _StudentAppbarState();
+}
+
+class _StudentAppbarState extends State<StudentAppbar> {
   final authService = AuthService();
 
   void openProfileScreen(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const StudentProfileScreen(),
+      ),
+    );
+  }
+
+  void signout() {
+    authService.signOut();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const AuthChecker(),
       ),
     );
   }
@@ -84,7 +99,7 @@ class StudentAppbar extends StatelessWidget {
                     backgroundColor: WidgetStatePropertyAll(cRed),
                     foregroundColor: WidgetStatePropertyAll(Colors.white),
                     shape: WidgetStatePropertyAll(ContinuousRectangleBorder())),
-                onPressed: authService.signOut,
+                onPressed: signout,
                 label: const Text('Logout'),
                 icon: const Icon(Icons.logout_rounded),
               ),

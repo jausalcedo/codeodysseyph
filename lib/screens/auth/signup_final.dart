@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:codeodysseyph/constants/colors.dart';
-import 'package:codeodysseyph/screens/auth/login.dart';
+import 'package:codeodysseyph/main.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -47,8 +47,6 @@ class _SignupFinalScreenState extends State<SignupFinalScreen> {
   );
 
   void signup() async {
-    // SIGNUP LOGIC HERE
-
     // VALIDATE NAME
     if (!formKey.currentState!.validate()) {
       return;
@@ -109,7 +107,7 @@ class _SignupFinalScreenState extends State<SignupFinalScreen> {
           // GO TO LOGIN
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => const LoginScreen(),
+              builder: (context) => const AuthChecker(),
             ),
           );
         },
@@ -142,7 +140,7 @@ class _SignupFinalScreenState extends State<SignupFinalScreen> {
   void goToLoginScreen() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const LoginScreen(),
+        builder: (context) => const AuthChecker(),
       ),
     );
   }
