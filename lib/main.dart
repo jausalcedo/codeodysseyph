@@ -68,7 +68,7 @@ class CodeOdyssey extends StatelessWidget {
             );
           }
 
-          return const CodePlayground();
+          return const LoginScreen();
         },
       ),
     );
