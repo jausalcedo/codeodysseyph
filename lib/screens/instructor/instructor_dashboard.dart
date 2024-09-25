@@ -153,7 +153,6 @@ class InstructorDashboardScreen extends StatelessWidget {
                                         ),
                                       ),
                                     ),
-
                                     // COURSE TITLE + JAVA ICON
                                     Row(
                                       mainAxisAlignment:
