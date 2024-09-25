@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:codeodysseyph/components/student/student_appbar.dart';
+import 'package:codeodysseyph/components/student/student_drawer.dart';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_code_editor/flutter_code_editor.dart';
@@ -13,16 +14,19 @@ import 'package:xterm/core.dart';
 import 'package:xterm/ui.dart';
 
 // ignore: must_be_immutable
-class CodePlayground extends StatefulWidget {
-  const CodePlayground({super.key});
+class StudentCodePlayground extends StatefulWidget {
+  const StudentCodePlayground({super.key, required this.userId});
+
+  final String userId;
 
   @override
-  State<CodePlayground> createState() => _CodePlaygroundState();
+  State<StudentCodePlayground> createState() => _StudentCodePlaygroundState();
 }
 
-class _CodePlaygroundState extends State<CodePlayground> with SingleTickerProviderStateMixin {
+class _StudentCodePlaygroundState extends State<StudentCodePlayground>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   String script = """
     public class Main {
       public static void main(String[] args) {
@@ -38,8 +42,6 @@ class _CodePlaygroundState extends State<CodePlayground> with SingleTickerProvid
   final _terminal = Terminal();
 
   final _proxyUrl = 'http://localhost:3000';
-
-  Timer? _pollingTimer;
 
   String? _authToken;
 
@@ -69,7 +71,6 @@ class _CodePlaygroundState extends State<CodePlayground> with SingleTickerProvid
 
   @override
   void dispose() {
-    _pollingTimer?.cancel();
     _terminal.eraseDisplay();
     super.dispose();
   }
@@ -79,8 +80,11 @@ class _CodePlaygroundState extends State<CodePlayground> with SingleTickerProvid
     _codeEditorController.text = script;
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size(double.infinity, 75),
+      drawer: StudentDrawer(
+        userId: widget.userId,
+      ),
+      appBar: const PreferredSize(
+        preferredSize: Size(double.infinity, 75),
         child: StudentAppbar(),
       ),
       body: Padding(
@@ -99,17 +103,26 @@ class _CodePlaygroundState extends State<CodePlayground> with SingleTickerProvid
                       indicatorWeight: 3,
                       tabs: const <Widget>[
                         Tab(
-                          text: 'Main.java',
+                          child: Text(
+                            'Main.java',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                         Tab(
-                          text: 'Console',
+                          child: Text(
+                            'Console',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                         Tab(
-                          text: 'AI Assistant Response',
+                          child: Text(
+                            'AI Assistant Response',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ],
                     ),
-    
+
                     // TAB CONTENT
                     Expanded(
                       child: TabBarView(
@@ -131,7 +144,7 @@ class _CodePlaygroundState extends State<CodePlayground> with SingleTickerProvid
                                 ),
                               ),
                               const Gap(10),
-    
+
                               // RUN BUTTON
                               Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -143,20 +156,19 @@ class _CodePlaygroundState extends State<CodePlayground> with SingleTickerProvid
                                     style: const ButtonStyle(
                                       backgroundColor:
                                           WidgetStatePropertyAll(primary),
-                                      foregroundColor: WidgetStatePropertyAll(
-                                          Colors.white),
+                                      foregroundColor:
+                                          WidgetStatePropertyAll(Colors.white),
                                     ),
                                     onPressed: _executeCode,
                                     label: const Text('Execute Code'),
-                                    icon:
-                                        const Icon(Icons.play_arrow_rounded),
+                                    icon: const Icon(Icons.play_arrow_rounded),
                                   ),
                                 ),
                               ),
                               const Gap(10),
                             ],
                           ),
-    
+
                           // CONSOLE BODY
                           Column(
                             children: [
@@ -183,7 +195,7 @@ class _CodePlaygroundState extends State<CodePlayground> with SingleTickerProvid
                               )
                             ],
                           ),
-    
+
                           // AI RESPONSE BODY
                           CodeTheme(
                             data: CodeThemeData(styles: vsTheme),
@@ -223,15 +235,18 @@ class _CodePlaygroundState extends State<CodePlayground> with SingleTickerProvid
                               height: 30,
                             ),
                           ),
-                          const Gap(10),
+                          const Gap(15),
                           const Text(
                             'AI Assistant Chat',
-                            style: TextStyle(color: Colors.white),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
                     ),
-    
+
                     // USER INPUT
                     Padding(
                       padding: const EdgeInsets.all(10.0),
