@@ -58,8 +58,8 @@ class StudentDashboardScreen extends StatelessWidget {
 
     return Scaffold(
       drawer: StudentDrawer(userId: userId),
-      appBar: PreferredSize(
-        preferredSize: const Size(double.infinity, 75),
+      appBar: const PreferredSize(
+        preferredSize: Size(double.infinity, 75),
         child: StudentAppbar(),
       ),
       body: Center(

@@ -50,8 +50,8 @@ class InstructorDashboardScreen extends StatelessWidget {
 
     return Scaffold(
       drawer: InstructorDrawer(userId: userId),
-      appBar: PreferredSize(
-        preferredSize: const Size(double.infinity, 75),
+      appBar: const PreferredSize(
+        preferredSize: Size(double.infinity, 75),
         child: InstructorAppbar(),
       ),
       body: Center(
