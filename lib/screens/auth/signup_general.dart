@@ -158,6 +158,10 @@ class _SignupGeneralScreenState extends State<SignupGeneralScreen> {
                               if (!EmailValidator.validate(value)) {
                                 return 'Please enter a valid email address.';
                               }
+                              var domain = value.split('@')[1];
+                              if (domain != 'psu.edu.ph') {
+                                return 'Please use your PSU institutional email';
+                              }
                               return null;
                             },
                           ),
