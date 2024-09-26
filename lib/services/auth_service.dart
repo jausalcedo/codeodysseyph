@@ -9,6 +9,14 @@ class AuthService {
     return _auth.currentUser;
   }
 
+  Future reload() async {
+    await _auth.currentUser!.reload();
+  }
+
+  bool emailVerified() {
+    return _auth.currentUser!.emailVerified;
+  }
+
   // LOGIN
   Future<UserCredential> signInWithEmailPassword(String email, password) async {
     try {

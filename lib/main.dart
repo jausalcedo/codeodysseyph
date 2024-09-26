@@ -1,9 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:codeodysseyph/firebase_options.dart';
+import 'package:codeodysseyph/screens/auth/instructor_verification.dart';
 import 'package:codeodysseyph/screens/auth/login.dart';
-import 'package:codeodysseyph/screens/auth/verification.dart';
-import 'package:codeodysseyph/screens/instructor/instructor_dashboard.dart';
-import 'package:codeodysseyph/screens/student/student_dashboard.dart';
+import 'package:codeodysseyph/screens/auth/student_verification.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -67,9 +66,9 @@ class AuthChecker extends StatelessWidget {
                 String accountType = snapshot.data!.data()!['accountType'];
         
                 if (accountType == 'Instructor') {
-                  return InstructorDashboardScreen(userId: userId);
+                  return InstructorVerificationScreen(userId: userId);
                 } else if (accountType == 'Student') {
-                  return StudentDashboardScreen(userId: userId);
+                  return StudentVerificationScreen(userId: userId);
                 }
               }
         

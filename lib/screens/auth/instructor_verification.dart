@@ -1,30 +1,85 @@
+import 'dart:async';
+
 import 'package:codeodysseyph/constants/colors.dart';
-import 'package:codeodysseyph/screens/auth/signup_general.dart';
+import 'package:codeodysseyph/main.dart';
+import 'package:codeodysseyph/screens/instructor/instructor_dashboard.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
-import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:quickalert/quickalert.dart';
 
-class VerificationScreen extends StatefulWidget {
-  const VerificationScreen({super.key});
+class InstructorVerificationScreen extends StatefulWidget {
+  const InstructorVerificationScreen({super.key, required this.userId});
+
+  final String userId;
 
   @override
-  State<VerificationScreen> createState() => _VerificationScreenState();
+  State<InstructorVerificationScreen> createState() =>
+      _InstructorVerificationScreenState();
 }
 
-class _VerificationScreenState extends State<VerificationScreen> {
-  void openSignupScreen(BuildContext context) {
+class _InstructorVerificationScreenState extends State<InstructorVerificationScreen> {
+  final _authService = AuthService();
+
+  bool isEmailVerified = false;
+  Timer? timer;
+
+  @override
+  void initState() {
+    super.initState();
+    isEmailVerified = _authService.emailVerified();
+
+    if (!isEmailVerified) {
+      sendVerificationEmail();
+
+      timer = Timer.periodic(
+          const Duration(seconds: 3), (_) => checkEmailVerified());
+    }
+  }
+
+  Future checkEmailVerified() async {
+    await _authService.reload();
+
+    setState(() {
+      isEmailVerified = _authService.emailVerified();
+    });
+
+    if (isEmailVerified) timer?.cancel();
+  }
+
+  void sendVerificationEmail() async {
+    try {
+      final user = _authService.getCurrentUser()!;
+      await user.sendEmailVerification();
+    } catch (e) {
+      QuickAlert.show(
+        title: 'An Error Occured',
+        text: e.toString(),
+        // ignore: use_build_context_synchronously
+        context: context,
+        type: QuickAlertType.error,
+      );
+    }
+  }
+
+  void backToLoginScreen() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const SignupGeneralScreen(),
+        builder: (context) => const AuthChecker(),
       ),
     );
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => isEmailVerified
+    ? InstructorDashboardScreen(userId: widget.userId)
+    : Scaffold(
       body: Stack(
         alignment: Alignment.center,
         children: [
@@ -77,47 +132,49 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.email,
+                        const Icon(
+                          Icons.mark_email_read_rounded,
                           size: 80,
-                          color: Color.fromARGB(255, 19, 27, 99),
+                          color: primary,
                         ),
-                        Gap(15),
+                        const Gap(15),
                         const Text(
-                          'Verify your email',
+                          'Verify Email',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
                         const Text(
-                            "We've sent you an email verification. \nPlease check your inbox/spam folder."),
+                          "A verification email has been sent to your email. Kindly check your inbox/spam folder.",
+                          textAlign: TextAlign.center,
+                        ),
                         const Gap(25),
+                        // RESEND EMAIL BUTTON
                         SizedBox(
                           width: double.infinity,
                           height: 40,
                           child: TextButton(
-                            //resend email button
                             style: const ButtonStyle(
-                                backgroundColor:
-                                    WidgetStatePropertyAll(primary),
-                                foregroundColor:
-                                    WidgetStatePropertyAll(Colors.white)),
+                              backgroundColor: WidgetStatePropertyAll(primary),
+                              foregroundColor:
+                                  WidgetStatePropertyAll(Colors.white),
+                            ),
                             onPressed: () {},
                             child: const Text('Resend email'),
                           ),
                         ),
-                        const Gap(25),
+                        const Gap(15),
+                        // BACK TO LOGIN BUTTON
                         SizedBox(
                           width: double.infinity,
                           height: 40,
                           child: TextButton(
-                            // back to login button
                             style: const ButtonStyle(
-                                backgroundColor:
-                                    WidgetStatePropertyAll(Colors.white),
-                                foregroundColor:
-                                    WidgetStatePropertyAll(primary)),
+                              backgroundColor:
+                                  WidgetStatePropertyAll(Colors.white),
+                              foregroundColor: WidgetStatePropertyAll(primary),
+                            ),
                             onPressed: () {},
                             child: const Text('Back to Login'),
                           ),
@@ -132,5 +189,4 @@ class _VerificationScreenState extends State<VerificationScreen> {
         ],
       ),
     );
-  }
 }
