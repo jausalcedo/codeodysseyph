@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:codeodysseyph/constants/colors.dart';
-import 'package:codeodysseyph/main.dart';
+import 'package:codeodysseyph/screens/auth/auth_checker.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -99,7 +99,8 @@ class _SignupFinalScreenState extends State<SignupFinalScreen> {
         context: context,
         type: QuickAlertType.success,
         title: 'Signup Successful!',
-        text: 'A confirmation email has been sent to the email address you\'ve provided. Please check your email and verify your account to continue.',
+        text:
+            'A confirmation email has been sent to the email address you\'ve provided. Please check your email and verify your account to continue.',
         confirmBtnColor: Colors.grey[800]!,
         onConfirmBtnTap: () {
           Navigator.of(context).pop();

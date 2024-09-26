@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:codeodysseyph/constants/colors.dart';
-import 'package:codeodysseyph/main.dart';
+import 'package:codeodysseyph/screens/auth/auth_checker.dart';
 import 'package:codeodysseyph/screens/student/student_dashboard.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -78,115 +78,117 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen> {
 
   @override
   Widget build(BuildContext context) => isEmailVerified
-    ? StudentDashboardScreen(userId: widget.userId)
-    : Scaffold(
-      body: Stack(
-        alignment: Alignment.center,
-        children: [
-          // BACKGROUND GRADIENT
-          Container(
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xff0A2353),
-                  Color(0xff122C71),
-                  Color(0xff56E1E9)
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-
-          // CONTAINER
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+      ? StudentDashboardScreen(userId: widget.userId)
+      : Scaffold(
+          body: Stack(
+            alignment: Alignment.center,
             children: [
-              // LOGO
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(15),
-                    bottomLeft: Radius.circular(15)),
-                child: Container(
-                  color: Colors.white,
-                  height: 600,
-                  width: 420,
-                  child: Padding(
-                    padding: const EdgeInsets.all(25.0),
-                    child: Image.asset('assets/images/Logo - Square.png'),
+              // BACKGROUND GRADIENT
+              Container(
+                height: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xff0A2353),
+                      Color(0xff122C71),
+                      Color(0xff56E1E9)
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
               ),
 
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(15),
-                    bottomRight: Radius.circular(15)),
-                child: Container(
-                  color: const Color(0xffCECFDD),
-                  height: 600,
-                  width: 420,
-                  child: Padding(
-                    padding: const EdgeInsets.all(50.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.mark_email_read_rounded,
-                          size: 80,
-                          color: primary,
-                        ),
-                        const Gap(15),
-                        const Text(
-                          'Verify Email',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const Text(
-                          "A verification email has been sent to your email. Kindly check your inbox/spam folder.",
-                          textAlign: TextAlign.center,
-                        ),
-                        const Gap(25),
-                        // RESEND EMAIL BUTTON
-                        SizedBox(
-                          width: double.infinity,
-                          height: 40,
-                          child: TextButton(
-                            style: const ButtonStyle(
-                              backgroundColor: WidgetStatePropertyAll(primary),
-                              foregroundColor:
-                                  WidgetStatePropertyAll(Colors.white),
-                            ),
-                            onPressed: sendVerificationEmail,
-                            child: const Text('Resend email'),
-                          ),
-                        ),
-                        const Gap(15),
-                        // BACK TO LOGIN BUTTON
-                        SizedBox(
-                          width: double.infinity,
-                          height: 40,
-                          child: TextButton(
-                            style: const ButtonStyle(
-                              backgroundColor:
-                                  WidgetStatePropertyAll(Colors.white),
-                              foregroundColor: WidgetStatePropertyAll(primary),
-                            ),
-                            onPressed: goToLoginScreen,
-                            child: const Text('Back to Login'),
-                          ),
-                        ),
-                      ],
+              // CONTAINER
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // LOGO
+                  ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(15),
+                        bottomLeft: Radius.circular(15)),
+                    child: Container(
+                      color: Colors.white,
+                      height: 600,
+                      width: 420,
+                      child: Padding(
+                        padding: const EdgeInsets.all(25.0),
+                        child: Image.asset('assets/images/Logo - Square.png'),
+                      ),
                     ),
                   ),
-                ),
+
+                  ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                        topRight: Radius.circular(15),
+                        bottomRight: Radius.circular(15)),
+                    child: Container(
+                      color: const Color(0xffCECFDD),
+                      height: 600,
+                      width: 420,
+                      child: Padding(
+                        padding: const EdgeInsets.all(50.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.mark_email_read_rounded,
+                              size: 80,
+                              color: primary,
+                            ),
+                            const Gap(15),
+                            const Text(
+                              'Verify Email',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const Text(
+                              "A verification email has been sent to your email. Kindly check your inbox/spam folder.",
+                              textAlign: TextAlign.center,
+                            ),
+                            const Gap(25),
+                            // RESEND EMAIL BUTTON
+                            SizedBox(
+                              width: double.infinity,
+                              height: 40,
+                              child: TextButton(
+                                style: const ButtonStyle(
+                                  backgroundColor:
+                                      WidgetStatePropertyAll(primary),
+                                  foregroundColor:
+                                      WidgetStatePropertyAll(Colors.white),
+                                ),
+                                onPressed: sendVerificationEmail,
+                                child: const Text('Resend email'),
+                              ),
+                            ),
+                            const Gap(15),
+                            // BACK TO LOGIN BUTTON
+                            SizedBox(
+                              width: double.infinity,
+                              height: 40,
+                              child: TextButton(
+                                style: const ButtonStyle(
+                                  backgroundColor:
+                                      WidgetStatePropertyAll(Colors.white),
+                                  foregroundColor:
+                                      WidgetStatePropertyAll(primary),
+                                ),
+                                onPressed: goToLoginScreen,
+                                child: const Text('Back to Login'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-    );
+        );
 }
