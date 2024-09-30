@@ -69,7 +69,7 @@ class CodeOdyssey extends StatelessWidget {
             );
           }
 
-          return const VerificationScreen();
+          return const LoginScreen();
         },
       ),
     );
