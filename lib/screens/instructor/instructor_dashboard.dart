@@ -1,4 +1,5 @@
 import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
+import 'package:codeodysseyph/screens/instructor/instructor_studentPerformance.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:gap/gap.dart';
@@ -534,89 +535,99 @@ class InstructorDashboardScreen extends StatelessWidget {
                       );
                     } else {
                       // Default card design for other items
-                      return Center(
-                        child: Card(
-                          color: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            side: const BorderSide(
-                              color: Color.fromARGB(255, 19, 27, 99),
-                              width: 4,
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  InstructorClassPerformance(),
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: screenWidth *
-                                        0.17, // Responsive container width
-                                    height: screenHeight *
-                                        0.05, // Responsive container height
-                                    decoration: BoxDecoration(
-                                      color:
-                                          const Color.fromARGB(255, 19, 27, 99),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        items[index],
-                                        style: const TextStyle(
-                                          fontSize: 25,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.white,
+                          );
+                        },
+                        child: Center(
+                          child: Card(
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              side: const BorderSide(
+                                color: Color.fromARGB(255, 19, 27, 99),
+                                width: 4,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: screenWidth *
+                                          0.17, // Responsive container width
+                                      height: screenHeight *
+                                          0.05, // Responsive container height
+                                      decoration: BoxDecoration(
+                                        color: const Color.fromARGB(
+                                            255, 19, 27, 99),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          items[index],
+                                          style: const TextStyle(
+                                            fontSize: 25,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.white,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  Padding(
-                                    padding:
-                                        const EdgeInsets.fromLTRB(40, 30, 0, 0),
-                                    child: Row(
-                                      children: [
-                                        Column(
-                                          children: [
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.fromLTRB(
-                                                      10, 30, 0, 0),
-                                              child: Text(
-                                                "Fundamentals of\nProgramming",
-                                                style: TextStyle(
-                                                  fontSize: screenWidth *
-                                                      0.011, // Responsive font size
-                                                  fontWeight: FontWeight.w800,
-                                                  color: const Color.fromARGB(
-                                                      255, 21, 21, 21),
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          40, 30, 0, 0),
+                                      child: Row(
+                                        children: [
+                                          Column(
+                                            children: [
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.fromLTRB(
+                                                        10, 30, 0, 0),
+                                                child: Text(
+                                                  "Fundamentals of\nProgramming",
+                                                  style: TextStyle(
+                                                    fontSize: screenWidth *
+                                                        0.011, // Responsive font size
+                                                    fontWeight: FontWeight.w800,
+                                                    color: const Color.fromARGB(
+                                                        255, 21, 21, 21),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                        Column(
-                                          children: [
-                                            Container(
-                                              constraints: BoxConstraints(
-                                                maxWidth: screenWidth *
-                                                    0.07, // Responsive width
-                                                maxHeight: screenHeight *
-                                                    0.11, // Responsive height
+                                            ],
+                                          ),
+                                          Column(
+                                            children: [
+                                              Container(
+                                                constraints: BoxConstraints(
+                                                  maxWidth: screenWidth *
+                                                      0.07, // Responsive width
+                                                  maxHeight: screenHeight *
+                                                      0.11, // Responsive height
+                                                ),
+                                                child: Image.asset(
+                                                  "assets/images/java-logo.png",
+                                                  fit: BoxFit
+                                                      .contain, // Ensure the image fits within the space
+                                                ),
                                               ),
-                                              child: Image.asset(
-                                                "assets/images/java-logo.png",
-                                                fit: BoxFit
-                                                    .contain, // Ensure the image fits within the space
-                                              ),
-                                            ),
-                                          ],
-                                        )
-                                      ],
+                                            ],
+                                          )
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              )
-                            ],
+                                  ],
+                                )
+                              ],
+                            ),
                           ),
                         ),
                       );
