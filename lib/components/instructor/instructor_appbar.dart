@@ -1,5 +1,5 @@
 import 'package:codeodysseyph/constants/colors.dart';
-import 'package:codeodysseyph/main.dart';
+import 'package:codeodysseyph/screens/auth/auth_checker.dart';
 import 'package:codeodysseyph/screens/instructor/instructor_profile.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
 import 'package:flutter/material.dart';
