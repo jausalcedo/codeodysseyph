@@ -1,5 +1,5 @@
 import 'package:codeodysseyph/constants/colors.dart';
-import 'package:codeodysseyph/screens/auth/login.dart';
+import 'package:codeodysseyph/screens/auth/auth_checker.dart';
 import 'package:codeodysseyph/screens/auth/signup_final.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +24,7 @@ class _SignupGeneralScreenState extends State<SignupGeneralScreen> {
   void goToLoginScreen() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const LoginScreen(),
+        builder: (context) => const AuthChecker(),
       ),
     );
   }
@@ -157,6 +157,10 @@ class _SignupGeneralScreenState extends State<SignupGeneralScreen> {
                               }
                               if (!EmailValidator.validate(value)) {
                                 return 'Please enter a valid email address.';
+                              }
+                              var domain = value.split('@')[1];
+                              if (domain != 'psu.edu.ph') {
+                                return 'Please use your PSU institutional email';
                               }
                               return null;
                             },

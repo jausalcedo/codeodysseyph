@@ -11,7 +11,7 @@ class InstructorProfileScreen extends StatelessWidget {
     TextEditingController fname = TextEditingController();
     TextEditingController lname = TextEditingController();
 
-    void _showModal() {
+    void showModal() {
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -56,16 +56,16 @@ class InstructorProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Gap(10),
+                      Gap(10),
                     ],
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
+                      SizedBox(
                         width: 200,
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
@@ -79,7 +79,7 @@ class InstructorProfileScreen extends StatelessWidget {
                         ),
                       ),
                       const Gap(20),
-                      Container(
+                      SizedBox(
                         width: 200,
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
@@ -154,13 +154,13 @@ class InstructorProfileScreen extends StatelessWidget {
               height: screenHeight * 0.5,
               child: Column(
                 children: [
-                  Gap(30),
+                  const Gap(30),
                   const Text(
                     "My Profile",
                     style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
                   ),
                   const Gap(20),
-                  CircleAvatar(
+                  const CircleAvatar(
                       radius: 40,
                       backgroundColor: Color(0xFF132763),
                       child: Text(
@@ -186,21 +186,21 @@ class InstructorProfileScreen extends StatelessWidget {
                     children: [
                       ElevatedButton(
                         onPressed: () {
-                          _showModal();
+                          showModal();
                         },
-                        child: const Text(
-                          "Edit",
-                          style: TextStyle(color: Colors.white, fontSize: 15),
-                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
                               const Color.fromARGB(255, 19, 27, 99),
                         ),
+                        child: const Text(
+                          "Edit",
+                          style: TextStyle(color: Colors.white, fontSize: 15),
+                        ),
                       ),
-                      Gap(4),
+                      const Gap(4),
                       IconButton(
                         onPressed: () {},
-                        icon: Icon(
+                        icon: const Icon(
                           Icons.key,
                           color: Colors.white,
                         ),
@@ -217,8 +217,8 @@ class InstructorProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-      appBar: PreferredSize(
-        preferredSize: const Size(double.infinity, 75),
+      appBar: const PreferredSize(
+        preferredSize: Size(double.infinity, 75),
         child: InstructorAppbar(),
       ),
     );
