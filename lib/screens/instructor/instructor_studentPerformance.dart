@@ -1,9 +1,12 @@
 import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
+import 'package:codeodysseyph/screens/instructor/module_viewer.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:highlight/languages/stylus.dart';
+import 'package:pdfx/pdfx.dart';
 
 class InstructorClassPerformance extends StatefulWidget {
-  InstructorClassPerformance({super.key});
+  const InstructorClassPerformance({super.key});
 
   @override
   State<InstructorClassPerformance> createState() =>
@@ -12,8 +15,20 @@ class InstructorClassPerformance extends StatefulWidget {
 
 class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
     with SingleTickerProviderStateMixin {
-  @override
+  // late TabController _tabController;
+
+  final List<bool> _isExpandedList = [
+    false,
+    false,
+    false
+  ]; // Example with 3 items
   late TabController _tabController;
+
+  void _toggleExpand(int index) {
+    setState(() {
+      _isExpandedList[index] = !_isExpandedList[index];
+    });
+  }
 
   @override
   void initState() {
@@ -24,11 +39,40 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
   @override
   void dispose() {
     _tabController.dispose();
+
     super.dispose();
   }
 
   final List<String> items = List<String>.generate(3, (i) => " Title $i");
 
+  final bool _isExpanded = false;
+  bool _isExpanded3 = false;
+
+  // final List<bool> _isExpandedList = [
+  //   false,
+  //   false,
+  //   false
+  // ]; // Example with 3 items
+
+  // void _toggleExpand(int index) {
+  //   setState(() {
+  //     _isExpandedList[index] = !_isExpandedList[index];
+  //   });
+  // }
+
+  // void _toggleExpand() {
+  //   setState(() {
+  //     _isExpanded = !_isExpanded;
+  //   });
+  // }
+
+  void _toggleExpand3() {
+    setState(() {
+      _isExpanded3 = !_isExpanded3;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
@@ -62,10 +106,10 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                           color: const Color.fromARGB(255, 19, 27, 99),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Center(
+                        child: const Center(
                           child: Text(
                             "CC102 - IT 1A",
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 25,
                               fontWeight: FontWeight.w500,
                               color: Colors.white,
@@ -80,14 +124,14 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                       ),
                       const Text(
                         "Fundamentals of Programming",
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 25,
                           fontWeight: FontWeight.w800,
-                          color: const Color.fromARGB(255, 19, 27, 99),
+                          color: Color.fromARGB(255, 19, 27, 99),
                         ),
                       ),
-                      Gap(250),
-                      Column(
+                      const Gap(250),
+                      const Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
@@ -95,7 +139,7 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                             style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w900,
-                                color: const Color.fromARGB(255, 19, 27, 99)),
+                                color: Color.fromARGB(255, 19, 27, 99)),
                           ),
                           Text(
                             "Class Code",
@@ -107,7 +151,7 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                       )
                     ],
                   ),
-                  Gap(20),
+                  const Gap(20),
                   TabBar(
                     controller: _tabController,
                     indicatorSize: TabBarIndicatorSize.tab,
@@ -128,29 +172,293 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                     child: TabBarView(
                       controller: _tabController,
                       children: <Widget>[
-                        const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.code, size: 80, color: Colors.blue),
-                              SizedBox(height: 20),
-                              Text(
-                                'Lessons',
-                                style: TextStyle(fontSize: 24),
-                              ),
-                            ],
+                        SingleChildScrollView(
+                          child: Expanded(
+                            child: ListView.builder(
+                              physics:
+                                  const NeverScrollableScrollPhysics(), // Prevent internal scrolling
+                              shrinkWrap: true,
+                              itemCount: _isExpandedList.length,
+                              itemBuilder: (context, index) {
+                                return Column(
+                                  children: [
+                                    const SizedBox(height: 10),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        minimumSize: const Size(1000, 50),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          side: const BorderSide(
+                                              color: Color(0xFF677FFD)),
+                                        ),
+                                        backgroundColor:
+                                            const Color(0xFF677FFD),
+                                      ),
+                                      onPressed: () => _toggleExpand(index),
+                                      child: Text(
+                                        "Module ${index + 1}",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 30,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    AnimatedContainer(
+                                      duration: const Duration(milliseconds: 5),
+                                      height: _isExpandedList[index] ? 300 : 0,
+                                      color: const Color.fromARGB(
+                                          255, 232, 232, 232),
+                                      width: 900,
+                                      child: _isExpandedList[index]
+                                          ? Padding(
+                                              padding:
+                                                  const EdgeInsets.all(15.0),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  const Gap(15),
+                                                  IconButton(
+                                                    onPressed: () {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              const ModuleViewer(
+                                                            moduleName:
+                                                                "Fundamentals of Programming Module 1",
+                                                            filePath:
+                                                                'assets/modules/Fundamentals of Programming Module 1.pdf',
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                    icon: const Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons
+                                                              .subdirectory_arrow_right,
+                                                          size: 25,
+                                                          color: Color.fromARGB(
+                                                              255, 19, 27, 99),
+                                                        ),
+                                                        Icon(
+                                                          Icons
+                                                              .my_library_books_rounded,
+                                                          size: 30,
+                                                          color: Color.fromARGB(
+                                                              255, 19, 27, 99),
+                                                        ),
+                                                        Text(
+                                                          "Topic Content",
+                                                          style: TextStyle(
+                                                              color: Color
+                                                                  .fromARGB(
+                                                                      255,
+                                                                      19,
+                                                                      27,
+                                                                      99),
+                                                              fontSize: 20,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700),
+                                                        )
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  const Gap(20),
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            8.0),
+                                                    child: Row(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        const Icon(
+                                                          Icons
+                                                              .subdirectory_arrow_right,
+                                                          size: 25,
+                                                          color: Color.fromARGB(
+                                                              255, 19, 27, 99),
+                                                        ),
+                                                        Container(
+                                                          decoration: BoxDecoration(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          10),
+                                                              color:
+                                                                  Colors.white),
+                                                          width: 700,
+                                                          child: Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .fromLTRB(
+                                                                    25,
+                                                                    12,
+                                                                    25,
+                                                                    12),
+                                                            child: Row(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceBetween,
+                                                              children: [
+                                                                Padding(
+                                                                  padding:
+                                                                      const EdgeInsets
+                                                                          .all(
+                                                                          12.0),
+                                                                  child: Column(
+                                                                    children: [
+                                                                      const Text(
+                                                                        "Input/Output\nStatements Activity",
+                                                                        style:
+                                                                            TextStyle(
+                                                                          color: Color.fromARGB(
+                                                                              255,
+                                                                              19,
+                                                                              27,
+                                                                              99),
+                                                                          fontSize:
+                                                                              18,
+                                                                          fontWeight:
+                                                                              FontWeight.w700,
+                                                                        ),
+                                                                      ),
+                                                                      Row(
+                                                                        children: [
+                                                                          Image
+                                                                              .asset(
+                                                                            "assets/images/java-logo.png",
+                                                                            width:
+                                                                                20,
+                                                                          ),
+                                                                          const Text(
+                                                                            "Java",
+                                                                            style:
+                                                                                TextStyle(
+                                                                              color: Color.fromARGB(255, 19, 27, 99),
+                                                                              fontSize: 12,
+                                                                              fontWeight: FontWeight.w700,
+                                                                            ),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                      const Row(
+                                                                        children: [
+                                                                          Icon(
+                                                                            Icons.calendar_today_rounded,
+                                                                            color:
+                                                                                Colors.green,
+                                                                          ),
+                                                                          Text(
+                                                                            "16 July 2024  08:00 AM", //date start activity
+                                                                            style:
+                                                                                TextStyle(
+                                                                              fontSize: 12,
+                                                                              fontWeight: FontWeight.w700,
+                                                                            ),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                      const Gap(
+                                                                          5),
+                                                                      const Row(
+                                                                        children: [
+                                                                          Icon(
+                                                                            Icons.calendar_today_rounded,
+                                                                            color:
+                                                                                Colors.red,
+                                                                          ),
+                                                                          Text(
+                                                                            "23 July 2024  07:00 AM", //date start activity
+                                                                            style:
+                                                                                TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                                Container(
+                                                                  width: 2,
+                                                                  height: 100,
+                                                                  color: Colors
+                                                                      .grey,
+                                                                ),
+                                                                const Padding(
+                                                                  padding:
+                                                                      EdgeInsets
+                                                                          .all(
+                                                                              12.0),
+                                                                  child: Column(
+                                                                    children: [
+                                                                      Row(
+                                                                        mainAxisAlignment:
+                                                                            MainAxisAlignment.spaceEvenly,
+                                                                        children: [
+                                                                          Column(
+                                                                            children: [
+                                                                              Gap(15),
+                                                                              Text(
+                                                                                "0/10",
+                                                                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                                                                              ),
+                                                                              Gap(15),
+                                                                              Text(
+                                                                                "Average Score",
+                                                                                style: TextStyle(fontSize: 12),
+                                                                              )
+                                                                            ],
+                                                                          ),
+                                                                          Gap(15),
+                                                                          Column(
+                                                                            children: [
+                                                                              Gap(15),
+                                                                              Text("6 days 23 hrs", style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                                                                              Gap(15),
+                                                                              Text("Activity Closes In", style: TextStyle(fontSize: 12))
+                                                                            ],
+                                                                          )
+                                                                        ],
+                                                                      )
+                                                                    ],
+                                                                  ),
+                                                                )
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  )
+                                                ],
+                                              ),
+                                            )
+                                          : Container(),
+                                    ),
+                                    const SizedBox(height: 10),
+                                  ],
+                                );
+                              },
+                            ),
                           ),
                         ),
+
                         // Placeholder for Student Performance
                         Column(
                           children: [
-                            Gap(15),
+                            const Gap(15),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: Color(0xFF677FFD),
+                                    color: const Color(0xFF677FFD),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   width: 250,
@@ -191,7 +499,7 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                 ),
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: Color(0xFF677FFD),
+                                    color: const Color(0xFF677FFD),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   width: 250,
@@ -232,14 +540,14 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                 ),
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: Color(0xFF677FFD),
+                                    color: const Color(0xFF677FFD),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   width: 250,
                                   height: 80,
                                   child: const Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        17, 12, 17, 12),
+                                    padding:
+                                        EdgeInsets.fromLTRB(17, 12, 17, 12),
                                     child: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
@@ -273,17 +581,17 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                 ),
                               ],
                             ),
-                            Gap(20),
+                            const Gap(20),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                Container(
+                                SizedBox(
                                   width: 150,
                                   height: 30,
                                   child: DropdownButtonFormField<String>(
                                     iconSize: 12,
-                                    style: TextStyle(fontSize: 8),
-                                    decoration: InputDecoration(
+                                    style: const TextStyle(fontSize: 8),
+                                    decoration: const InputDecoration(
                                       labelText: 'Courses and Activity',
                                       labelStyle: TextStyle(fontSize: 8),
                                       border: OutlineInputBorder(),
@@ -297,12 +605,12 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                     onChanged: (value) {},
                                   ),
                                 ),
-                                Container(
+                                SizedBox(
                                   width: 150,
                                   height: 30,
                                   child: DropdownButtonFormField<String>(
-                                    style: TextStyle(fontSize: 8),
-                                    decoration: InputDecoration(
+                                    style: const TextStyle(fontSize: 8),
+                                    decoration: const InputDecoration(
                                       labelText: 'Search Student',
                                       labelStyle: TextStyle(fontSize: 8),
                                       border: OutlineInputBorder(),
@@ -317,13 +625,13 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                     onChanged: (value) {},
                                   ),
                                 ),
-                                Container(
+                                SizedBox(
                                   width: 150,
                                   height: 30,
                                   child: DropdownButtonFormField<String>(
                                     iconSize: 12,
-                                    style: TextStyle(fontSize: 10),
-                                    decoration: InputDecoration(
+                                    style: const TextStyle(fontSize: 10),
+                                    decoration: const InputDecoration(
                                       labelText: 'Search Lesson',
                                       labelStyle: TextStyle(fontSize: 8),
                                       border: OutlineInputBorder(),
@@ -337,13 +645,13 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                     onChanged: (value) {},
                                   ),
                                 ),
-                                Container(
+                                SizedBox(
                                   width: 150,
                                   height: 30,
                                   child: DropdownButtonFormField<String>(
                                     iconSize: 12,
-                                    style: TextStyle(fontSize: 10),
-                                    decoration: InputDecoration(
+                                    style: const TextStyle(fontSize: 10),
+                                    decoration: const InputDecoration(
                                       labelText: 'Search Activity',
                                       labelStyle: TextStyle(fontSize: 8),
                                       border: OutlineInputBorder(),
@@ -363,7 +671,7 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                     backgroundColor: Colors
                                         .green, // Set the background color to green
                                   ),
-                                  child: Row(
+                                  child: const Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(Icons.picture_as_pdf,
@@ -379,13 +687,13 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                 )
                               ],
                             ),
-                            Gap(10),
+                            const Gap(10),
                             SingleChildScrollView(
                               scrollDirection: Axis
                                   .horizontal, // Enables horizontal scrolling if needed
                               child: DataTable(
-                                headingRowColor: MaterialStateColor.resolveWith(
-                                    (states) => Color(0xFF677FFD)!),
+                                headingRowColor: WidgetStateColor.resolveWith(
+                                    (states) => const Color(0xFF677FFD)),
                                 columns: const <DataColumn>[
                                   DataColumn(
                                     label: Text(
@@ -487,7 +795,7 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                         // Placeholder for Announcements
                         Column(
                           children: [
-                            Gap(20),
+                            const Gap(20),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
@@ -496,10 +804,10 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                       const EdgeInsets.fromLTRB(0, 0, 30, 0),
                                   child: ElevatedButton(
                                     style: ButtonStyle(
-                                      backgroundColor:
-                                          MaterialStateProperty.all(Color(
+                                      backgroundColor: WidgetStateProperty.all(
+                                          const Color(
                                               0xFF677FFD)), // Set background color
-                                      shape: MaterialStateProperty.all<
+                                      shape: WidgetStateProperty.all<
                                           RoundedRectangleBorder>(
                                         RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
@@ -508,7 +816,7 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                       ),
                                     ),
                                     onPressed: () {},
-                                    child: Text(
+                                    child: const Text(
                                       "+Create Announcement",
                                       style: TextStyle(
                                           color: Colors.white,
@@ -532,11 +840,11 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                       itemBuilder: (context, index) {
                                         return Column(
                                           children: [
-                                            Gap(60),
+                                            const Gap(60),
                                             Card(
                                               color: Colors.white,
                                               shape: RoundedRectangleBorder(
-                                                side: BorderSide(
+                                                side: const BorderSide(
                                                   color: Colors
                                                       .grey, // Border color
                                                   width: 1.0, // Border width
@@ -545,10 +853,9 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                                     BorderRadius.circular(
                                                         8.0), // Rounded corners
                                               ),
-                                              child: ListTile(
+                                              child: const ListTile(
                                                 title: Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(8.0),
+                                                  padding: EdgeInsets.all(8.0),
                                                   child: Column(
                                                     crossAxisAlignment:
                                                         CrossAxisAlignment
@@ -557,19 +864,18 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                                       Row(
                                                         children: [
                                                           CircleAvatar(
+                                                            backgroundColor:
+                                                                Color.fromARGB(
+                                                                    255,
+                                                                    19,
+                                                                    27,
+                                                                    99),
                                                             child: Text(
                                                               "JS",
                                                               style: TextStyle(
                                                                   color: Colors
                                                                       .white),
                                                             ),
-                                                            backgroundColor:
-                                                                const Color
-                                                                    .fromARGB(
-                                                                    255,
-                                                                    19,
-                                                                    27,
-                                                                    99),
                                                           ),
                                                           Gap(8),
                                                           Column(
@@ -585,12 +891,12 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
                                                                       FontWeight
                                                                           .w700,
                                                                   fontSize: 18,
-                                                                  color: const Color
+                                                                  color: Color
                                                                       .fromARGB(
-                                                                      255,
-                                                                      19,
-                                                                      27,
-                                                                      99),
+                                                                          255,
+                                                                          19,
+                                                                          27,
+                                                                          99),
                                                                 ),
                                                               ),
                                                               Text(
@@ -649,8 +955,8 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
           )
         ],
       ),
-      appBar: PreferredSize(
-        preferredSize: const Size(double.infinity, 75),
+      appBar: const PreferredSize(
+        preferredSize: Size(double.infinity, 75),
         child: InstructorAppbar(),
       ),
     );

@@ -8,10 +8,26 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:quickalert/quickalert.dart';
 
+class Class {
+  final String courseCode;
+  final String courseTitle;
+  final String year;
+  final String block;
+
+  Class({
+    required this.courseCode,
+    required this.courseTitle,
+    required this.year,
+    required this.block,
+  });
+}
+
 class InstructorDashboardScreen extends StatelessWidget {
   InstructorDashboardScreen({super.key, required this.userId});
 
   final String userId;
+
+  List items = ["Java"];
 
   final List<Class> classes = [
     Class(
@@ -42,12 +58,11 @@ class InstructorDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-  
-
     TextEditingController fname = TextEditingController();
     TextEditingController lname = TextEditingController();
-    
+    var screenWidth = MediaQuery.of(context).size.width;
+    var screenHeight = MediaQuery.of(context).size.height;
+
     void showAddClass() {
       showDialog(
         context: context,
@@ -85,15 +100,15 @@ class InstructorDashboardScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Gap(20),
+                    const Gap(20),
                     Container(
                       width: 800,
-                      color: Color.fromARGB(255, 255, 255, 255),
+                      color: const Color.fromARGB(255, 255, 255, 255),
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(
                             width: 2,
-                            color: Color.fromARGB(255, 19, 27, 99),
+                            color: const Color.fromARGB(255, 19, 27, 99),
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -103,7 +118,7 @@ class InstructorDashboardScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
+                              const Row(
                                 children: [
                                   CircleAvatar(
                                     radius: 20,
@@ -129,9 +144,10 @@ class InstructorDashboardScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              Gap(10), // Adds some space between the row and dropdown
+                              const Gap(
+                                  10), // Adds some space between the row and dropdown
                               DropdownButtonFormField<String>(
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   labelText: 'Select Programming Language',
                                   border: OutlineInputBorder(),
                                 ),
@@ -151,12 +167,12 @@ class InstructorDashboardScreen extends StatelessWidget {
                     const Gap(20),
                     Container(
                       width: 800,
-                      color: Color.fromARGB(255, 255, 255, 255),
+                      color: const Color.fromARGB(255, 255, 255, 255),
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(
                             width: 2,
-                            color: Color.fromARGB(255, 19, 27, 99),
+                            color: const Color.fromARGB(255, 19, 27, 99),
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -166,7 +182,7 @@ class InstructorDashboardScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
+                              const Row(
                                 children: [
                                   CircleAvatar(
                                     radius: 20,
@@ -192,9 +208,9 @@ class InstructorDashboardScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              Gap(10),
+                              const Gap(10),
                               DropdownButtonFormField<String>(
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   labelText: 'Select Course',
                                   border: OutlineInputBorder(),
                                 ),
@@ -211,15 +227,15 @@ class InstructorDashboardScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Gap(20),
+                    const Gap(20),
                     Container(
                       width: 800,
-                      color: Color.fromARGB(255, 255, 255, 255),
+                      color: const Color.fromARGB(255, 255, 255, 255),
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(
                             width: 2,
-                            color: Color.fromARGB(255, 19, 27, 99),
+                            color: const Color.fromARGB(255, 19, 27, 99),
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -229,7 +245,7 @@ class InstructorDashboardScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
+                              const Row(
                                 children: [
                                   CircleAvatar(
                                     radius: 20,
@@ -255,13 +271,13 @@ class InstructorDashboardScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              Gap(10),
+                              const Gap(10),
                               Row(
                                 children: [
-                                  Container(
+                                  SizedBox(
                                     width: 200,
                                     child: DropdownButtonFormField<String>(
-                                      decoration: InputDecoration(
+                                      decoration: const InputDecoration(
                                         labelText: 'Select Year',
                                         border: OutlineInputBorder(),
                                       ),
@@ -274,11 +290,11 @@ class InstructorDashboardScreen extends StatelessWidget {
                                       onChanged: (value) {},
                                     ),
                                   ),
-                                  Gap(8),
-                                  Container(
+                                  const Gap(8),
+                                  SizedBox(
                                     width: 200,
                                     child: DropdownButtonFormField<String>(
-                                      decoration: InputDecoration(
+                                      decoration: const InputDecoration(
                                         labelText: 'Select Block',
                                         border: OutlineInputBorder(),
                                       ),
@@ -298,15 +314,15 @@ class InstructorDashboardScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Gap(20),
+                    const Gap(20),
                     Container(
                       width: 800,
-                      color: Color.fromARGB(255, 255, 255, 255),
+                      color: const Color.fromARGB(255, 255, 255, 255),
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(
                             width: 2,
-                            color: Color.fromARGB(255, 19, 27, 99),
+                            color: const Color.fromARGB(255, 19, 27, 99),
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -316,7 +332,7 @@ class InstructorDashboardScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
+                              const Row(
                                 children: [
                                   CircleAvatar(
                                     radius: 20,
@@ -342,9 +358,9 @@ class InstructorDashboardScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              Gap(10),
+                              const Gap(10),
                               DropdownButtonFormField<String>(
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   labelText: 'Select Course',
                                   border: OutlineInputBorder(),
                                 ),
@@ -356,7 +372,7 @@ class InstructorDashboardScreen extends StatelessWidget {
                                     .toList(),
                                 onChanged: (value) {},
                               ),
-                              Container(
+                              SizedBox(
                                 width: 800,
                                 height: 200,
                                 child: Expanded(
@@ -365,9 +381,9 @@ class InstructorDashboardScreen extends StatelessWidget {
                                         .length, // Adjust the number of list items as needed
                                     itemBuilder: (context, index) {
                                       return ListTile(
-                                        leading: Icon(Icons.book),
+                                        leading: const Icon(Icons.book),
                                         title: Text('Course Topic $index'),
-                                        trailing: Icon(
+                                        trailing: const Icon(
                                           Icons.delete,
                                           color: Colors.red,
                                         ),
@@ -441,7 +457,6 @@ class InstructorDashboardScreen extends StatelessWidget {
       block: '',
     ));
 
-
     return Scaffold(
       drawer: InstructorDrawer(userId: userId),
       appBar: const PreferredSize(
@@ -456,141 +471,148 @@ class InstructorDashboardScreen extends StatelessWidget {
             child: Card(
               color: Colors.white,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 20, left: 20),
-                    child: Text(
-                      "Classes",
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 20, left: 20),
+                      child: Text(
+                        "Classes",
+                        style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    // Check if it's the last item
-                    if (index == items.length - 1) {
-                      // Special design for the last item
-                      return GestureDetector(
-                        onTap: () {
-                          showAddClass();
-                        },
-                        child: Card(
-                          color: const Color.fromARGB(255, 253, 253,
-                              253), // Different background color for the last item
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            side: const BorderSide(
-                              color: Color.fromARGB(
-                                  255, 104, 105, 119), // Different border color
-                              width: 4,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              "+Create Class",
-                              style: TextStyle(
-                                  fontSize: screenWidth * 0.011,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color.fromARGB(255, 104, 105, 119)),
-                            ),
-                          ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
                         ),
-                      );
-                    } else {
-                      // Default card design for other items
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  InstructorClassPerformance(),
-                            ),
-                          );
-                        },
-                        child: Center(
-                          child: Card(
-                            color: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              side: const BorderSide(
-                                color: Color.fromARGB(255, 19, 27, 99),
-                                width: 4,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      width: screenWidth *
-                                          0.17, // Responsive container width
-                                      height: screenHeight *
-                                          0.05, // Responsive container height
-                                      decoration: BoxDecoration(
-                                        color: const Color.fromARGB(
-                                            255, 19, 27, 99),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          items[index],
-                                          style: const TextStyle(
-                                            fontSize: 25,
-
-
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.white,
-                                          ),
+                        child: GridView.builder(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 20.0,
+                            mainAxisSpacing: 20.0,
+                            childAspectRatio: 3 / 2,
+                          ),
+                          itemCount: classes.length,
+                          itemBuilder: (context, index) {
+                            // Check if it's the last item
+                            if (index == classes.length - 1) {
+                              // CREATE CLASS CARD
+                              return GestureDetector(
+                                onTap: () {
+                                  showAddClass();
+                                },
+                                child: DottedBorder(
+                                  color: black50,
+                                  borderType: BorderType.RRect,
+                                  radius: const Radius.circular(25),
+                                  strokeWidth: 3,
+                                  dashPattern: const [10, 5],
+                                  child: const Card(
+                                    child: Center(
+                                      child: Text(
+                                        "+ Join Class",
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: black50,
                                         ),
                                       ),
                                     ),
-                         
-
-                                    // COURSE TITLE + JAVA ICON
-                                    Row(
+                                  ),
+                                ),
+                              );
+                            } else {
+                              // Default card design for other items
+                              return Center(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                InstructorClassPerformance()));
+                                  },
+                                  child: Card(
+                                    clipBehavior: Clip.antiAlias,
+                                    color: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                      side: const BorderSide(
+                                        color: Color.fromARGB(255, 19, 27, 99),
+                                        width: 4,
+                                      ),
+                                    ),
+                                    child: Column(
                                       mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                          MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        SizedBox(
-                                          width: 155,
-                                          child: Text(
-                                            classes[index].courseTitle,
-                                            textAlign: TextAlign.center,
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w800,
-                                              color: Colors.black,
+                                        // COURSE CODE + PROGRAM-YEAR-BLOCK
+                                        Container(
+                                          width: 225,
+                                          height: 50,
+                                          decoration: const BoxDecoration(
+                                            color: primary,
+                                            borderRadius: BorderRadius.only(
+                                              bottomRight: Radius.circular(15),
                                             ),
-                                            overflow: TextOverflow.clip,
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              '${classes[index].courseCode} - IT ${classes[index].year}${classes[index].block}',
+                                              style: const TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.white,
+                                              ),
+                                            ),
                                           ),
                                         ),
-                                        Image.asset(
-                                          "assets/images/java-logo.png",
-                                          fit: BoxFit.contain,
-                                          height: 75,
-                                        )
+
+                                        // COURSE TITLE + JAVA ICON
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            SizedBox(
+                                              width: 155,
+                                              child: Text(
+                                                classes[index].courseTitle,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: Colors.black,
+                                                ),
+                                                overflow: TextOverflow.clip,
+                                              ),
+                                            ),
+                                            Image.asset(
+                                              "assets/images/java-logo.png",
+                                              fit: BoxFit.contain,
+                                              height: 75,
+                                            )
+                                          ],
+                                        ),
+
+                                        // INVISIBLE WIDGET TO CENTER THE COURSE TITLE
+                                        const Gap(25),
                                       ],
                                     ),
-
-                                    // INVISIBLE WIDGET TO CENTER THE COURSE TITLE
-                                    const Gap(25),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          }
-                        },
+                              );
+                            }
+                          },
+                        ),
                       ),
                     ),
-                  ),
-                ],
-
-              ),
+                  ]),
             ),
           ),
         ),
