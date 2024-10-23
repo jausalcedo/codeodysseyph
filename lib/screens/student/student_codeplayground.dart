@@ -138,7 +138,7 @@ public class Main {
       ),
       'codeResponse': Schema.string(
         description:
-            'The actual code generated in response to the user\'s request.',
+            'The actual code generated in response to the user\'s request. Use single quotes to enclose characters when using regular expression.',
       ),
       'error': Schema.string(
         description:

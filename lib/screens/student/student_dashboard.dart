@@ -17,24 +17,28 @@ class StudentDashboardScreen extends StatelessWidget {
 
   final List<Class> classes = [
     Class(
+      classCode: 'PSU-URD-0001',
       courseCode: 'CC102',
       courseTitle: 'Fundamentals of Programming',
       year: '1',
       block: 'A',
     ),
     Class(
+      classCode: 'PSU-URD-0002',
       courseCode: 'CC103',
       courseTitle: 'Intermediate Programming',
       year: '1',
       block: 'A',
     ),
     Class(
+      classCode: 'PSU-URD-0003',
       courseCode: 'CC104',
       courseTitle: 'Data Structures and Algorithms',
       year: '1',
       block: 'A',
     ),
     Class(
+      classCode: 'PSU-URD-0004',
       courseCode: 'OOP101',
       courseTitle: 'Object Oriented Programming',
       year: '1',
@@ -50,6 +54,7 @@ class StudentDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // ADD DUMMY CLASS FOR JOIN CLASS BUTTON
     classes.add(Class(
+      classCode: '',
       courseCode: '',
       courseTitle: '',
       year: '',
