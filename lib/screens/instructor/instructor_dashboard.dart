@@ -27,7 +27,7 @@ class InstructorDashboardScreen extends StatelessWidget {
 
   final String userId;
 
-  List items = ["Java"];
+  final List items = ["Java"];
 
   final List<Class> classes = [
     Class(
@@ -60,8 +60,6 @@ class InstructorDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     TextEditingController fname = TextEditingController();
     TextEditingController lname = TextEditingController();
-    var screenWidth = MediaQuery.of(context).size.width;
-    var screenHeight = MediaQuery.of(context).size.height;
 
     void showAddClass() {
       showDialog(
@@ -531,10 +529,9 @@ class InstructorDashboardScreen extends StatelessWidget {
                               return Center(
                                 child: GestureDetector(
                                   onTap: () {
-                                    Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                InstructorClassPerformance()));
+                                    Navigator.of(context).push(MaterialPageRoute(
+                                        builder: (context) =>
+                                            const InstructorClassPerformance()));
                                   },
                                   child: Card(
                                     clipBehavior: Clip.antiAlias,

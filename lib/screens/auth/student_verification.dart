@@ -1,7 +1,5 @@
 import 'dart:async';
-
 import 'package:codeodysseyph/constants/colors.dart';
-import 'package:codeodysseyph/screens/auth/auth_checker.dart';
 import 'package:codeodysseyph/screens/student/student_dashboard.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -30,8 +28,6 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen> {
     isEmailVerified = _authService.emailVerified();
 
     if (!isEmailVerified) {
-      sendVerificationEmail();
-
       timer = Timer.periodic(
           const Duration(seconds: 3), (_) => checkEmailVerified());
     }
@@ -63,11 +59,7 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen> {
   }
 
   void goToLoginScreen() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const AuthChecker(),
-      ),
-    );
+    _authService.signOut();
   }
 
   @override

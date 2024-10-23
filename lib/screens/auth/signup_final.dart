@@ -90,6 +90,19 @@ class _SignupFinalScreenState extends State<SignupFinalScreen> {
       // ignore: use_build_context_synchronously
       Navigator.of(context).pop();
 
+      try {
+        final user = authService.getCurrentUser()!;
+        await user.sendEmailVerification();
+      } catch (e) {
+        QuickAlert.show(
+          title: 'An Error Occured',
+          text: e.toString(),
+          // ignore: use_build_context_synchronously
+          context: context,
+          type: QuickAlertType.error,
+        );
+      }
+
       // SIGNOUT THE USER IN ORDER TO LOGIN AGAIN
       FirebaseAuth.instance.signOut();
 
