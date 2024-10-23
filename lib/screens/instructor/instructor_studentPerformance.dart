@@ -2,8 +2,6 @@ import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
 import 'package:codeodysseyph/screens/instructor/module_viewer.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
-import 'package:highlight/languages/stylus.dart';
-import 'package:pdfx/pdfx.dart';
 
 class InstructorClassPerformance extends StatefulWidget {
   const InstructorClassPerformance({super.key});
@@ -45,30 +43,11 @@ class _InstructorClassPerformanceState extends State<InstructorClassPerformance>
 
   final List<String> items = List<String>.generate(3, (i) => " Title $i");
 
-  final bool _isExpanded = false;
-  bool _isExpanded3 = false;
-
-  // final List<bool> _isExpandedList = [
-  //   false,
-  //   false,
-  //   false
-  // ]; // Example with 3 items
-
-  // void _toggleExpand(int index) {
-  //   setState(() {
-  //     _isExpandedList[index] = !_isExpandedList[index];
-  //   });
-  // }
-
-  // void _toggleExpand() {
-  //   setState(() {
-  //     _isExpanded = !_isExpanded;
-  //   });
-  // }
+  bool _isExpanded = false;
 
   void _toggleExpand3() {
     setState(() {
-      _isExpanded3 = !_isExpanded3;
+      _isExpanded = !_isExpanded;
     });
   }
 

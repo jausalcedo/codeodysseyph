@@ -1,4 +1,5 @@
 import 'package:codeodysseyph/constants/colors.dart';
+import 'package:codeodysseyph/screens/instructor/instructor_course_management.dart';
 import 'package:codeodysseyph/screens/instructor/instructor_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
@@ -31,7 +32,12 @@ class _InstructorDrawerState extends State<InstructorDrawer> {
   }
 
   void openCourseManagementScreen() {
-    // TO DO
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            InstructorCourseManagementScreen(userId: widget.userId),
+      ),
+    );
   }
 
   @override
