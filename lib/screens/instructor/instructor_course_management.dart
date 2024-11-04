@@ -149,6 +149,11 @@ class _InstructorCourseManagementScreenState
     }
   }
 
+  void openCourseLessonManagementScreen(String documentId) {
+    // TO DO
+    print(documentId);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -305,6 +310,10 @@ class _InstructorCourseManagementScreenState
 
                                   final courses = snapshot.data!.docs;
 
+                                  final documents = snapshot.data!.docs
+                                      .map((doc) => doc.id)
+                                      .toList();
+
                                   return ListView.builder(
                                     itemCount: courses.length,
                                     itemBuilder: (context, index) {
@@ -315,6 +324,9 @@ class _InstructorCourseManagementScreenState
 
                                       return Card(
                                         child: ListTile(
+                                          onTap: () =>
+                                              openCourseLessonManagementScreen(
+                                                  documents[index]),
                                           title: Text(
                                               '${course.code} - ${course.title} v${courses[index]['version']}'),
                                         ),
