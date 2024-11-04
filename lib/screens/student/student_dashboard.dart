@@ -2,10 +2,12 @@ import 'package:codeodysseyph/components/student/student_appbar.dart';
 import 'package:codeodysseyph/components/student/student_drawer.dart';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/models/class.dart';
+import 'package:codeodysseyph/screens/student/student_module_activities.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:quickalert/quickalert.dart';
 
 class StudentDashboardScreen extends StatelessWidget {
   StudentDashboardScreen({
@@ -48,10 +50,9 @@ class StudentDashboardScreen extends StatelessWidget {
 
   final authService = AuthService();
 
-  void openJoinClassModal() {}
-
   @override
   Widget build(BuildContext context) {
+    TextEditingController classCode = TextEditingController();
     // ADD DUMMY CLASS FOR JOIN CLASS BUTTON
     classes.add(Class(
       classCode: '',
@@ -60,6 +61,120 @@ class StudentDashboardScreen extends StatelessWidget {
       year: '',
       block: '',
     ));
+
+    void openJoinClassModal() {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            titlePadding: const EdgeInsets.only(top: 15, bottom: 0),
+            // ALERT DIALOG TITLE
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                  '',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromARGB(255, 19, 27, 99),
+                  ),
+                ),
+
+                // CLOSE BUTTON
+                IconButton(
+                  icon: const Icon(
+                    Icons.close,
+                    color: Colors.red,
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+
+            content: const Padding(
+              padding: EdgeInsets.fromLTRB(35, 0, 35, 15),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.school,
+                    size: 150,
+                    color: Color(0xFF4A76F7),
+                  ),
+                  Text(
+                    "Want to join a class?",
+                    style: TextStyle(
+                        fontSize: 25,
+                        color: Color.fromARGB(255, 19, 27, 99),
+                        fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    "Enter the class code given to you by your instructor.",
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            actions: [
+              Column(
+                children: [
+                  TextField(
+                    controller: classCode,
+                    decoration: const InputDecoration(
+                      label: Text('Class code'),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                      fillColor: Colors.white,
+                      filled: true,
+                    ),
+                  ),
+                  const Gap(10),
+                  Center(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        QuickAlert.show(
+                          context: context,
+                          type: QuickAlertType.success,
+                          text: 'You successfully joined in the class',
+                          confirmBtnText: 'OK',
+                          onConfirmBtnTap: () {
+                            Navigator.of(context).pop();
+                            Navigator.of(context).pop();
+                          },
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4A76F7),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 40, vertical: 15),
+                      ),
+                      child: const Text(
+                        'Join class',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ],
+          );
+        },
+      );
+    }
 
     return Scaffold(
       drawer: StudentDrawer(userId: userId),
@@ -131,72 +246,80 @@ class StudentDashboardScreen extends StatelessWidget {
                           } else {
                             // Default card design for other items
                             return Center(
-                              child: Card(
-                                clipBehavior: Clip.antiAlias,
-                                color: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                  side: const BorderSide(
-                                    color: Color.fromARGB(255, 19, 27, 99),
-                                    width: 4,
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).push(MaterialPageRoute(
+                                      builder: (context) =>
+                                          const StudentViewModuleAnnouncement()));
+                                },
+                                child: Card(
+                                  clipBehavior: Clip.antiAlias,
+                                  color: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(15),
+                                    side: const BorderSide(
+                                      color: Color.fromARGB(255, 19, 27, 99),
+                                      width: 4,
+                                    ),
                                   ),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // COURSE CODE + PROGRAM-YEAR-BLOCK
-                                    Container(
-                                      width: 225,
-                                      height: 50,
-                                      decoration: const BoxDecoration(
-                                        color: primary,
-                                        borderRadius: BorderRadius.only(
-                                          bottomRight: Radius.circular(15),
-                                        ),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '${classes[index].courseCode} - IT ${classes[index].year}${classes[index].block}',
-                                          style: const TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.white,
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // COURSE CODE + PROGRAM-YEAR-BLOCK
+                                      Container(
+                                        width: 225,
+                                        height: 50,
+                                        decoration: const BoxDecoration(
+                                          color: primary,
+                                          borderRadius: BorderRadius.only(
+                                            bottomRight: Radius.circular(15),
                                           ),
                                         ),
-                                      ),
-                                    ),
-
-                                    // COURSE TITLE + JAVA ICON
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        SizedBox(
-                                          width: 155,
+                                        child: Center(
                                           child: Text(
-                                            classes[index].courseTitle,
-                                            textAlign: TextAlign.center,
+                                            '${classes[index].courseCode} - IT ${classes[index].year}${classes[index].block}',
                                             style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w800,
-                                              color: Colors.black,
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.white,
                                             ),
-                                            overflow: TextOverflow.clip,
                                           ),
                                         ),
-                                        Image.asset(
-                                          "assets/images/java-logo.png",
-                                          fit: BoxFit.contain,
-                                          height: 75,
-                                        )
-                                      ],
-                                    ),
+                                      ),
 
-                                    // INVISIBLE WIDGET TO CENTER THE COURSE TITLE
-                                    const Gap(25),
-                                  ],
+                                      // COURSE TITLE + JAVA ICON
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          SizedBox(
+                                            width: 155,
+                                            child: Text(
+                                              classes[index].courseTitle,
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w800,
+                                                color: Colors.black,
+                                              ),
+                                              overflow: TextOverflow.clip,
+                                            ),
+                                          ),
+                                          Image.asset(
+                                            "assets/images/java-logo.png",
+                                            fit: BoxFit.contain,
+                                            height: 75,
+                                          )
+                                        ],
+                                      ),
+
+                                      // INVISIBLE WIDGET TO CENTER THE COURSE TITLE
+                                      const Gap(25),
+                                    ],
+                                  ),
                                 ),
                               ),
                             );
