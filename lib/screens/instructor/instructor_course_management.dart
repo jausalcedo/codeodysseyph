@@ -49,7 +49,6 @@ class _InstructorCourseManagementScreenState
   }
 
   void addCourseOutline() async {
-    // TO DO
     // VALIDATE COURSE
     if (!formKey.currentState!.validate()) {
       return;
@@ -77,18 +76,18 @@ class _InstructorCourseManagementScreenState
       uploadOk = false;
     });
 
-    // Query for existing course outlines with the same courseCode and instructorId
+    // QUERY EXISTING COURSE OUTLINES WITH THE SAME SELECTED COURSE CODE AND INSTRUCTOR ID
     final querySnapshot = await FirebaseFirestore.instance
         .collection('courses')
         .where('courseCode', isEqualTo: selectedCourse)
         .where('instructorId', isEqualTo: widget.userId)
         .get();
 
-    // Determine the new version number
+    // DETERMINE VERSION NUMBER
     int newVersion = 1;
     if (querySnapshot.docs.isNotEmpty) {
       final versions = querySnapshot.docs.map((doc) {
-        return doc['version'] ?? 1; // Default to version 1 if not set
+        return doc['version'] ?? 1; // DEFAULT TO VERSION 1 IF NOT SET
       }).toList();
       newVersion = versions.reduce((a, b) => a > b ? a : b) + 1;
     }
