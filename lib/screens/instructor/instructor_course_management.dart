@@ -154,8 +154,8 @@ class _InstructorCourseManagementScreenState
     super.initState();
     courseStream = FirebaseFirestore.instance
         .collection('courses')
-        // .where('instructorId', isEqualTo: widget.userId)
-        .orderBy('timeStamp', descending: true)
+        .where('instructorId', isEqualTo: widget.userId)
+        // .orderBy('timeStamp', descending: true)
         .snapshots();
   }
 
@@ -316,7 +316,7 @@ class _InstructorCourseManagementScreenState
                                       return Card(
                                         child: ListTile(
                                           title: Text(
-                                              '${course.code} - ${course.title} '),
+                                              '${course.code} - ${course.title} v${courses[index]['version']}'),
                                         ),
                                       );
                                     },
