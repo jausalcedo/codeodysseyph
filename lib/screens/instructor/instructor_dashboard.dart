@@ -1,5 +1,6 @@
 import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
 import 'package:codeodysseyph/components/instructor/instructor_createClassSectionTitle.dart';
+import 'package:codeodysseyph/constants/courses.dart';
 import 'package:codeodysseyph/screens/instructor/instructor_studentPerformance.dart';
 import 'package:codeodysseyph/components/instructor/instructor_drawer.dart';
 import 'package:codeodysseyph/constants/colors.dart';
@@ -164,10 +165,10 @@ class InstructorDashboardScreen extends StatelessWidget {
                                 labelText: 'Select Course',
                                 border: OutlineInputBorder(),
                               ),
-                              items: ['OOP']
-                                  .map((year) => DropdownMenuItem(
-                                        value: year,
-                                        child: Text(year),
+                              items: courseList
+                                  .map((course) => DropdownMenuItem(
+                                        value: course.code,
+                                        child: Text(course.title),
                                       ))
                                   .toList(),
                               onChanged: (value) {},
@@ -364,9 +365,12 @@ class InstructorDashboardScreen extends StatelessWidget {
                             return Center(
                               child: GestureDetector(
                                 onTap: () {
-                                  Navigator.of(context).push(MaterialPageRoute(
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
                                       builder: (context) =>
-                                          const InstructorClassPerformance()));
+                                          const InstructorClassPerformance(),
+                                    ),
+                                  );
                                 },
                                 child: Card(
                                   clipBehavior: Clip.antiAlias,

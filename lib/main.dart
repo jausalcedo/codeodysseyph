@@ -20,9 +20,9 @@ class CodeOdyssey extends StatelessWidget {
     return MaterialApp(
       theme: ThemeData(
         fontFamily: GoogleFonts.poppins().fontFamily,
+        useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-
       home: const AuthChecker(),
     );
   }
