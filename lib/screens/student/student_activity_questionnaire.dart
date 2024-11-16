@@ -1,7 +1,4 @@
-import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
-import 'package:codeodysseyph/screens/instructor/module_viewer.dart';
 import 'package:flutter/material.dart';
-import 'package:gap/gap.dart';
 
 class ActivityQuestionnaire extends StatefulWidget {
   final String activityName;
@@ -50,9 +47,6 @@ class _InstructorClassPerformanceState extends State<ActivityQuestionnaire>
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 218, 218, 218),
       appBar: AppBar(
