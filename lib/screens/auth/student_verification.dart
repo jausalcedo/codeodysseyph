@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:codeodysseyph/constants/colors.dart';
+import 'package:codeodysseyph/screens/auth/auth_checker.dart';
 import 'package:codeodysseyph/screens/student/student_dashboard.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -60,6 +61,12 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen> {
 
   void goToLoginScreen() {
     _authService.signOut();
+    print('Logout Clicked');
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const AuthChecker(),
+      ),
+    );
   }
 
   @override

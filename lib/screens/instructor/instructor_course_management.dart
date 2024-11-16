@@ -4,11 +4,14 @@ import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
 import 'package:codeodysseyph/components/instructor/instructor_drawer.dart';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/constants/courses.dart';
+import 'package:codeodysseyph/screens/instructor/instructor_course_lesson_management.dart';
+import 'package:codeodysseyph/services/cloud_firestore_service.dart';
+import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 // import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:quickalert/quickalert.dart';
 
 // ignore: must_be_immutable
 class InstructorCourseManagementScreen extends StatefulWidget {
@@ -33,6 +36,9 @@ class _InstructorCourseManagementScreenState
   final formKey = GlobalKey<FormState>();
 
   late final Stream<QuerySnapshot> courseStream;
+
+  final _storageService = FirebaseStorageService();
+  final _firestoreService = CloudFirestoreService();
 
   void pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -76,82 +82,100 @@ class _InstructorCourseManagementScreenState
       uploadOk = false;
     });
 
-    // QUERY EXISTING COURSE OUTLINES WITH THE SAME SELECTED COURSE CODE AND INSTRUCTOR ID
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('courses')
-        .where('courseCode', isEqualTo: selectedCourse)
-        .where('instructorId', isEqualTo: widget.userId)
-        .get();
-
-    // DETERMINE VERSION NUMBER
-    int newVersion = 1;
-    if (querySnapshot.docs.isNotEmpty) {
-      final versions = querySnapshot.docs.map((doc) {
-        return doc['version'] ?? 1; // DEFAULT TO VERSION 1 IF NOT SET
-      }).toList();
-      newVersion = versions.reduce((a, b) => a > b ? a : b) + 1;
-    }
-
-    // UPLOAD FILE TO STORAGE AND GET DOWNLOAD URL
-    final downloadUrl = await uploadFile();
-
-    // SAVE TO DATABASE
-    await FirebaseFirestore.instance.collection('courses').add({
-      'syllabus': downloadUrl,
-      'courseCode': selectedCourse,
-      'instructorId': widget.userId,
-      'version': newVersion,
-      'timeStamp': FieldValue.serverTimestamp(),
-    }).then(
-      (_) {
-        final tempSelectedCourse =
-            courseList.firstWhere((element) => element.code == selectedCourse);
-
-        // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showMaterialBanner(
-          MaterialBanner(
-            content: Text(
-                '${tempSelectedCourse.code} - ${tempSelectedCourse.title} Course Outline Successfully Added!'),
-            actions: [
-              TextButton(
-                  onPressed:
-                      // ignore: use_build_context_synchronously
-                      ScaffoldMessenger.of(context).hideCurrentMaterialBanner,
-                  child: const Text('Dismiss'))
-            ],
-          ),
-        );
-
-        setState(() {
-          selectedCourse = null;
-          fileName = null;
-          fileBytes = null;
-          uploadOk = true;
-        });
-      },
-    );
-  }
-
-  Future<String> uploadFile() async {
-    try {
-      final timeStamp = DateTime.now().microsecondsSinceEpoch;
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('courses/syllabus/$timeStamp-$fileName');
-      final uploadTask = storageRef.putData(fileBytes!);
-
-      final snapshot = await uploadTask.whenComplete(() {});
-
-      return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      print('Failed to upload PDF: $e');
-      throw Exception('Error uploading PDF');
-    }
+    await _firestoreService
+        .addCourseOutline(
+      context,
+      selectedCourse!,
+      widget.userId,
+      fileName!,
+      fileBytes!,
+    )
+        .then((_) {
+      setState(() {
+        selectedCourse = null;
+        fileName = null;
+        fileBytes = null;
+        uploadOk = true;
+      });
+    });
   }
 
   void openCourseLessonManagementScreen(String documentId) {
-    // TO DO
-    print(documentId);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            InstructorCourseLessonManagement(courseId: documentId),
+      ),
+    );
+  }
+
+  void deleteCourseOutline(String courseId, String courseTitleWithVersion) {
+    // CONFIRM DELETION
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.warning,
+      title: 'Confirm Delete?\n$courseTitleWithVersion',
+      text: 'This action cannot be undone.',
+      confirmBtnText: 'Delete',
+      confirmBtnColor: Colors.red,
+      onConfirmBtnTap: () async {
+        // DISMISS CONFIRM BUTTON
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
+
+        // SHOW LOADING
+        QuickAlert.show(context: context, type: QuickAlertType.loading);
+
+        // GET SYLLABUS REFERENCE
+        await _firestoreService.getCourseData(courseId).then((result) async {
+          final courseData = result.data()!;
+          final syllabusRef = courseData['syllabus'];
+
+          // DELETE FROM FIREBASE STORAGE
+          // ignore: use_build_context_synchronously
+          await _storageService
+              .deleteFile(syllabusRef, courseTitleWithVersion)
+              .then((deleted) async {
+            if (deleted) {
+              await _firestoreService
+                  .deleteCourseOutline(
+                      // ignore: use_build_context_synchronously
+                      context,
+                      courseId,
+                      courseTitleWithVersion)
+                  .then((_) {
+                // DISMISS LOADING
+                // ignore: use_build_context_synchronously
+                Navigator.of(context).pop();
+              });
+            } else {
+              // DISMISS LOADING
+              // ignore: use_build_context_synchronously
+              Navigator.of(context).pop();
+
+              // SHOW ERROR MESSAGE
+              // ignore: use_build_context_synchronously
+              ScaffoldMessenger.of(context).showMaterialBanner(
+                MaterialBanner(
+                  content: Text(
+                      'There was an error deleting $courseTitleWithVersion.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => ScaffoldMessenger.of(context)
+                          .hideCurrentMaterialBanner(),
+                      child: const Text('Dismiss'),
+                    )
+                  ],
+                ),
+              );
+            }
+          });
+        });
+      },
+      showCancelBtn: true,
+      cancelBtnText: 'Cancel',
+      onCancelBtnTap: () => Navigator.of(context).pop(),
+    );
   }
 
   @override
@@ -310,7 +334,7 @@ class _InstructorCourseManagementScreenState
 
                                   final courses = snapshot.data!.docs;
 
-                                  final documents = snapshot.data!.docs
+                                  final courseIds = snapshot.data!.docs
                                       .map((doc) => doc.id)
                                       .toList();
 
@@ -322,13 +346,22 @@ class _InstructorCourseManagementScreenState
                                               c.code ==
                                               courses[index]['courseCode']);
 
+                                      final courseTitleWithVersion =
+                                          '${course.code} - ${course.title} v${courses[index]['version']}';
+
                                       return Card(
                                         child: ListTile(
                                           onTap: () =>
                                               openCourseLessonManagementScreen(
-                                                  documents[index]),
-                                          title: Text(
-                                              '${course.code} - ${course.title} v${courses[index]['version']}'),
+                                                  courseIds[index]),
+                                          title: Text(courseTitleWithVersion),
+                                          trailing: IconButton(
+                                              onPressed: () =>
+                                                  deleteCourseOutline(
+                                                      courseIds[index],
+                                                      courseTitleWithVersion),
+                                              icon: const Icon(
+                                                  Icons.delete_rounded)),
                                         ),
                                       );
                                     },

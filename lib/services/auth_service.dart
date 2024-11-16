@@ -9,10 +9,12 @@ class AuthService {
     return _auth.currentUser;
   }
 
+  // RELOAD CURRENT USER
   Future reload() async {
     await _auth.currentUser!.reload();
   }
 
+  // CHECK EMAIL VERIFICATION
   bool emailVerified() {
     return _auth.currentUser!.emailVerified;
   }

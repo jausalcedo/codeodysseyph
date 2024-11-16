@@ -3,16 +3,16 @@ import 'package:codeodysseyph/screens/instructor/module_viewer.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
-class activityQuestionnaire extends StatefulWidget {
+class ActivityQuestionnaire extends StatefulWidget {
   final String activityName;
-  const activityQuestionnaire({super.key, required this.activityName});
+  const ActivityQuestionnaire({super.key, required this.activityName});
 
   @override
-  State<activityQuestionnaire> createState() =>
+  State<ActivityQuestionnaire> createState() =>
       _InstructorClassPerformanceState();
 }
 
-class _InstructorClassPerformanceState extends State<activityQuestionnaire>
+class _InstructorClassPerformanceState extends State<ActivityQuestionnaire>
     with SingleTickerProviderStateMixin {
   final List<Map<String, dynamic>> questions = [
     {

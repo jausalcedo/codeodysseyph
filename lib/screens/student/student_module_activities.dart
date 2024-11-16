@@ -296,7 +296,7 @@ class _InstructorClassPerformanceState
                                                                         onTap:
                                                                             () {
                                                                           Navigator.of(context).push(MaterialPageRoute(
-                                                                              builder: (context) => const activityQuestionnaire(
+                                                                              builder: (context) => const ActivityQuestionnaire(
                                                                                     activityName: "Input/Output Statements Activity",
                                                                                   )));
                                                                         },
