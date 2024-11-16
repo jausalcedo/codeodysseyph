@@ -1,7 +1,7 @@
 import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
 import 'package:codeodysseyph/components/instructor/instructor_createClassSectionTitle.dart';
 import 'package:codeodysseyph/constants/courses.dart';
-import 'package:codeodysseyph/screens/instructor/instructor_studentPerformance.dart';
+import 'package:codeodysseyph/screens/instructor/instructor_class.dart';
 import 'package:codeodysseyph/components/instructor/instructor_drawer.dart';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/models/class.dart';
@@ -368,7 +368,10 @@ class InstructorDashboardScreen extends StatelessWidget {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
                                       builder: (context) =>
-                                          const InstructorClassPerformance(),
+                                          InstructorClassScreen(
+                                        courseCodeYearBlock:
+                                            '${classes[index].courseCode} - IT ${classes[index].year}${classes[index].block}',
+                                      ),
                                     ),
                                   );
                                 },
