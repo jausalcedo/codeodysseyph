@@ -1,6 +1,6 @@
 import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
 import 'package:codeodysseyph/screens/instructor/module_viewer.dart';
-import 'package:codeodysseyph/screens/student/student_activityQuestionnaire.dart';
+import 'package:codeodysseyph/screens/student/student_activity_questionnaire.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
