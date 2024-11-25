@@ -79,23 +79,6 @@ class _InstructorDrawerState extends State<InstructorDrawer> {
           ),
           const Gap(20),
 
-          // CODE PLAYGROUND
-          ListTile(
-            onTap: openCodePlaygroundScreen,
-            leading: const Icon(
-              Icons.code_rounded,
-              color: primary,
-            ),
-            title: const Text(
-              'Code Playground',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: primary,
-              ),
-            ),
-          ),
-          const Gap(20),
-
           // COURSE MANAGEMENT
           ListTile(
             onTap: openCourseManagementScreen,
@@ -105,6 +88,23 @@ class _InstructorDrawerState extends State<InstructorDrawer> {
             ),
             title: const Text(
               'Course Management',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: primary,
+              ),
+            ),
+          ),
+          const Gap(20),
+
+          // CODE PLAYGROUND
+          ListTile(
+            onTap: openCodePlaygroundScreen,
+            leading: const Icon(
+              Icons.code_rounded,
+              color: primary,
+            ),
+            title: const Text(
+              'Code Playground',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: primary,

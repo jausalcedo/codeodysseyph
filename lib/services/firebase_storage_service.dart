@@ -7,7 +7,10 @@ class FirebaseStorageService {
 
   // UPLOAD SYLLABUS FILE
   Future<String> uploadFile(
-      String storagePath, String fileName, Uint8List fileBytes) async {
+    String storagePath,
+    String fileName,
+    Uint8List fileBytes,
+  ) async {
     try {
       final timeStamp = DateTime.now().microsecondsSinceEpoch;
       final storageRef = FirebaseStorage.instance
@@ -23,12 +26,13 @@ class FirebaseStorageService {
     }
   }
 
-  Future<bool> deleteFile(String fullPath, String courseTitle) async {
+  Future<bool> deleteFile(List files) async {
     try {
-      final fileRef = storageRef.child(fullPath);
+      for (int i = 0; i < files.length; i++) {
+        final fileRef = storageRef.child(files[i]);
 
-      await fileRef.delete();
-
+        await fileRef.delete();
+      }
       return true;
     } catch (e) {
       // ignore: use_build_context_synchronously

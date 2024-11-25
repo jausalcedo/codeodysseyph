@@ -9,8 +9,13 @@ class CloudFirestoreService {
 
   final _storageService = FirebaseStorageService();
 
-  Future<void> addCourseOutline(BuildContext context, String selectedCourse,
-      String userId, String fileName, Uint8List fileBytes) async {
+  Future<void> addCourseOutline(
+    BuildContext context,
+    String selectedCourse,
+    String userId,
+    String fileName,
+    Uint8List fileBytes,
+  ) async {
     // QUERY EXISTING COURSE OUTLINES WITH THE SAME SELECTED COURSE CODE AND INSTRUCTOR ID
     final querySnapshot = await _firestore
         .collection('courses')
@@ -28,7 +33,7 @@ class CloudFirestoreService {
     }
 
     final fullPath = await _storageService.uploadFile(
-      'courses/syllabus/',
+      'courses/files/',
       fileName,
       fileBytes,
     );
@@ -38,7 +43,9 @@ class CloudFirestoreService {
       'courseCode': selectedCourse,
       'instructorId': userId,
       'version': newVersion,
+      'lessons': [],
       'timeStamp': FieldValue.serverTimestamp(),
+      'files': [fullPath]
     }).then((_) {
       final tempSelectedCourse =
           courseList.firstWhere((element) => element.code == selectedCourse);
@@ -61,12 +68,16 @@ class CloudFirestoreService {
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> getCourseData(
-      String courseId) async {
+    String courseId,
+  ) async {
     return await _firestore.collection('courses').doc(courseId).get();
   }
 
   Future<void> deleteCourseOutline(
-      BuildContext context, String courseId, String courseTitle) async {
+    BuildContext context,
+    String courseId,
+    String courseTitle,
+  ) async {
     try {
       await _firestore.collection('courses').doc(courseId).delete().then((_) {
         // ignore: use_build_context_synchronously
@@ -90,6 +101,76 @@ class CloudFirestoreService {
         MaterialBanner(
           content: Text(
               'There was an error deleting $courseTitle in Firestore: $e.'),
+          actions: [
+            TextButton(
+              onPressed:
+                  // ignore: use_build_context_synchronously
+                  ScaffoldMessenger.of(context).hideCurrentMaterialBanner,
+              child: const Text('Dismiss'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<void> addToFiles(String courseId, String fullPath) async {
+    await _firestore.collection('courses').doc(courseId).update({
+      'files': FieldValue.arrayUnion([fullPath]),
+    });
+  }
+
+  Future<void> addLesson(
+    BuildContext context,
+    String courseId,
+    String lessonTitle,
+    String fileName,
+    Uint8List fileBytes,
+    String activityType,
+    dynamic content,
+  ) async {
+    try {
+      final learningMaterialPath = await _storageService.uploadFile(
+        'courses/files/',
+        fileName,
+        fileBytes,
+      );
+
+      await addToFiles(courseId, learningMaterialPath);
+
+      await _firestore.collection('courses').doc(courseId).update({
+        'lessons': FieldValue.arrayUnion([
+          {
+            'title': lessonTitle,
+            'learningMaterial': learningMaterialPath,
+            'activityType': activityType,
+            'setDate': false,
+            'content': content,
+          }
+        ])
+      }).then((_) {
+        // ignore: use_build_context_synchronously
+
+        ScaffoldMessenger.of(context).showMaterialBanner(
+          MaterialBanner(
+            content: Text('$lessonTitle Successfully Added.'),
+            actions: [
+              TextButton(
+                onPressed:
+                    // ignore: use_build_context_synchronously
+                    ScaffoldMessenger.of(context).hideCurrentMaterialBanner,
+                child: const Text('Dismiss'),
+              ),
+            ],
+          ),
+        );
+      });
+    } on FirebaseException catch (e) {
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showMaterialBanner(
+        MaterialBanner(
+          content:
+              Text('There was an error adding $lessonTitle in Firestore: $e.'),
           actions: [
             TextButton(
               onPressed:

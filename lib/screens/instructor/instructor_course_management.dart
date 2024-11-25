@@ -8,7 +8,6 @@ import 'package:codeodysseyph/screens/instructor/instructor_course_lesson_manage
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:file_picker/file_picker.dart';
-// import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:quickalert/quickalert.dart';
@@ -42,9 +41,11 @@ class _InstructorCourseManagementScreenState
 
   void pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
-        allowMultiple: false,
-        allowedExtensions: ['pdf', 'pptx', 'ppt'],
-        type: FileType.custom);
+      allowMultiple: false,
+      // allowedExtensions: ['pdf', 'pptx', 'ppt'],
+      allowedExtensions: ['pdf'],
+      type: FileType.custom,
+    );
 
     if (result != null) {
       setState(() {
@@ -129,13 +130,11 @@ class _InstructorCourseManagementScreenState
         // GET SYLLABUS REFERENCE
         await _firestoreService.getCourseData(courseId).then((result) async {
           final courseData = result.data()!;
-          final syllabusRef = courseData['syllabus'];
+          final syllabusRef = courseData['files'];
 
           // DELETE FROM FIREBASE STORAGE
           // ignore: use_build_context_synchronously
-          await _storageService
-              .deleteFile(syllabusRef, courseTitleWithVersion)
-              .then((deleted) async {
+          await _storageService.deleteFile(syllabusRef).then((deleted) async {
             if (deleted) {
               await _firestoreService
                   .deleteCourseOutline(
