@@ -24,6 +24,7 @@ class StudentDashboardScreen extends StatelessWidget {
       courseTitle: 'Fundamentals of Programming',
       year: '1',
       block: 'A',
+      instructorId: 'ewan',
     ),
     Class(
       classCode: 'PSU-URD-0002',
@@ -31,6 +32,7 @@ class StudentDashboardScreen extends StatelessWidget {
       courseTitle: 'Intermediate Programming',
       year: '1',
       block: 'A',
+      instructorId: 'ewan',
     ),
     Class(
       classCode: 'PSU-URD-0003',
@@ -38,6 +40,7 @@ class StudentDashboardScreen extends StatelessWidget {
       courseTitle: 'Data Structures and Algorithms',
       year: '1',
       block: 'A',
+      instructorId: 'ewan',
     ),
     Class(
       classCode: 'PSU-URD-0004',
@@ -45,14 +48,130 @@ class StudentDashboardScreen extends StatelessWidget {
       courseTitle: 'Object Oriented Programming',
       year: '1',
       block: 'A',
+      instructorId: 'ewan',
     ),
   ];
 
   final authService = AuthService();
 
+  final classCodeController = TextEditingController();
+
+  void openJoinClassModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          titlePadding: const EdgeInsets.only(top: 15, bottom: 0),
+          // ALERT DIALOG TITLE
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                '',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color.fromARGB(255, 19, 27, 99),
+                ),
+              ),
+
+              // CLOSE BUTTON
+              IconButton(
+                icon: const Icon(
+                  Icons.close,
+                  color: Colors.red,
+                ),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+
+          content: const Padding(
+            padding: EdgeInsets.fromLTRB(35, 0, 35, 15),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.school,
+                  size: 150,
+                  color: Color(0xFF4A76F7),
+                ),
+                Text(
+                  "Want to join a class?",
+                  style: TextStyle(
+                      fontSize: 25,
+                      color: Color.fromARGB(255, 19, 27, 99),
+                      fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  "Enter the class code given to you by your instructor.",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          actions: [
+            Column(
+              children: [
+                TextField(
+                  controller: classCodeController,
+                  decoration: const InputDecoration(
+                    label: Text('Class code'),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    fillColor: Colors.white,
+                    filled: true,
+                  ),
+                ),
+                const Gap(10),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      QuickAlert.show(
+                        context: context,
+                        type: QuickAlertType.success,
+                        text: 'You successfully joined in the class',
+                        confirmBtnText: 'OK',
+                        onConfirmBtnTap: () {
+                          Navigator.of(context).pop();
+                          Navigator.of(context).pop();
+                        },
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4A76F7),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 40, vertical: 15),
+                    ),
+                    child: const Text(
+                      'Join class',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    TextEditingController classCode = TextEditingController();
     // ADD DUMMY CLASS FOR JOIN CLASS BUTTON
     classes.add(Class(
       classCode: '',
@@ -60,121 +179,8 @@ class StudentDashboardScreen extends StatelessWidget {
       courseTitle: '',
       year: '',
       block: '',
+      instructorId: '',
     ));
-
-    void openJoinClassModal() {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            titlePadding: const EdgeInsets.only(top: 15, bottom: 0),
-            // ALERT DIALOG TITLE
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Text(
-                  '',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color.fromARGB(255, 19, 27, 99),
-                  ),
-                ),
-
-                // CLOSE BUTTON
-                IconButton(
-                  icon: const Icon(
-                    Icons.close,
-                    color: Colors.red,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-
-            content: const Padding(
-              padding: EdgeInsets.fromLTRB(35, 0, 35, 15),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.school,
-                    size: 150,
-                    color: Color(0xFF4A76F7),
-                  ),
-                  Text(
-                    "Want to join a class?",
-                    style: TextStyle(
-                        fontSize: 25,
-                        color: Color.fromARGB(255, 19, 27, 99),
-                        fontWeight: FontWeight.w800),
-                  ),
-                  Text(
-                    "Enter the class code given to you by your instructor.",
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: Colors.black,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            actions: [
-              Column(
-                children: [
-                  TextField(
-                    controller: classCode,
-                    decoration: const InputDecoration(
-                      label: Text('Class code'),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                      ),
-                      fillColor: Colors.white,
-                      filled: true,
-                    ),
-                  ),
-                  const Gap(10),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        QuickAlert.show(
-                          context: context,
-                          type: QuickAlertType.success,
-                          text: 'You successfully joined in the class',
-                          confirmBtnText: 'OK',
-                          onConfirmBtnTap: () {
-                            Navigator.of(context).pop();
-                            Navigator.of(context).pop();
-                          },
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4A76F7),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 40, vertical: 15),
-                      ),
-                      child: const Text(
-                        'Join class',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-              ),
-            ],
-          );
-        },
-      );
-    }
 
     return Scaffold(
       drawer: StudentDrawer(userId: userId),
@@ -222,7 +228,7 @@ class StudentDashboardScreen extends StatelessWidget {
                           if (index == classes.length - 1) {
                             // CREATE CLASS CARD
                             return GestureDetector(
-                              onTap: openJoinClassModal,
+                              onTap: () => openJoinClassModal(context),
                               child: DottedBorder(
                                 color: black50,
                                 borderType: BorderType.RRect,

@@ -4,6 +4,7 @@ class Class {
   final String courseTitle;
   final String year;
   final String block;
+  final String instructorId;
 
   Class({
     required this.classCode,
@@ -11,5 +12,6 @@ class Class {
     required this.courseTitle,
     required this.year,
     required this.block,
+    required this.instructorId,
   });
 }

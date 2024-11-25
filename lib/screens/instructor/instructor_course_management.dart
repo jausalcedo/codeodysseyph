@@ -10,6 +10,7 @@ import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:intl/intl.dart';
 import 'package:quickalert/quickalert.dart';
 
 // ignore: must_be_immutable
@@ -354,6 +355,8 @@ class _InstructorCourseManagementScreenState
                                               openCourseLessonManagementScreen(
                                                   courseIds[index]),
                                           title: Text(courseTitleWithVersion),
+                                          subtitle: Text(
+                                              'Date Created: ${DateFormat.yMMMMEEEEd().add_jm().format((courses[index]['timeStamp'] as Timestamp).toDate())}'),
                                           trailing: IconButton(
                                               onPressed: () =>
                                                   deleteCourseOutline(

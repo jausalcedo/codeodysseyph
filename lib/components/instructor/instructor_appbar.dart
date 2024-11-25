@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/screens/auth/auth_checker.dart';
 import 'package:codeodysseyph/screens/instructor/instructor_profile.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:intl/intl.dart';
 
 class InstructorAppbar extends StatefulWidget {
   const InstructorAppbar({super.key});
@@ -32,6 +35,29 @@ class _InstructorAppbarState extends State<InstructorAppbar> {
     );
   }
 
+  late DateTime currentTime;
+  late Timer timer;
+
+  @override
+  void initState() {
+    super.initState();
+    currentTime = DateTime.now();
+    timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (timer) {
+        setState(() {
+          currentTime = DateTime.now();
+        });
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    timer.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppBar(
@@ -45,11 +71,13 @@ class _InstructorAppbarState extends State<InstructorAppbar> {
         height: 75,
       ),
       actions: [
-        const Icon(
-          Icons.notifications_rounded,
-          size: 30,
-        ),
+        Text(DateFormat.yMMMMEEEEd().add_jms().format(currentTime)),
         const Gap(25),
+        // const Icon(
+        //   Icons.notifications_rounded,
+        //   size: 30,
+        // ),
+        // const Gap(25),
         const TextButton(
           style: ButtonStyle(
               backgroundColor: WidgetStatePropertyAll(accent),

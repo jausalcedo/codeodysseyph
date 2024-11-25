@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:quickalert/quickalert.dart';
 
+// ignore: must_be_immutable
 class InstructorDashboardScreen extends StatelessWidget {
   InstructorDashboardScreen({super.key, required this.userId});
 
@@ -19,156 +20,112 @@ class InstructorDashboardScreen extends StatelessWidget {
 
   final List<Class> classes = [
     Class(
-      classCode: 'PSU-URD-0001',
-      courseCode: 'CC102',
-      courseTitle: 'Fundamentals of Programming',
-      year: '1',
-      block: 'A',
-    ),
+        classCode: 'PSU-URD-0001',
+        courseCode: 'CC102',
+        courseTitle: 'Fundamentals of Programming',
+        year: '1',
+        block: 'A',
+        instructorId: 'ewan'),
     Class(
-      classCode: 'PSU-URD-0002',
-      courseCode: 'CC103',
-      courseTitle: 'Intermediate Programming',
-      year: '1',
-      block: 'A',
-    ),
+        classCode: 'PSU-URD-0002',
+        courseCode: 'CC103',
+        courseTitle: 'Intermediate Programming',
+        year: '1',
+        block: 'A',
+        instructorId: 'ewan'),
     Class(
-      classCode: 'PSU-URD-0003',
-      courseCode: 'CC104',
-      courseTitle: 'Data Structures and Algorithms',
-      year: '1',
-      block: 'A',
-    ),
+        classCode: 'PSU-URD-0003',
+        courseCode: 'CC104',
+        courseTitle: 'Data Structures and Algorithms',
+        year: '1',
+        block: 'A',
+        instructorId: 'ewan'),
     Class(
-      classCode: 'PSU-URD-0004',
-      courseCode: 'OOP101',
-      courseTitle: 'Object Oriented Programming',
-      year: '1',
-      block: 'A',
-    ),
+        classCode: 'PSU-URD-0004',
+        courseCode: 'OOP101',
+        courseTitle: 'Object Oriented Programming',
+        year: '1',
+        block: 'A',
+        instructorId: 'ewan'),
   ];
 
-  @override
-  Widget build(BuildContext context) {
-    TextEditingController fname = TextEditingController();
-    TextEditingController lname = TextEditingController();
+  void showAddClass(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          titlePadding: const EdgeInsets.only(top: 20, bottom: 0),
+          // ALERT DIALOG TITLE
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // INVINCIBLE WIDGET
+              const Gap(0),
 
-    void showAddClass() {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            titlePadding: const EdgeInsets.only(top: 20, bottom: 0),
-            // ALERT DIALOG TITLE
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // INVINCIBLE WIDGET
-                const Gap(0),
-
-                // ALERT DIALOG TITLE
-                const Text(
-                  'Create Class',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color.fromARGB(255, 19, 27, 99),
-                  ),
+              // ALERT DIALOG TITLE
+              const Text(
+                'Create Class',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color.fromARGB(255, 19, 27, 99),
                 ),
+              ),
 
-                // CLOSE BUTTON
-                IconButton(
-                  icon: const Icon(
-                    Icons.close,
-                    color: Colors.red,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
+              // CLOSE BUTTON
+              IconButton(
+                icon: const Icon(
+                  Icons.close,
+                  color: Colors.red,
                 ),
-              ],
-            ),
-            // CREATE CLASS STEPS
-            content: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(35, 0, 35, 15),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // SELECT PROGRAMMING LANGUAGE
-                    Container(
-                      width: 800,
-                      color: Colors.white,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            width: 2,
-                            color: const Color.fromARGB(255, 19, 27, 99),
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        width: 500,
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            children: [
-                              // SECTION TITLE
-                              const CreateClassSectionTitle(
-                                number: '1',
-                                sectionTitle: 'Select Programming Language',
-                              ),
-                              const Gap(10),
-                              // DROPDOWN
-                              DropdownButtonFormField<String>(
-                                decoration: const InputDecoration(
-                                  labelText: 'Select Programming Language',
-                                  border: OutlineInputBorder(),
-                                ),
-                                items: ['Java']
-                                    .map((language) => DropdownMenuItem(
-                                          value: language,
-                                          child: Text(language),
-                                        ))
-                                    .toList(),
-                                onChanged: (value) {},
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const Gap(20),
-                    // SELECT COURSE
-                    Container(
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+          // CREATE CLASS STEPS
+          content: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(35, 0, 35, 15),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // SELECT PROGRAMMING LANGUAGE
+                  Container(
+                    width: 800,
+                    color: Colors.white,
+                    child: Container(
                       decoration: BoxDecoration(
                         border: Border.all(
                           width: 2,
                           color: const Color.fromARGB(255, 19, 27, 99),
                         ),
-                        color: Colors.white,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      width: 800,
+                      width: 500,
                       child: Padding(
-                        padding: const EdgeInsets.all(20.0),
+                        padding: const EdgeInsets.all(20),
                         child: Column(
                           children: [
+                            // SECTION TITLE
                             const CreateClassSectionTitle(
-                              number: '2',
-                              sectionTitle: 'Select Course',
+                              number: '1',
+                              sectionTitle: 'Select Programming Language',
                             ),
                             const Gap(10),
+                            // DROPDOWN
                             DropdownButtonFormField<String>(
                               decoration: const InputDecoration(
-                                labelText: 'Select Course',
+                                labelText: 'Select Programming Language',
                                 border: OutlineInputBorder(),
                               ),
-                              items: courseList
-                                  .map((course) => DropdownMenuItem(
-                                        value: course.code,
-                                        child: Text(course.title),
+                              items: ['Java']
+                                  .map((language) => DropdownMenuItem(
+                                        value: language,
+                                        child: Text(language),
                                       ))
                                   .toList(),
                               onChanged: (value) {},
@@ -177,111 +134,149 @@ class InstructorDashboardScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Gap(20),
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          width: 2,
-                          color: const Color.fromARGB(255, 19, 27, 99),
-                        ),
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
+                  ),
+                  const Gap(20),
+                  // SELECT COURSE
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        width: 2,
+                        color: const Color.fromARGB(255, 19, 27, 99),
                       ),
-                      width: 800,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const CreateClassSectionTitle(
-                              number: '3',
-                              sectionTitle: 'Select Year and Block',
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    width: 800,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          const CreateClassSectionTitle(
+                            number: '2',
+                            sectionTitle: 'Select Course',
+                          ),
+                          const Gap(10),
+                          DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(
+                              labelText: 'Select Course',
+                              border: OutlineInputBorder(),
                             ),
-                            const Gap(10),
-                            Row(
-                              children: [
-                                SizedBox(
-                                  width: 200,
-                                  child: DropdownButtonFormField<String>(
-                                    decoration: const InputDecoration(
-                                      labelText: 'Select Year',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    items: ['1', '2', '3', '4']
-                                        .map((year) => DropdownMenuItem(
-                                              value: year,
-                                              child: Text(year),
-                                            ))
-                                        .toList(),
-                                    onChanged: (value) {},
-                                  ),
-                                ),
-                                const Gap(8),
-                                SizedBox(
-                                  width: 200,
-                                  child: DropdownButtonFormField<String>(
-                                    decoration: const InputDecoration(
-                                      labelText: 'Select Block',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    items: ['A', 'B', 'C', 'D', 'E']
-                                        .map((year) => DropdownMenuItem(
-                                              value: year,
-                                              child: Text(year),
-                                            ))
-                                        .toList(),
-                                    onChanged: (value) {},
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                            items: courseList
+                                .map((course) => DropdownMenuItem(
+                                      value: course.code,
+                                      child: Text(course.title),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {},
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
+                  const Gap(20),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        width: 2,
+                        color: const Color.fromARGB(255, 19, 27, 99),
+                      ),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    width: 800,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const CreateClassSectionTitle(
+                            number: '3',
+                            sectionTitle: 'Select Year and Block',
+                          ),
+                          const Gap(10),
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: 200,
+                                child: DropdownButtonFormField<String>(
+                                  decoration: const InputDecoration(
+                                    labelText: 'Select Year',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  items: ['1', '2', '3', '4']
+                                      .map((year) => DropdownMenuItem(
+                                            value: year,
+                                            child: Text(year),
+                                          ))
+                                      .toList(),
+                                  onChanged: (value) {},
+                                ),
+                              ),
+                              const Gap(8),
+                              SizedBox(
+                                width: 200,
+                                child: DropdownButtonFormField<String>(
+                                  decoration: const InputDecoration(
+                                    labelText: 'Select Block',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  items: ['A', 'B', 'C', 'D', 'E']
+                                      .map((year) => DropdownMenuItem(
+                                            value: year,
+                                            child: Text(year),
+                                          ))
+                                      .toList(),
+                                  onChanged: (value) {},
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  QuickAlert.show(
+                    context: context,
+                    type: QuickAlertType.success,
+                    text: 'Class is created successfully!',
+                    confirmBtnText: 'OK',
+                    onConfirmBtnTap: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pop();
+                    },
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A76F7),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                ),
+                child: const Text(
+                  'Save',
+                  style: TextStyle(fontSize: 18, color: Colors.white),
                 ),
               ),
             ),
-            actions: [
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    print(fname.text);
-                    print(lname.text);
+            const SizedBox(height: 10),
+          ],
+        );
+      },
+    );
+  }
 
-                    QuickAlert.show(
-                      context: context,
-                      type: QuickAlertType.success,
-                      text: 'Class is created successfully!',
-                      confirmBtnText: 'OK',
-                      onConfirmBtnTap: () {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).pop();
-                      },
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A76F7),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 40, vertical: 15),
-                  ),
-                  child: const Text(
-                    'Save',
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
-          );
-        },
-      );
-    }
-
+  @override
+  Widget build(BuildContext context) {
     // ADD DUMMY CLASS FOR CREATE CLASS BUTTON
     classes.add(Class(
       classCode: '',
@@ -289,6 +284,7 @@ class InstructorDashboardScreen extends StatelessWidget {
       courseTitle: '',
       year: '',
       block: '',
+      instructorId: '',
     ));
 
     return Scaffold(
@@ -337,9 +333,7 @@ class InstructorDashboardScreen extends StatelessWidget {
                           if (index == classes.length - 1) {
                             // CREATE CLASS CARD
                             return GestureDetector(
-                              onTap: () {
-                                showAddClass();
-                              },
+                              onTap: () => showAddClass(context),
                               child: DottedBorder(
                                 color: black50,
                                 borderType: BorderType.RRect,

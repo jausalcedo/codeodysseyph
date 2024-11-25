@@ -144,13 +144,11 @@ class CloudFirestoreService {
             'title': lessonTitle,
             'learningMaterial': learningMaterialPath,
             'activityType': activityType,
-            'setDate': false,
             'content': content,
           }
         ])
       }).then((_) {
         // ignore: use_build_context_synchronously
-
         ScaffoldMessenger.of(context).showMaterialBanner(
           MaterialBanner(
             content: Text('$lessonTitle Successfully Added.'),
