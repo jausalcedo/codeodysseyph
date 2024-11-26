@@ -9,6 +9,20 @@ class CloudFirestoreService {
 
   final _storageService = FirebaseStorageService();
 
+  void _showBanner(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showMaterialBanner(
+      MaterialBanner(
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: ScaffoldMessenger.of(context).hideCurrentMaterialBanner,
+            child: const Text('Dismiss'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> addCourseOutline(
     BuildContext context,
     String selectedCourse,
@@ -50,19 +64,10 @@ class CloudFirestoreService {
       final tempSelectedCourse =
           courseList.firstWhere((element) => element.code == selectedCourse);
 
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showMaterialBanner(
-        MaterialBanner(
-          content: Text(
-              '${tempSelectedCourse.code} - ${tempSelectedCourse.title} Course Outline Successfully Added!'),
-          actions: [
-            TextButton(
-                onPressed:
-                    // ignore: use_build_context_synchronously
-                    ScaffoldMessenger.of(context).hideCurrentMaterialBanner,
-                child: const Text('Dismiss'))
-          ],
-        ),
+      _showBanner(
+        // ignore: use_build_context_synchronously
+        context,
+        '${tempSelectedCourse.code} - ${tempSelectedCourse.title} Course Outline Successfully Added!',
       );
     });
   }
@@ -81,36 +86,12 @@ class CloudFirestoreService {
     try {
       await _firestore.collection('courses').doc(courseId).delete().then((_) {
         // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showMaterialBanner(
-          MaterialBanner(
-            content: Text('$courseTitle Successfully Deleted.'),
-            actions: [
-              TextButton(
-                onPressed:
-                    // ignore: use_build_context_synchronously
-                    ScaffoldMessenger.of(context).hideCurrentMaterialBanner,
-                child: const Text('Dismiss'),
-              ),
-            ],
-          ),
-        );
+        _showBanner(context, '$courseTitle Successfully Deleted.');
       });
     } on FirebaseException catch (e) {
       // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showMaterialBanner(
-        MaterialBanner(
-          content: Text(
-              'There was an error deleting $courseTitle in Firestore: $e.'),
-          actions: [
-            TextButton(
-              onPressed:
-                  // ignore: use_build_context_synchronously
-                  ScaffoldMessenger.of(context).hideCurrentMaterialBanner,
-              child: const Text('Dismiss'),
-            ),
-          ],
-        ),
-      );
+      _showBanner(context,
+          'There was an error deleting $courseTitle in Firestore: $e.');
     }
   }
 
@@ -149,36 +130,54 @@ class CloudFirestoreService {
         ])
       }).then((_) {
         // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showMaterialBanner(
-          MaterialBanner(
-            content: Text('$lessonTitle Successfully Added.'),
-            actions: [
-              TextButton(
-                onPressed:
-                    // ignore: use_build_context_synchronously
-                    ScaffoldMessenger.of(context).hideCurrentMaterialBanner,
-                child: const Text('Dismiss'),
-              ),
-            ],
-          ),
-        );
+        _showBanner(context, '$lessonTitle Successfully Added.');
       });
     } on FirebaseException catch (e) {
       // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showMaterialBanner(
-        MaterialBanner(
-          content:
-              Text('There was an error adding $lessonTitle in Firestore: $e.'),
-          actions: [
-            TextButton(
-              onPressed:
-                  // ignore: use_build_context_synchronously
-                  ScaffoldMessenger.of(context).hideCurrentMaterialBanner,
-              child: const Text('Dismiss'),
-            ),
-          ],
-        ),
+      _showBanner(
+          context, 'There was an error adding $lessonTitle in Firestore: $e.');
+    }
+  }
+
+  Future<void> deleteLesson(
+    BuildContext context,
+    String courseId,
+    Map<String, dynamic> lesson,
+  ) async {
+    try {
+      // REMOVE FROM COURSE FILES
+      await _firestore.collection('courses').doc(courseId).update({
+        'files': FieldValue.arrayRemove([lesson['learningMaterial']])
+      }).then((_) async {
+        // REMOVE FROM STORAGE
+        await _storageService
+            .deleteFile([lesson['learningMaterial']]).then((_) async {
+          // DELETE FROM LESSONS
+          await _firestore.collection('courses').doc(courseId).update({
+            'lessons': FieldValue.arrayRemove([lesson])
+          }).then((_) {
+            _showBanner(
+              // ignore: use_build_context_synchronously
+              context,
+              '${lesson['title']} has been successfully deleted.',
+            );
+          });
+        });
+      });
+    } on FirebaseException catch (ex) {
+      _showBanner(
+        // ignore: use_build_context_synchronously
+        context,
+        'An error occured while trying to delete ${lesson['title']}: $ex',
       );
     }
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> getCourses(
+      String instructorId) async {
+    return await _firestore
+        .collection('courses')
+        .where('instructorId', isEqualTo: instructorId)
+        .get();
   }
 }

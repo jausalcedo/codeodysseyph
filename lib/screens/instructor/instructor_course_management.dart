@@ -309,7 +309,13 @@ class _InstructorCourseManagementScreenState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // SECTION TITLE
-                            const Text('My Course Outlines'),
+                            const Text(
+                              'My Course Outlines',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             const Gap(10),
 
                             // COURSE LIST
@@ -358,12 +364,16 @@ class _InstructorCourseManagementScreenState
                                           subtitle: Text(
                                               'Date Created: ${DateFormat.yMMMMEEEEd().add_jm().format((courses[index]['timeStamp'] as Timestamp).toDate())}'),
                                           trailing: IconButton(
-                                              onPressed: () =>
-                                                  deleteCourseOutline(
-                                                      courseIds[index],
-                                                      courseTitleWithVersion),
-                                              icon: const Icon(
-                                                  Icons.delete_rounded)),
+                                            onPressed: () =>
+                                                deleteCourseOutline(
+                                              courseIds[index],
+                                              courseTitleWithVersion,
+                                            ),
+                                            icon: const Icon(
+                                              Icons.delete_rounded,
+                                              color: Colors.red,
+                                            ),
+                                          ),
                                         ),
                                       );
                                     },

@@ -1,12 +1,12 @@
-import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/constants/courses.dart';
 import 'package:codeodysseyph/screens/instructor/instructor_add_lesson.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:quickalert/quickalert.dart';
 
 class InstructorCourseLessonManagement extends StatefulWidget {
   const InstructorCourseLessonManagement({
@@ -47,29 +47,41 @@ class _InstructorCourseLessonManagementState
     );
   }
 
-  Uint8List? lessonFileBytes;
-  String? lessonFileName;
+  // SERVICES
+  final firestoreService = CloudFirestoreService();
 
-  void pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
-      // allowedExtensions: ['pdf', 'pptx', 'ppt'],
-      allowedExtensions: ['pdf'],
-      type: FileType.custom,
+  Future<void> deleteLesson(Map<String, dynamic> lesson) async {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.warning,
+      title: 'Confirm Delete?\n${lesson['title']}',
+      text: 'This action cannot be undone.',
+      confirmBtnText: 'Delete',
+      confirmBtnColor: Colors.red,
+      onConfirmBtnTap: () async {
+        // DISMISS CONFIRM BUTTON
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
+
+        // SHOW LOADING
+        QuickAlert.show(
+          context: context,
+          type: QuickAlertType.loading,
+        );
+
+        await firestoreService
+            .deleteLesson(context, widget.courseId, lesson)
+            .then((_) {
+          // DISMISS LOADING MODAL
+          // ignore: use_build_context_synchronously
+          Navigator.of(context).pop();
+        });
+      },
+      showCancelBtn: true,
+      cancelBtnText: 'Cancel',
+      onCancelBtnTap: Navigator.of(context).pop,
     );
-
-    if (result != null) {
-      setState(() {
-        lessonFileBytes = result.files.first.bytes;
-        lessonFileName = result.files.first.name;
-      });
-    }
   }
-
-  String activityType = 'Multiple Choice';
-  final questionController = TextEditingController();
-  final choiceControllers = List.generate(4, (_) => TextEditingController());
-  final correctAnswerController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +157,7 @@ class _InstructorCourseLessonManagementState
                             ],
                           ),
 
-                          // LESSONS FUTURE BUILDER
+                          // LESSONS LISTVIEW
                           lessonList.length == 0
                               ? const Expanded(
                                   child: Column(
@@ -165,6 +177,14 @@ class _InstructorCourseLessonManagementState
                                       child: ListTile(
                                         title: Text(
                                             'Lesson ${index + 1}: ${lessonList[index]['title']}'),
+                                        trailing: IconButton(
+                                          onPressed: () =>
+                                              deleteLesson(lessonList[index]),
+                                          icon: const Icon(
+                                            Icons.delete_rounded,
+                                            color: Colors.red,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),

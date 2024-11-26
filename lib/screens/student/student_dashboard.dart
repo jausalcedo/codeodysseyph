@@ -4,7 +4,6 @@ import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/models/class.dart';
 import 'package:codeodysseyph/screens/student/student_module_activities.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
-import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:quickalert/quickalert.dart';
@@ -172,16 +171,6 @@ class StudentDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ADD DUMMY CLASS FOR JOIN CLASS BUTTON
-    classes.add(Class(
-      classCode: '',
-      courseCode: '',
-      courseTitle: '',
-      year: '',
-      block: '',
-      instructorId: '',
-    ));
-
     return Scaffold(
       drawer: StudentDrawer(userId: userId),
       appBar: const PreferredSize(
@@ -224,112 +213,84 @@ class StudentDashboardScreen extends StatelessWidget {
                         ),
                         itemCount: classes.length,
                         itemBuilder: (context, index) {
-                          // Check if it's the last item
-                          if (index == classes.length - 1) {
-                            // CREATE CLASS CARD
-                            return GestureDetector(
-                              onTap: () => openJoinClassModal(context),
-                              child: DottedBorder(
-                                color: black50,
-                                borderType: BorderType.RRect,
-                                radius: const Radius.circular(25),
-                                strokeWidth: 3,
-                                dashPattern: const [10, 5],
-                                child: const Card(
-                                  child: Center(
-                                    child: Text(
-                                      "+ Join Class",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: black50,
-                                      ),
-                                    ),
+                          // OPEN CLASS
+                          return Center(
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).push(MaterialPageRoute(
+                                    builder: (context) =>
+                                        const StudentViewModuleAnnouncement()));
+                              },
+                              child: Card(
+                                clipBehavior: Clip.antiAlias,
+                                color: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                  side: const BorderSide(
+                                    color: Color.fromARGB(255, 19, 27, 99),
+                                    width: 4,
                                   ),
                                 ),
-                              ),
-                            );
-                          } else {
-                            // Default card design for other items
-                            return Center(
-                              child: GestureDetector(
-                                onTap: () {
-                                  Navigator.of(context).push(MaterialPageRoute(
-                                      builder: (context) =>
-                                          const StudentViewModuleAnnouncement()));
-                                },
-                                child: Card(
-                                  clipBehavior: Clip.antiAlias,
-                                  color: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    side: const BorderSide(
-                                      color: Color.fromARGB(255, 19, 27, 99),
-                                      width: 4,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // COURSE CODE + PROGRAM-YEAR-BLOCK
-                                      Container(
-                                        width: 225,
-                                        height: 50,
-                                        decoration: const BoxDecoration(
-                                          color: primary,
-                                          borderRadius: BorderRadius.only(
-                                            bottomRight: Radius.circular(15),
+                                child: Column(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // COURSE CODE + PROGRAM-YEAR-BLOCK
+                                    Container(
+                                      width: 225,
+                                      height: 50,
+                                      decoration: const BoxDecoration(
+                                        color: primary,
+                                        borderRadius: BorderRadius.only(
+                                          bottomRight: Radius.circular(15),
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '${classes[index].courseCode} - IT ${classes[index].year}${classes[index].block}',
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.white,
                                           ),
                                         ),
-                                        child: Center(
+                                      ),
+                                    ),
+
+                                    // COURSE TITLE + JAVA ICON
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 155,
                                           child: Text(
-                                            '${classes[index].courseCode} - IT ${classes[index].year}${classes[index].block}',
+                                            classes[index].courseTitle,
+                                            textAlign: TextAlign.center,
                                             style: const TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.black,
                                             ),
+                                            overflow: TextOverflow.clip,
                                           ),
                                         ),
-                                      ),
+                                        Image.asset(
+                                          "assets/images/java-logo.png",
+                                          fit: BoxFit.contain,
+                                          height: 75,
+                                        )
+                                      ],
+                                    ),
 
-                                      // COURSE TITLE + JAVA ICON
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          SizedBox(
-                                            width: 155,
-                                            child: Text(
-                                              classes[index].courseTitle,
-                                              textAlign: TextAlign.center,
-                                              style: const TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w800,
-                                                color: Colors.black,
-                                              ),
-                                              overflow: TextOverflow.clip,
-                                            ),
-                                          ),
-                                          Image.asset(
-                                            "assets/images/java-logo.png",
-                                            fit: BoxFit.contain,
-                                            height: 75,
-                                          )
-                                        ],
-                                      ),
-
-                                      // INVISIBLE WIDGET TO CENTER THE COURSE TITLE
-                                      const Gap(25),
-                                    ],
-                                  ),
+                                    // INVISIBLE WIDGET TO CENTER THE COURSE TITLE
+                                    const Gap(25),
+                                  ],
                                 ),
                               ),
-                            );
-                          }
+                            ),
+                          );
                         },
                       ),
                     ),
