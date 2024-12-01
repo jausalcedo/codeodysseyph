@@ -5,9 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
 class InstructorClassScreen extends StatefulWidget {
-  const InstructorClassScreen({super.key, required this.courseCodeYearBlock});
+  const InstructorClassScreen({
+    super.key,
+    required this.classCode,
+    required this.courseCodeYearBlock,
+    required this.courseTitle,
+  });
 
+  final String classCode;
   final String courseCodeYearBlock;
+  final String courseTitle;
 
   @override
   State<InstructorClassScreen> createState() => _InstructorClassScreenState();
@@ -90,9 +97,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                 width: 50,
                                 height: 50,
                               ),
-                              const Text(
-                                "Fundamentals of Programming",
-                                style: TextStyle(
+                              Text(
+                                widget.courseTitle,
+                                style: const TextStyle(
                                   fontSize: 25,
                                   fontWeight: FontWeight.w800,
                                   color: Color.fromARGB(255, 19, 27, 99),
@@ -100,21 +107,21 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                               ),
                             ],
                           ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 20),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  "05162002",
-                                  style: TextStyle(
+                                  widget.classCode,
+                                  style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w900,
                                     color: Color.fromARGB(255, 19, 27, 99),
                                   ),
                                 ),
-                                Text(
+                                const Text(
                                   "Class Code",
                                   style: TextStyle(
                                       fontSize: 12,

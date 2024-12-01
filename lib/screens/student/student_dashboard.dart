@@ -1,64 +1,35 @@
 import 'package:codeodysseyph/components/student/student_appbar.dart';
 import 'package:codeodysseyph/components/student/student_drawer.dart';
 import 'package:codeodysseyph/constants/colors.dart';
-import 'package:codeodysseyph/models/class.dart';
-import 'package:codeodysseyph/screens/student/student_module_activities.dart';
+import 'package:codeodysseyph/constants/courses.dart';
+import 'package:codeodysseyph/screens/student/student_class.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
+import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
-import 'package:quickalert/quickalert.dart';
 
-class StudentDashboardScreen extends StatelessWidget {
-  StudentDashboardScreen({
+class StudentDashboardScreen extends StatefulWidget {
+  const StudentDashboardScreen({
     super.key,
     required this.userId,
   });
 
   final String userId;
 
-  final List<Class> classes = [
-    Class(
-      classCode: 'PSU-URD-0001',
-      courseCode: 'CC102',
-      courseTitle: 'Fundamentals of Programming',
-      year: '1',
-      block: 'A',
-      instructorId: 'ewan',
-    ),
-    Class(
-      classCode: 'PSU-URD-0002',
-      courseCode: 'CC103',
-      courseTitle: 'Intermediate Programming',
-      year: '1',
-      block: 'A',
-      instructorId: 'ewan',
-    ),
-    Class(
-      classCode: 'PSU-URD-0003',
-      courseCode: 'CC104',
-      courseTitle: 'Data Structures and Algorithms',
-      year: '1',
-      block: 'A',
-      instructorId: 'ewan',
-    ),
-    Class(
-      classCode: 'PSU-URD-0004',
-      courseCode: 'OOP101',
-      courseTitle: 'Object Oriented Programming',
-      year: '1',
-      block: 'A',
-      instructorId: 'ewan',
-    ),
-  ];
+  @override
+  State<StudentDashboardScreen> createState() => _StudentDashboardScreenState();
+}
 
+class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
+  // AUTH SERVICE
   final authService = AuthService();
 
   final classCodeController = TextEditingController();
 
-  void openJoinClassModal(BuildContext context) {
+  void showJoinClassModal() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -123,7 +94,7 @@ class StudentDashboardScreen extends StatelessWidget {
                 TextField(
                   controller: classCodeController,
                   decoration: const InputDecoration(
-                    label: Text('Class code'),
+                    label: Text('Class Code'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(10)),
                     ),
@@ -134,17 +105,16 @@ class StudentDashboardScreen extends StatelessWidget {
                 const Gap(10),
                 Center(
                   child: ElevatedButton(
-                    onPressed: () {
-                      QuickAlert.show(
-                        context: context,
-                        type: QuickAlertType.success,
-                        text: 'You successfully joined in the class',
-                        confirmBtnText: 'OK',
-                        onConfirmBtnTap: () {
-                          Navigator.of(context).pop();
-                          Navigator.of(context).pop();
-                        },
+                    onPressed: () async {
+                      await firestoreService.joinClass(
+                        context,
+                        classCodeController.text,
+                        widget.userId,
                       );
+
+                      setState(() {
+                        classCodeController.clear();
+                      });
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4A76F7),
@@ -169,10 +139,13 @@ class StudentDashboardScreen extends StatelessWidget {
     );
   }
 
+  // FIRESTORE SERVICE
+  final firestoreService = CloudFirestoreService();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: StudentDrawer(userId: userId),
+      drawer: StudentDrawer(userId: widget.userId),
       appBar: const PreferredSize(
         preferredSize: Size(double.infinity, 75),
         child: StudentAppbar(),
@@ -187,113 +160,183 @@ class StudentDashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 20, left: 20),
-                    child: Text(
-                      "Classes",
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Classes",
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: showJoinClassModal,
+                          label: const Text(
+                            'JOIN CLASS',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          icon: const Icon(Icons.add),
+                          style: const ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll(primary),
+                            foregroundColor:
+                                WidgetStatePropertyAll(Colors.white),
+                          ),
+                        )
+                      ],
                     ),
                   ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      child: GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 20.0,
-                          mainAxisSpacing: 20.0,
-                          childAspectRatio: 3 / 2,
-                        ),
-                        itemCount: classes.length,
-                        itemBuilder: (context, index) {
-                          // OPEN CLASS
-                          return Center(
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).push(MaterialPageRoute(
-                                    builder: (context) =>
-                                        const StudentViewModuleAnnouncement()));
-                              },
-                              child: Card(
-                                clipBehavior: Clip.antiAlias,
-                                color: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                  side: const BorderSide(
-                                    color: Color.fromARGB(255, 19, 27, 99),
-                                    width: 4,
-                                  ),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // COURSE CODE + PROGRAM-YEAR-BLOCK
-                                    Container(
-                                      width: 225,
-                                      height: 50,
-                                      decoration: const BoxDecoration(
-                                        color: primary,
-                                        borderRadius: BorderRadius.only(
-                                          bottomRight: Radius.circular(15),
-                                        ),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '${classes[index].courseCode} - IT ${classes[index].year}${classes[index].block}',
-                                          style: const TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                  StreamBuilder(
+                    stream: firestoreService.getStudentClasses(widget.userId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                                    // COURSE TITLE + JAVA ICON
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        SizedBox(
-                                          width: 155,
-                                          child: Text(
-                                            classes[index].courseTitle,
-                                            textAlign: TextAlign.center,
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w800,
-                                              color: Colors.black,
-                                            ),
-                                            overflow: TextOverflow.clip,
-                                          ),
-                                        ),
-                                        Image.asset(
-                                          "assets/images/java-logo.png",
-                                          fit: BoxFit.contain,
-                                          height: 75,
-                                        )
-                                      ],
-                                    ),
+                      final classes = snapshot.data!.docs;
 
-                                    // INVISIBLE WIDGET TO CENTER THE COURSE TITLE
-                                    const Gap(25),
-                                  ],
-                                ),
-                              ),
+                      if (classes.isEmpty) {
+                        return const Center(
+                          child: Text(
+                              'You haven\'t joined any class yet. Click the button above to join one!'),
+                        );
+                      }
+
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                          ),
+                          child: GridView.builder(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              crossAxisSpacing: 20.0,
+                              mainAxisSpacing: 20.0,
+                              childAspectRatio: 3 / 2,
                             ),
-                          );
-                        },
-                      ),
-                    ),
+                            itemCount: classes.length,
+                            itemBuilder: (context, index) {
+                              // OPEN CLASS
+                              return FutureBuilder(
+                                future: firestoreService
+                                    .getCourseData(classes[index]['courseId']),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const Center(
+                                      child: CircularProgressIndicator(),
+                                    );
+                                  }
+
+                                  final courseData = snapshot.data!.data();
+
+                                  final courseCode = courseData!['courseCode'];
+
+                                  final courseTitle = courseList
+                                      .firstWhere((element) =>
+                                          element.code == courseCode)
+                                      .title;
+
+                                  return Center(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                StudentClassScreen(
+                                              classCode: classes[index].id,
+                                              courseCodeYearBlock:
+                                                  '$courseCode - IT ${classes[index]['year']}${classes[index]['block']}',
+                                              courseTitle: courseTitle,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: Card(
+                                        clipBehavior: Clip.antiAlias,
+                                        color: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(15),
+                                          side: const BorderSide(
+                                            color:
+                                                Color.fromARGB(255, 19, 27, 99),
+                                            width: 4,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            // COURSE CODE + PROGRAM-YEAR-BLOCK
+                                            Container(
+                                              width: 225,
+                                              height: 50,
+                                              decoration: const BoxDecoration(
+                                                color: primary,
+                                                borderRadius: BorderRadius.only(
+                                                  bottomRight:
+                                                      Radius.circular(15),
+                                                ),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  '$courseCode - IT ${classes[index]['year']}${classes[index]['block']}',
+                                                  style: const TextStyle(
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+
+                                            // COURSE TITLE + JAVA ICON
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                SizedBox(
+                                                  width: 155,
+                                                  child: Text(
+                                                    courseTitle,
+                                                    textAlign: TextAlign.center,
+                                                    style: const TextStyle(
+                                                      fontSize: 18,
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      color: Colors.black,
+                                                    ),
+                                                    overflow: TextOverflow.clip,
+                                                  ),
+                                                ),
+                                                Image.asset(
+                                                  "assets/images/java-logo.png",
+                                                  fit: BoxFit.contain,
+                                                  height: 75,
+                                                )
+                                              ],
+                                            ),
+
+                                            // INVISIBLE WIDGET TO CENTER THE COURSE TITLE
+                                            const Gap(25),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

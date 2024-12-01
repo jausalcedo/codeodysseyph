@@ -1,8 +1,10 @@
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:codeodysseyph/constants/courses.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:flutter/material.dart';
+import 'package:quickalert/quickalert.dart';
 
 class CloudFirestoreService {
   final _firestore = FirebaseFirestore.instance;
@@ -179,5 +181,151 @@ class CloudFirestoreService {
         .collection('courses')
         .where('instructorId', isEqualTo: instructorId)
         .get();
+  }
+
+  String generateUniqueCode() {
+    const characters =
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random();
+    return String.fromCharCodes(
+      Iterable.generate(
+        5,
+        (_) => characters.codeUnitAt(random.nextInt(characters.length)),
+      ),
+    );
+  }
+
+  Future<void> createClass(
+    BuildContext context,
+    String courseId,
+    String instructorId,
+    String year,
+    String block,
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    // GET INSTRUCTOR DATA
+    await _firestore.collection('users').doc(instructorId).get().then(
+      (instructorData) async {
+        // GET INSTRUCTOR INITIALS
+        final firstNameInitial = instructorData['firstName'][0];
+        final lastNameInitial = instructorData['lastName'][0];
+
+        // CHECK IF CLASS CODE IS UNIQUE
+        bool classCodeOk = false;
+        String classCode = '';
+
+        while (!classCodeOk) {
+          // GENERATE UNIQUE 5 DIGIT CODE
+          final uniqueCode = generateUniqueCode();
+
+          // SET CLASS CODE
+          classCode = '$firstNameInitial$lastNameInitial-$uniqueCode';
+
+          await _firestore
+              .collection('classes')
+              .doc(classCode)
+              .get()
+              .then((checkClass) {
+            if (!checkClass.exists) {
+              classCodeOk = true;
+            }
+          });
+        }
+
+        if (classCodeOk) {
+          // FETCH LESSONS
+          await _firestore.collection('courses').doc(courseId).get().then(
+            (courseData) async {
+              final lessons = courseData['lessons'];
+              final deadlines = List<dynamic>.generate(
+                lessons.length,
+                (index) => false,
+              );
+
+              final courseCode = courseData['courseCode'];
+              // USE THE CODE AS THE ID FOR THE DOCUMENT
+              await _firestore.collection('classes').doc(classCode).set({
+                'courseId': courseId,
+                'instructorId': instructorId,
+                'year': year,
+                'block': block,
+                'startDate': startDate,
+                'endDate': endDate,
+                'deadlines': deadlines,
+                'students': [],
+              }).then(
+                (_) {
+                  // POP THE LOADING
+                  // ignore: use_build_context_synchronously
+                  Navigator.of(context).pop();
+
+                  return QuickAlert.show(
+                    // ignore: use_build_context_synchronously
+                    context: context,
+                    type: QuickAlertType.success,
+                    title: '$courseCode - IT $year$block Successfully Created!',
+                    onConfirmBtnTap: () {
+                      // POP THE SUCCESS
+                      Navigator.of(context).pop();
+                      // POP THE MODAL
+                      Navigator.of(context).pop();
+                    },
+                  );
+                },
+              );
+            },
+          );
+        }
+      },
+    );
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getInstructorClasses(
+      String instructorId) {
+    return _firestore
+        .collection('classes')
+        .where('instructorId', isEqualTo: instructorId)
+        .snapshots();
+  }
+
+  Future<void> joinClass(
+      BuildContext context, String classCode, String studentId) async {
+    try {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.loading,
+      );
+
+      await _firestore.collection('classes').doc(classCode).update({
+        'students': FieldValue.arrayUnion([studentId])
+      }).then((_) {
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
+
+        QuickAlert.show(
+          // ignore: use_build_context_synchronously
+          context: context,
+          type: QuickAlertType.success,
+          title: 'Successfully joined the class!',
+          onConfirmBtnTap: () {
+            // POP THE SUCCESS MODAL
+            Navigator.of(context).pop();
+            Navigator.of(context).pop();
+          },
+        );
+      });
+    } on FirebaseException catch (ex) {
+      // ignore: use_build_context_synchronously
+      _showBanner(context, 'Unable to join class due to error: $ex');
+    }
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getStudentClasses(
+      String studentId) {
+    return _firestore
+        .collection('classes')
+        .where('students', arrayContains: studentId)
+        .snapshots();
   }
 }

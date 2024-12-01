@@ -1,19 +1,27 @@
 import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
+import 'package:codeodysseyph/components/student/student_appbar.dart';
 import 'package:codeodysseyph/screens/instructor/module_viewer.dart';
 import 'package:codeodysseyph/screens/student/student_activity_questionnaire.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
-class StudentViewModuleAnnouncement extends StatefulWidget {
-  const StudentViewModuleAnnouncement({super.key});
+class StudentClassScreen extends StatefulWidget {
+  const StudentClassScreen({
+    super.key,
+    required this.classCode,
+    required this.courseCodeYearBlock,
+    required this.courseTitle,
+  });
+
+  final String classCode;
+  final String courseCodeYearBlock;
+  final String courseTitle;
 
   @override
-  State<StudentViewModuleAnnouncement> createState() =>
-      _InstructorClassPerformanceState();
+  State<StudentClassScreen> createState() => _StudentClassScreen();
 }
 
-class _InstructorClassPerformanceState
-    extends State<StudentViewModuleAnnouncement>
+class _StudentClassScreen extends State<StudentClassScreen>
     with SingleTickerProviderStateMixin {
   // late TabController _tabController;
 
@@ -87,10 +95,10 @@ class _InstructorClassPerformanceState
                           color: const Color.fromARGB(255, 19, 27, 99),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Text(
-                            "CC102 - IT 1A",
-                            style: TextStyle(
+                            widget.courseCodeYearBlock,
+                            style: const TextStyle(
                               fontSize: 25,
                               fontWeight: FontWeight.w500,
                               color: Colors.white,
@@ -103,26 +111,26 @@ class _InstructorClassPerformanceState
                         width: 50,
                         height: 50,
                       ),
-                      const Text(
-                        "Fundamentals of Programming",
-                        style: TextStyle(
+                      Text(
+                        widget.courseTitle,
+                        style: const TextStyle(
                           fontSize: 25,
                           fontWeight: FontWeight.w800,
                           color: Color.fromARGB(255, 19, 27, 99),
                         ),
                       ),
                       const Gap(250),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            "05162002",
-                            style: TextStyle(
+                            widget.classCode,
+                            style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w900,
                                 color: Color.fromARGB(255, 19, 27, 99)),
                           ),
-                          Text(
+                          const Text(
                             "Class Code",
                             style: TextStyle(
                                 fontSize: 8,
@@ -575,7 +583,7 @@ class _InstructorClassPerformanceState
       ),
       appBar: const PreferredSize(
         preferredSize: Size(double.infinity, 75),
-        child: InstructorAppbar(),
+        child: StudentAppbar(),
       ),
     );
   }
