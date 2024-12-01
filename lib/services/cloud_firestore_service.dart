@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:codeodysseyph/constants/courses.dart';
+import 'package:codeodysseyph/services/error_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:quickalert/quickalert.dart';
@@ -9,21 +10,11 @@ import 'package:quickalert/quickalert.dart';
 class CloudFirestoreService {
   final _firestore = FirebaseFirestore.instance;
 
+  // SERVICES
   final _storageService = FirebaseStorageService();
+  final _errorService = ErrorService();
 
-  void _showBanner(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showMaterialBanner(
-      MaterialBanner(
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: ScaffoldMessenger.of(context).hideCurrentMaterialBanner,
-            child: const Text('Dismiss'),
-          ),
-        ],
-      ),
-    );
-  }
+  // --- INSTRUCTOR FUNCTIONS ---
 
   Future<void> addCourseOutline(
     BuildContext context,
@@ -66,7 +57,7 @@ class CloudFirestoreService {
       final tempSelectedCourse =
           courseList.firstWhere((element) => element.code == selectedCourse);
 
-      _showBanner(
+      _errorService.showBanner(
         // ignore: use_build_context_synchronously
         context,
         '${tempSelectedCourse.code} - ${tempSelectedCourse.title} Course Outline Successfully Added!',
@@ -87,13 +78,18 @@ class CloudFirestoreService {
   ) async {
     try {
       await _firestore.collection('courses').doc(courseId).delete().then((_) {
-        // ignore: use_build_context_synchronously
-        _showBanner(context, '$courseTitle Successfully Deleted.');
+        _errorService.showBanner(
+          // ignore: use_build_context_synchronously
+          context,
+          '$courseTitle Successfully Deleted.',
+        );
       });
     } on FirebaseException catch (e) {
-      // ignore: use_build_context_synchronously
-      _showBanner(context,
-          'There was an error deleting $courseTitle in Firestore: $e.');
+      _errorService.showBanner(
+        // ignore: use_build_context_synchronously
+        context,
+        'There was an error deleting $courseTitle in Firestore: $e.',
+      );
     }
   }
 
@@ -103,41 +99,79 @@ class CloudFirestoreService {
     });
   }
 
-  Future<void> addLesson(
-    BuildContext context,
-    String courseId,
-    String lessonTitle,
-    String fileName,
-    Uint8List fileBytes,
-    String activityType,
-    dynamic content,
-  ) async {
+  Future<void> addLesson({
+    BuildContext? context,
+    String? courseId,
+    String? lessonTitle,
+    String? lessonDescription,
+    String? fileName,
+    Uint8List? fileBytes,
+    int? insertAtIndex,
+  }) async {
     try {
       final learningMaterialPath = await _storageService.uploadFile(
         'courses/files/',
-        fileName,
-        fileBytes,
+        fileName!,
+        fileBytes!,
       );
 
-      await addToFiles(courseId, learningMaterialPath);
+      await addToFiles(courseId!, learningMaterialPath);
 
-      await _firestore.collection('courses').doc(courseId).update({
-        'lessons': FieldValue.arrayUnion([
-          {
-            'title': lessonTitle,
-            'learningMaterial': learningMaterialPath,
-            'activityType': activityType,
-            'content': content,
-          }
-        ])
-      }).then((_) {
-        // ignore: use_build_context_synchronously
-        _showBanner(context, '$lessonTitle Successfully Added.');
-      });
+      if (insertAtIndex == null) {
+        await _firestore.collection('courses').doc(courseId).update({
+          'lessons': FieldValue.arrayUnion([
+            {
+              'title': lessonTitle,
+              'description': lessonDescription,
+              'learningMaterial': learningMaterialPath,
+              'additionalResources': [],
+            }
+          ])
+        }).then((_) {
+          _errorService.showBanner(
+            // ignore: use_build_context_synchronously
+            context!,
+            '$lessonTitle Successfully Added.',
+          );
+        });
+      } else {
+        final documentReference =
+            _firestore.collection('courses').doc(courseId);
+
+        await _firestore.runTransaction((transaction) async {
+          // READ CURRENT DATA
+          final snapshot = await transaction.get(documentReference);
+
+          // GET CURRENT ARRAY
+          List<dynamic> lessons = snapshot.get('lessons');
+
+          // INSERT NEW LESSON AT SPECIFIED INDEX
+          lessons.insert(
+            insertAtIndex,
+            {
+              'title': lessonTitle,
+              'description': lessonDescription,
+              'learningMaterial': learningMaterialPath,
+              'additionalResources': [],
+            },
+          );
+
+          // UPDATE THE ARRAY
+          transaction.update(documentReference, {'lessons': lessons});
+        }).then((_) {
+          _errorService.showBanner(
+            // ignore: use_build_context_synchronously
+            context!,
+            '$lessonTitle Successfully Added before Lesson ${insertAtIndex + 1}',
+          );
+        });
+      }
     } on FirebaseException catch (e) {
-      // ignore: use_build_context_synchronously
-      _showBanner(
-          context, 'There was an error adding $lessonTitle in Firestore: $e.');
+      _errorService.showBanner(
+        // ignore: use_build_context_synchronously
+        context!,
+        'There was an error adding $lessonTitle in Firestore: $e.',
+      );
     }
   }
 
@@ -158,7 +192,7 @@ class CloudFirestoreService {
           await _firestore.collection('courses').doc(courseId).update({
             'lessons': FieldValue.arrayRemove([lesson])
           }).then((_) {
-            _showBanner(
+            _errorService.showBanner(
               // ignore: use_build_context_synchronously
               context,
               '${lesson['title']} has been successfully deleted.',
@@ -167,7 +201,7 @@ class CloudFirestoreService {
         });
       });
     } on FirebaseException catch (ex) {
-      _showBanner(
+      _errorService.showBanner(
         // ignore: use_build_context_synchronously
         context,
         'An error occured while trying to delete ${lesson['title']}: $ex',
@@ -289,6 +323,8 @@ class CloudFirestoreService {
         .snapshots();
   }
 
+  // --- STUDENT FUNCTIONS ---
+
   Future<void> joinClass(
       BuildContext context, String classCode, String studentId) async {
     try {
@@ -316,8 +352,11 @@ class CloudFirestoreService {
         );
       });
     } on FirebaseException catch (ex) {
-      // ignore: use_build_context_synchronously
-      _showBanner(context, 'Unable to join class due to error: $ex');
+      _errorService.showBanner(
+        // ignore: use_build_context_synchronously
+        context,
+        'Unable to join class due to error: $ex',
+      );
     }
   }
 

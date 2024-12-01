@@ -1,4 +1,3 @@
-import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
 import 'package:codeodysseyph/components/student/student_appbar.dart';
 import 'package:codeodysseyph/screens/instructor/module_viewer.dart';
 import 'package:codeodysseyph/screens/student/student_activity_questionnaire.dart';
@@ -145,19 +144,15 @@ class _StudentClassScreen extends State<StudentClassScreen>
                     controller: _tabController,
                     indicatorSize: TabBarIndicatorSize.tab,
                     indicatorWeight: 3,
-                    tabs: const <Widget>[
-                      Tab(
-                        text: 'Lessons',
-                      ),
-                      Tab(
-                        text: 'Announcements',
-                      ),
+                    tabs: const [
+                      Tab(text: 'Lessons'),
+                      Tab(text: 'Announcements'),
                     ],
                   ),
                   Expanded(
                     child: TabBarView(
                       controller: _tabController,
-                      children: <Widget>[
+                      children: [
                         SingleChildScrollView(
                           child: Expanded(
                             child: ListView.builder(
@@ -453,119 +448,114 @@ class _StudentClassScreen extends State<StudentClassScreen>
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [],
                             ),
-                            Container(
-                              child: Expanded(
-                                child: Padding(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(50, 20, 50, 0),
-                                  child: SizedBox(
-                                    height:
-                                        400, // Set a fixed height for the ListView
-                                    child: ListView.builder(
-                                      itemCount: items.length,
-                                      itemBuilder: (context, index) {
-                                        return Column(
-                                          children: [
-                                            const Gap(60),
-                                            Card(
-                                              color: Colors.white,
-                                              shape: RoundedRectangleBorder(
-                                                side: const BorderSide(
-                                                  color: Colors
-                                                      .grey, // Border color
-                                                  width: 1.0, // Border width
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                        8.0), // Rounded corners
+                            Expanded(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(50, 20, 50, 0),
+                                child: SizedBox(
+                                  height:
+                                      400, // Set a fixed height for the ListView
+                                  child: ListView.builder(
+                                    itemCount: items.length,
+                                    itemBuilder: (context, index) {
+                                      return Column(
+                                        children: [
+                                          const Gap(60),
+                                          Card(
+                                            color: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              side: const BorderSide(
+                                                color:
+                                                    Colors.grey, // Border color
+                                                width: 1.0, // Border width
                                               ),
-                                              child: const ListTile(
-                                                title: Padding(
-                                                  padding: EdgeInsets.all(8.0),
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Row(
-                                                        children: [
-                                                          CircleAvatar(
-                                                            backgroundColor:
-                                                                Color.fromARGB(
-                                                                    255,
-                                                                    19,
-                                                                    27,
-                                                                    99),
-                                                            child: Text(
-                                                              "JS",
-                                                              style: TextStyle(
-                                                                  color: Colors
-                                                                      .white),
-                                                            ),
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      8.0), // Rounded corners
+                                            ),
+                                            child: const ListTile(
+                                              title: Padding(
+                                                padding: EdgeInsets.all(8.0),
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        CircleAvatar(
+                                                          backgroundColor:
+                                                              Color.fromARGB(
+                                                                  255,
+                                                                  19,
+                                                                  27,
+                                                                  99),
+                                                          child: Text(
+                                                            "JS",
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .white),
                                                           ),
-                                                          Gap(8),
-                                                          Column(
-                                                            crossAxisAlignment:
-                                                                CrossAxisAlignment
-                                                                    .start,
-                                                            children: [
-                                                              Text(
-                                                                "Jau Salcedo",
-                                                                style:
-                                                                    TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w700,
-                                                                  fontSize: 18,
-                                                                  color: Color
-                                                                      .fromARGB(
-                                                                          255,
-                                                                          19,
-                                                                          27,
-                                                                          99),
-                                                                ),
-                                                              ),
-                                                              Text(
-                                                                "October 6, 2024",
-                                                                style:
-                                                                    TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                  fontSize: 13,
-                                                                  color: Colors
-                                                                      .grey,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          )
-                                                        ],
-                                                      ),
-                                                      Gap(10),
-                                                      Text(
-                                                        "Welcome to Fundamentals of Programming!",
-                                                        style: TextStyle(
-                                                          fontSize: 20,
-                                                          fontWeight:
-                                                              FontWeight.w600,
                                                         ),
-                                                      )
-                                                    ],
-                                                  ),
+                                                        Gap(8),
+                                                        Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Text(
+                                                              "Jau Salcedo",
+                                                              style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                                fontSize: 18,
+                                                                color: Color
+                                                                    .fromARGB(
+                                                                        255,
+                                                                        19,
+                                                                        27,
+                                                                        99),
+                                                              ),
+                                                            ),
+                                                            Text(
+                                                              "October 6, 2024",
+                                                              style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                fontSize: 13,
+                                                                color:
+                                                                    Colors.grey,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        )
+                                                      ],
+                                                    ),
+                                                    Gap(10),
+                                                    Text(
+                                                      "Welcome to Fundamentals of Programming!",
+                                                      style: TextStyle(
+                                                        fontSize: 20,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    )
+                                                  ],
                                                 ),
-                                                subtitle: Text(
-                                                  "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-                                                  maxLines:
-                                                      3, // Limit subtitle text to 3 lines
-                                                  overflow: TextOverflow
-                                                      .ellipsis, // Show ellipsis if text overflows
-                                                ),
+                                              ),
+                                              subtitle: Text(
+                                                "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+                                                maxLines:
+                                                    3, // Limit subtitle text to 3 lines
+                                                overflow: TextOverflow
+                                                    .ellipsis, // Show ellipsis if text overflows
                                               ),
                                             ),
-                                          ],
-                                        );
-                                      },
-                                    ),
+                                          ),
+                                        ],
+                                      );
+                                    },
                                   ),
                                 ),
                               ),

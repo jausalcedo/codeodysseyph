@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/screens/auth/auth_checker.dart';
-import 'package:codeodysseyph/screens/instructor/instructor_dashboard.dart';
+import 'package:codeodysseyph/screens/instructor/instructor_course_management.dart';
+// import 'package:codeodysseyph/screens/instructor/instructor_dashboard.dart';
 import 'package:codeodysseyph/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
@@ -31,7 +32,9 @@ class _InstructorVerificationScreenState
 
     if (!isEmailVerified) {
       timer = Timer.periodic(
-          const Duration(seconds: 3), (_) => checkEmailVerified());
+        const Duration(seconds: 3),
+        (_) => checkEmailVerified(),
+      );
     }
   }
 
@@ -62,7 +65,6 @@ class _InstructorVerificationScreenState
 
   void backToLoginScreen() {
     _authService.signOut();
-    print('Logout Clicked');
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const AuthChecker(),
@@ -78,7 +80,8 @@ class _InstructorVerificationScreenState
 
   @override
   Widget build(BuildContext context) => isEmailVerified
-      ? InstructorDashboardScreen(userId: widget.userId)
+      // ? InstructorDashboardScreen(userId: widget.userId)
+      ? InstructorCourseManagementScreen(userId: widget.userId)
       : Scaffold(
           body: Stack(
             alignment: Alignment.center,
