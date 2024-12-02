@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+// import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
 import 'package:codeodysseyph/components/instructor/instructor_drawer.dart';
@@ -6,8 +6,9 @@ import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/constants/courses.dart';
 import 'package:codeodysseyph/screens/instructor/instructor_course_lesson_management.dart';
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
+import 'package:codeodysseyph/services/alert_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
-import 'package:file_picker/file_picker.dart';
+// import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
@@ -26,80 +27,92 @@ class InstructorCourseManagementScreen extends StatefulWidget {
 
 class _InstructorCourseManagementScreenState
     extends State<InstructorCourseManagementScreen> {
+  // ADD COURSE OUTLINE DATA
   String? selectedCourse;
+  String outlineType = 'Create from Scratch';
+  String? codeOdysseyCourseOutline;
+  String? myCourseOutline;
 
-  Uint8List? fileBytes;
-  String? fileName;
+  // Uint8List? fileBytes;
+  // String? fileName;
 
-  bool uploadOk = true;
+  // bool uploadOk = true;
 
+  // FORM KEYS
   final formKey = GlobalKey<FormState>();
 
+  // COURSE STREAMS
   late final Stream<QuerySnapshot> courseStream;
 
+  // SERVICES
   final _storageService = FirebaseStorageService();
   final _firestoreService = CloudFirestoreService();
+  final _errorService = AlertService();
 
-  void pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
-      // allowedExtensions: ['pdf', 'pptx', 'ppt'],
-      allowedExtensions: ['pdf'],
-      type: FileType.custom,
-    );
+  // void pickFile() async {
+  //   FilePickerResult? result = await FilePicker.platform.pickFiles(
+  //     allowMultiple: false,
+  //     // allowedExtensions: ['pdf', 'pptx', 'ppt'],
+  //     allowedExtensions: ['pdf'],
+  //     type: FileType.custom,
+  //   );
 
-    if (result != null) {
-      setState(() {
-        fileBytes = result.files.first.bytes!;
-        fileName = result.files.first.name;
-      });
-    }
-  }
+  //   if (result != null) {
+  //     setState(() {
+  //       fileBytes = result.files.first.bytes!;
+  //       fileName = result.files.first.name;
+  //     });
+  //   }
+  // }
 
-  void addCourseOutline() async {
+  void createCourseOutline() async {
     // VALIDATE COURSE
     if (!formKey.currentState!.validate()) {
       return;
     }
 
-    // VALIDATE SYLLABUS
-    if (fileName == null) {
-      ScaffoldMessenger.of(context).showMaterialBanner(
-        MaterialBanner(
-          content: const Text('Please select a syllabus file.'),
-          actions: [
-            TextButton(
-              onPressed: () =>
-                  ScaffoldMessenger.of(context).hideCurrentMaterialBanner(),
-              child: const Text('Dismiss'),
-            ),
-          ],
-        ),
-      );
+    // // VALIDATE SYLLABUS
+    // if (fileName == null) {
+    //   ScaffoldMessenger.of(context).showMaterialBanner(
+    //     MaterialBanner(
+    //       content: const Text('Please select a syllabus file.'),
+    //       actions: [
+    //         TextButton(
+    //           onPressed: () =>
+    //               ScaffoldMessenger.of(context).hideCurrentMaterialBanner(),
+    //           child: const Text('Dismiss'),
+    //         ),
+    //       ],
+    //     ),
+    //   );
 
-      return;
-    }
+    //   return;
+    // }
 
-    setState(() {
-      uploadOk = false;
-    });
+    // setState(() {
+    //   uploadOk = false;
+    // });
 
-    await _firestoreService
-        .addCourseOutline(
-      context,
-      selectedCourse!,
-      widget.userId,
-      fileName!,
-      fileBytes!,
-    )
-        .then((_) {
-      setState(() {
-        selectedCourse = null;
-        fileName = null;
-        fileBytes = null;
-        uploadOk = true;
+    if (outlineType == 'Create from Scratch') {
+      await _firestoreService
+          .createCourseOutline(
+        context,
+        selectedCourse!,
+        widget.userId,
+        // fileName!,
+        // fileBytes!,
+      )
+          .then((_) {
+        setState(() {
+          selectedCourse = null;
+          // fileName = null;
+          // fileBytes = null;
+          // uploadOk = true;
+        });
       });
-    });
+    } else {
+      //
+    }
   }
 
   void openCourseLessonManagementScreen(String documentId) {
@@ -154,19 +167,10 @@ class _InstructorCourseManagementScreenState
               Navigator.of(context).pop();
 
               // SHOW ERROR MESSAGE
-              // ignore: use_build_context_synchronously
-              ScaffoldMessenger.of(context).showMaterialBanner(
-                MaterialBanner(
-                  content: Text(
-                      'There was an error deleting $courseTitleWithVersion.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => ScaffoldMessenger.of(context)
-                          .hideCurrentMaterialBanner(),
-                      child: const Text('Dismiss'),
-                    )
-                  ],
-                ),
+              _errorService.showBanner(
+                // ignore: use_build_context_synchronously
+                context,
+                'There was an error deleting $courseTitleWithVersion.',
               );
             }
           });
@@ -184,7 +188,7 @@ class _InstructorCourseManagementScreenState
     courseStream = FirebaseFirestore.instance
         .collection('courses')
         .where('instructorId', isEqualTo: widget.userId)
-        // .orderBy('timeStamp', descending: true)
+        .orderBy('timeStamp', descending: true)
         .snapshots();
   }
 
@@ -198,7 +202,7 @@ class _InstructorCourseManagementScreenState
       ),
       body: Center(
         child: SizedBox(
-          width: 1050,
+          width: 1080,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -210,70 +214,244 @@ class _InstructorCourseManagementScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Add a New Course Outline'),
+                      const Text('Create a New Course Outline'),
                       const Gap(5),
                       Form(
                         key: formKey,
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                          // mainAxisSize: MainAxisSize.max,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // COURSE DROPDOWN
-                            SizedBox(
-                              width: 375,
-                              child: DropdownButtonFormField(
-                                decoration: InputDecoration(
-                                  labelText: selectedCourse == null
-                                      ? 'Select Course' // IF NO FILE IS SELECTED
-                                      : 'Course Selected', // IF THERE IS A FILE SELECTED
-                                  border: const OutlineInputBorder(),
-                                ),
-                                items: courseList
-                                    .map((course) => DropdownMenuItem(
-                                          value: course.code,
-                                          child: Text(
-                                              '${course.code} - ${course.title}'), // CODE + TITLE
-                                        ))
-                                    .toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedCourse = value;
-                                  });
-                                },
-                                validator: (value) {
-                                  if (value == null || value == '') {
-                                    return 'Please select a course';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                            const Gap(25),
-
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  // FILE PREVIEW
-                                  Flexible(
-                                    child: Text(
-                                      'Syllabus: ${fileName ?? 'No File Selected'}',
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
+                            // OUTLINE TYPE
+                            Row(
+                              children: [
+                                // COURSE DROPDOWN
+                                SizedBox(
+                                  width: 375,
+                                  child: DropdownButtonFormField(
+                                    decoration: InputDecoration(
+                                      labelText: selectedCourse == null
+                                          ? 'Select Course' // IF NO FILE IS SELECTED
+                                          : 'Course', // IF THERE IS A FILE SELECTED
+                                      border: const OutlineInputBorder(),
                                     ),
+                                    items: courseList
+                                        .map((course) => DropdownMenuItem(
+                                              value: course.code,
+                                              child: Text(
+                                                  '${course.code} - ${course.title}'), // CODE + TITLE
+                                            ))
+                                        .toList(),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        selectedCourse = value;
+                                      });
+                                    },
+                                    validator: (value) {
+                                      if (value == null || value == '') {
+                                        return 'Please select a course';
+                                      }
+                                      return null;
+                                    },
                                   ),
-                                  const Gap(10),
+                                ),
+                                const Gap(5),
 
-                                  // FILE PICKER
-                                  TextButton.icon(
-                                    onPressed: pickFile,
-                                    label: Text(fileName == null
-                                        ? 'Select File'
-                                        : 'Change File'),
-                                    icon: const Icon(Icons.attach_file_rounded),
+                                // OUTLINE TYPE
+                                SizedBox(
+                                  width: 260,
+                                  child: DropdownButtonFormField(
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      label: Text('Outline Type'),
+                                    ),
+                                    value: outlineType,
+                                    items: [
+                                      'Create from Scratch',
+                                      'From CodeOdyssey',
+                                      'From My Existing Outlines'
+                                    ]
+                                        .map(
+                                          (outlineType) => DropdownMenuItem(
+                                            value: outlineType,
+                                            child: Text(outlineType),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        outlineType = value!;
+                                      });
+                                    },
                                   ),
-                                  const Gap(25),
-                                ],
-                              ),
+                                ),
+                                const Gap(5),
+
+                                // FROM CODEODYSSEY TEAM
+                                outlineType == 'From CodeOdyssey'
+                                    ? FutureBuilder(
+                                        future:
+                                            _firestoreService.getSimilarCourses(
+                                                'W8KspheVoSaL40E0B106cdR5Dsj2',
+                                                selectedCourse!),
+                                        builder: (context, snapshot) {
+                                          if (snapshot.connectionState ==
+                                              ConnectionState.waiting) {
+                                            return const Center(
+                                                child:
+                                                    CircularProgressIndicator());
+                                          }
+
+                                          final courses = snapshot.data!.docs;
+
+                                          return SizedBox(
+                                            width: 310,
+                                            child: DropdownButtonFormField(
+                                              decoration: InputDecoration(
+                                                border:
+                                                    const OutlineInputBorder(),
+                                                label: Text(
+                                                    codeOdysseyCourseOutline ==
+                                                            null
+                                                        ? 'Select Outline'
+                                                        : 'From CodeOdyssey'),
+                                              ),
+                                              value: codeOdysseyCourseOutline,
+                                              items: courses.map(
+                                                (course) {
+                                                  final courseCode =
+                                                      course['courseCode'];
+                                                  final courseTitle = courseList
+                                                      .firstWhere((course) =>
+                                                          course.code ==
+                                                          courseCode)
+                                                      .title;
+
+                                                  return DropdownMenuItem(
+                                                    value: course.id,
+                                                    child: Text(courseTitle),
+                                                  );
+                                                },
+                                              ).toList(),
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  codeOdysseyCourseOutline =
+                                                      value!;
+                                                });
+                                              },
+                                            ),
+                                          );
+                                        },
+                                      )
+                                    : const SizedBox(),
+
+                                // FROM EXISTING OUTLINES
+                                outlineType == 'From My Existing Outlines'
+                                    ? FutureBuilder(
+                                        future:
+                                            _firestoreService.getSimilarCourses(
+                                                widget.userId, selectedCourse!),
+                                        builder: (context, snapshot) {
+                                          if (snapshot.connectionState ==
+                                              ConnectionState.waiting) {
+                                            return const Center(
+                                                child:
+                                                    CircularProgressIndicator());
+                                          }
+
+                                          if (!snapshot.hasData ||
+                                              snapshot.data!.docs.isEmpty) {
+                                            return SizedBox(
+                                              width: 310,
+                                              child: DropdownButtonFormField(
+                                                decoration:
+                                                    const InputDecoration(
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                                value: 'Empty',
+                                                items: ['Empty']
+                                                    .map(
+                                                      (empty) =>
+                                                          DropdownMenuItem(
+                                                        value: empty,
+                                                        child: Text(empty),
+                                                      ),
+                                                    )
+                                                    .toList(),
+                                                onChanged: null,
+                                              ),
+                                            );
+                                          }
+
+                                          final courses = snapshot.data!.docs;
+
+                                          return SizedBox(
+                                            width: 310,
+                                            child: DropdownButtonFormField(
+                                              decoration: const InputDecoration(
+                                                border: OutlineInputBorder(),
+                                                label: Text('From CodeOdyssey'),
+                                              ),
+                                              value: codeOdysseyCourseOutline,
+                                              items: courses.map(
+                                                (course) {
+                                                  final courseCode =
+                                                      course['courseCode'];
+                                                  final courseTitle = courseList
+                                                      .firstWhere((course) =>
+                                                          course.code ==
+                                                          courseCode)
+                                                      .title;
+                                                  final version =
+                                                      course['version'];
+
+                                                  return DropdownMenuItem(
+                                                    value: course.id,
+                                                    child: Text(
+                                                        '$courseCode - $courseTitle v$version'),
+                                                  );
+                                                },
+                                              ).toList(),
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  codeOdysseyCourseOutline =
+                                                      value!;
+                                                });
+                                              },
+                                            ),
+                                          );
+                                        },
+                                      )
+                                    : const SizedBox()
+                              ],
                             ),
+                            const Gap(5),
+
+                            // Expanded(
+                            //   child: Row(
+                            //     children: [
+                            //       // FILE PREVIEW
+                            //       Flexible(
+                            //         child: Text(
+                            //           'Syllabus: ${fileName ?? 'No File Selected'}',
+                            //           overflow: TextOverflow.ellipsis,
+                            //           maxLines: 1,
+                            //         ),
+                            //       ),
+                            //       const Gap(10),
+
+                            //       // FILE PICKER
+                            //       TextButton.icon(
+                            //         onPressed: pickFile,
+                            //         label: Text(fileName == null
+                            //             ? 'Select File'
+                            //             : 'Change File'),
+                            //         icon: const Icon(Icons.attach_file_rounded),
+                            //       ),
+                            //       const Gap(25),
+                            //     ],
+                            //   ),
+                            // ),
 
                             // ADD BUTTON
                             TextButton(
@@ -283,10 +461,12 @@ class _InstructorCourseManagementScreenState
                                 foregroundColor:
                                     WidgetStatePropertyAll(Colors.white),
                               ),
-                              onPressed: uploadOk ? addCourseOutline : null,
-                              child: uploadOk
-                                  ? const Text('Add')
-                                  : const CircularProgressIndicator(),
+                              // onPressed: uploadOk ? addCourseOutline : null,
+                              onPressed: createCourseOutline,
+                              // child: uploadOk
+                              //     ? const Text('Add')
+                              //     : const CircularProgressIndicator(),
+                              child: const Text('Create'),
                             )
                           ],
                         ),
@@ -300,7 +480,7 @@ class _InstructorCourseManagementScreenState
               Expanded(
                 child: Center(
                   child: SizedBox(
-                    width: 1050,
+                    width: 1080,
                     child: Card(
                       color: Colors.white,
                       child: Padding(
@@ -362,7 +542,7 @@ class _InstructorCourseManagementScreenState
                                                   courseIds[index]),
                                           title: Text(courseTitleWithVersion),
                                           subtitle: Text(
-                                              'Date Created: ${DateFormat.yMMMMEEEEd().add_jm().format((courses[index]['timeStamp'] as Timestamp).toDate())}'),
+                                              'Date Created: ${courses[index]['timeStamp'] != null ? DateFormat.yMMMMEEEEd().add_jm().format((courses[index]['timeStamp'] as Timestamp).toDate()) : 'Loading...'}'),
                                           trailing: IconButton(
                                             onPressed: () =>
                                                 deleteCourseOutline(

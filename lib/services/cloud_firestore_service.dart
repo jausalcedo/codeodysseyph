@@ -2,7 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:codeodysseyph/constants/courses.dart';
-import 'package:codeodysseyph/services/error_service.dart';
+import 'package:codeodysseyph/services/alert_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:quickalert/quickalert.dart';
@@ -12,16 +12,16 @@ class CloudFirestoreService {
 
   // SERVICES
   final _storageService = FirebaseStorageService();
-  final _errorService = ErrorService();
+  final _errorService = AlertService();
 
   // --- INSTRUCTOR FUNCTIONS ---
 
-  Future<void> addCourseOutline(
+  Future<void> createCourseOutline(
     BuildContext context,
     String selectedCourse,
     String userId,
-    String fileName,
-    Uint8List fileBytes,
+    // String fileName,
+    // Uint8List fileBytes,
   ) async {
     // QUERY EXISTING COURSE OUTLINES WITH THE SAME SELECTED COURSE CODE AND INSTRUCTOR ID
     final querySnapshot = await _firestore
@@ -39,20 +39,84 @@ class CloudFirestoreService {
       newVersion = versions.reduce((a, b) => a > b ? a : b) + 1;
     }
 
-    final fullPath = await _storageService.uploadFile(
-      'courses/files/',
-      fileName,
-      fileBytes,
-    );
-
     await _firestore.collection('courses').add({
-      'syllabus': fullPath,
       'courseCode': selectedCourse,
       'instructorId': userId,
       'version': newVersion,
       'lessons': [],
+      'lastUpdated': FieldValue.serverTimestamp(),
       'timeStamp': FieldValue.serverTimestamp(),
-      'files': [fullPath]
+      'files': []
+    }).then((_) {
+      final tempSelectedCourse =
+          courseList.firstWhere((element) => element.code == selectedCourse);
+
+      _errorService.showBanner(
+        // ignore: use_build_context_synchronously
+        context,
+        '${tempSelectedCourse.code} - ${tempSelectedCourse.title} Course Outline Successfully Added!',
+      );
+    });
+
+    // await _storageService
+    //     .uploadFile(
+    //   'courses/files/',
+    //   fileName,
+    //   fileBytes,
+    // )
+    //     .then((fullPath) async {
+    //   await _firestore.collection('courses').add({
+    //     'syllabus': fullPath,
+    //     'courseCode': selectedCourse,
+    //     'instructorId': userId,
+    //     'version': newVersion,
+    //     'lessons': [],
+    //     'lastUpdated': FieldValue.serverTimestamp(),
+    //     'timeStamp': FieldValue.serverTimestamp(),
+    //     'files': [fullPath]
+    //   }).then((_) {
+    //     final tempSelectedCourse =
+    //         courseList.firstWhere((element) => element.code == selectedCourse);
+
+    //     _errorService.showBanner(
+    //       // ignore: use_build_context_synchronously
+    //       context,
+    //       '${tempSelectedCourse.code} - ${tempSelectedCourse.title} Course Outline Successfully Added!',
+    //     );
+    //   });
+    // });
+  }
+
+  Future<void> createCourseOutlineFromTemplate(
+    BuildContext context,
+    String selectedCourse,
+    String userId,
+    String templateId,
+  ) async {
+    // QUERY EXISTING COURSE OUTLINES WITH THE SAME SELECTED COURSE CODE AND INSTRUCTOR ID
+    final querySnapshot = await _firestore
+        .collection('courses')
+        .where('courseCode', isEqualTo: selectedCourse)
+        .where('instructorId', isEqualTo: userId)
+        .get();
+
+    // DETERMINE VERSION NUMBER
+    int newVersion = 1;
+    if (querySnapshot.docs.isNotEmpty) {
+      final versions = querySnapshot.docs.map((doc) {
+        return doc['version'] ?? 1; // DEFAULT TO VERSION 1 IF NOT SET
+      }).toList();
+      newVersion = versions.reduce((a, b) => a > b ? a : b) + 1;
+    }
+
+    await _firestore.collection('courses').add({
+      'courseCode': selectedCourse,
+      'instructorId': userId,
+      'version': newVersion,
+      'lessons': [],
+      'lastUpdated': FieldValue.serverTimestamp(),
+      'timeStamp': FieldValue.serverTimestamp(),
+      'files': []
     }).then((_) {
       final tempSelectedCourse =
           courseList.firstWhere((element) => element.code == selectedCourse);
@@ -93,6 +157,23 @@ class CloudFirestoreService {
     }
   }
 
+  Future<QuerySnapshot<Map<String, dynamic>>> getCourses(
+      String instructorId) async {
+    return await _firestore
+        .collection('courses')
+        .where('instructorId', isEqualTo: instructorId)
+        .get();
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> getSimilarCourses(
+      String instructorId, String courseCode) async {
+    return await _firestore
+        .collection('courses')
+        .where('instructorId', isEqualTo: instructorId)
+        .where('courseCode', isEqualTo: courseCode)
+        .get();
+  }
+
   Future<void> addToFiles(String courseId, String fullPath) async {
     await _firestore.collection('courses').doc(courseId).update({
       'files': FieldValue.arrayUnion([fullPath]),
@@ -103,7 +184,7 @@ class CloudFirestoreService {
     BuildContext? context,
     String? courseId,
     String? lessonTitle,
-    String? lessonDescription,
+    // String? lessonDescription,
     String? fileName,
     Uint8List? fileBytes,
     int? insertAtIndex,
@@ -122,11 +203,12 @@ class CloudFirestoreService {
           'lessons': FieldValue.arrayUnion([
             {
               'title': lessonTitle,
-              'description': lessonDescription,
+              // 'description': lessonDescription,
               'learningMaterial': learningMaterialPath,
               'additionalResources': [],
             }
-          ])
+          ]),
+          'lastUpdated': FieldValue.serverTimestamp(),
         }).then((_) {
           _errorService.showBanner(
             // ignore: use_build_context_synchronously
@@ -150,14 +232,17 @@ class CloudFirestoreService {
             insertAtIndex,
             {
               'title': lessonTitle,
-              'description': lessonDescription,
+              // 'description': lessonDescription,
               'learningMaterial': learningMaterialPath,
               'additionalResources': [],
             },
           );
 
           // UPDATE THE ARRAY
-          transaction.update(documentReference, {'lessons': lessons});
+          transaction.update(documentReference, {
+            'lessons': lessons,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
         }).then((_) {
           _errorService.showBanner(
             // ignore: use_build_context_synchronously
@@ -190,7 +275,8 @@ class CloudFirestoreService {
             .deleteFile([lesson['learningMaterial']]).then((_) async {
           // DELETE FROM LESSONS
           await _firestore.collection('courses').doc(courseId).update({
-            'lessons': FieldValue.arrayRemove([lesson])
+            'lessons': FieldValue.arrayRemove([lesson]),
+            'lastUpdated': FieldValue.serverTimestamp(),
           }).then((_) {
             _errorService.showBanner(
               // ignore: use_build_context_synchronously
@@ -207,14 +293,6 @@ class CloudFirestoreService {
         'An error occured while trying to delete ${lesson['title']}: $ex',
       );
     }
-  }
-
-  Future<QuerySnapshot<Map<String, dynamic>>> getCourses(
-      String instructorId) async {
-    return await _firestore
-        .collection('courses')
-        .where('instructorId', isEqualTo: instructorId)
-        .get();
   }
 
   String generateUniqueCode() {
@@ -235,8 +313,6 @@ class CloudFirestoreService {
     String instructorId,
     String year,
     String block,
-    DateTime startDate,
-    DateTime endDate,
   ) async {
     // GET INSTRUCTOR DATA
     await _firestore.collection('users').doc(instructorId).get().then(
@@ -271,12 +347,6 @@ class CloudFirestoreService {
           // FETCH LESSONS
           await _firestore.collection('courses').doc(courseId).get().then(
             (courseData) async {
-              final lessons = courseData['lessons'];
-              final deadlines = List<dynamic>.generate(
-                lessons.length,
-                (index) => false,
-              );
-
               final courseCode = courseData['courseCode'];
               // USE THE CODE AS THE ID FOR THE DOCUMENT
               await _firestore.collection('classes').doc(classCode).set({
@@ -284,9 +354,6 @@ class CloudFirestoreService {
                 'instructorId': instructorId,
                 'year': year,
                 'block': block,
-                'startDate': startDate,
-                'endDate': endDate,
-                'deadlines': deadlines,
                 'students': [],
               }).then(
                 (_) {

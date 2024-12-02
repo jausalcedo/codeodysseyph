@@ -67,7 +67,7 @@ class _StudentAppbarState extends State<StudentAppbar> {
         horizontal: BorderSide(color: Colors.black87),
       ),
       title: Image.asset(
-        'assets/images/Logo - Long Row.png',
+        'assets/images/Logo - Long Row Transparent.png',
         height: 100,
       ),
       actions: [

@@ -7,7 +7,6 @@ import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
-import 'package:intl/intl.dart';
 import 'package:quickalert/quickalert.dart';
 
 // ignore: must_be_immutable
@@ -22,19 +21,23 @@ class InstructorDashboardScreen extends StatefulWidget {
 }
 
 class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
+  // CREATE CLASS DATA
   String? selectedCourse;
   String? selectedYear;
   String? selectedBlock;
-  DateTime? startDate;
-  DateTime? endDate;
+  int? selectedAcademicYear;
+  String selectedSemester = 'First Semester';
 
-  // FIRESTORE SERVICE
+  // SERVICES
   final firestoreService = CloudFirestoreService();
 
-  // FORM KEY
+  // FORM KEYS
   final addClassFormKey = GlobalKey<FormState>();
+  final acadYearSemFormKey = GlobalKey<FormState>();
 
   void showAddClass() {
+    final currentYear = DateTime.now().year;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -69,7 +72,10 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                     Icons.close,
                     color: Colors.red,
                   ),
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    clearFields();
+                    Navigator.of(context).pop();
+                  },
                 ),
               ),
             ],
@@ -117,6 +123,10 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                                 final courses = snapshot.data!.docs;
 
                                 return DropdownButtonFormField(
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    label: Text('Course'),
+                                  ),
                                   items: courses.map(
                                     (course) {
                                       final courseCode = course['courseCode'];
@@ -136,12 +146,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                                   ).toList(),
                                   onChanged: (selectedValue) {
                                     selectedCourse = selectedValue!;
-                                    print(selectedCourse);
                                   },
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    label: Text('Select Course'),
-                                  ),
                                   validator: (value) {
                                     if (value == '' || value == null) {
                                       return 'Required. Please select a course outline.';
@@ -182,12 +187,12 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                               children: [
                                 // SELECT YEAR
                                 Flexible(
-                                  child: DropdownButtonFormField<String>(
+                                  child: DropdownButtonFormField(
                                     decoration: const InputDecoration(
-                                      labelText: 'Select Year',
+                                      label: Text('Year'),
                                       border: OutlineInputBorder(),
                                     ),
-                                    items: ['1', '2', '3', '4']
+                                    items: ['1st', '2nd', '3rd', '4th']
                                         .map((year) => DropdownMenuItem(
                                               value: year,
                                               child: Text(year),
@@ -199,7 +204,6 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                                           selectedYear = value;
                                         });
                                       }
-                                      print('YEAR: ${selectedYear ?? 'Wala'}');
                                     },
                                     validator: (value) {
                                       if (value == '' || value == null) {
@@ -212,9 +216,9 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                                 const Gap(10),
                                 // SELECT BLOCK
                                 Flexible(
-                                  child: DropdownButtonFormField<String>(
+                                  child: DropdownButtonFormField(
                                     decoration: const InputDecoration(
-                                      labelText: 'Select Block',
+                                      label: Text('Block'),
                                       border: OutlineInputBorder(),
                                     ),
                                     items: ['A', 'B', 'C', 'D', 'E']
@@ -229,8 +233,6 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                                           selectedBlock = value;
                                         });
                                       }
-                                      print(
-                                          'BLOCK: ${selectedBlock ?? 'Wala'}');
                                     },
                                     validator: (value) {
                                       if (value == '' || value == null) {
@@ -248,7 +250,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                     ),
                     const Gap(20),
 
-                    // SELECT START AND END DATE
+                    // SELECT ACADEMIC YEAR AND SEMESTER
                     Container(
                       decoration: BoxDecoration(
                         border: Border.all(
@@ -266,94 +268,70 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                           children: [
                             const CreateClassSectionTitle(
                               number: '3',
-                              sectionTitle: 'Set Start and End Date',
+                              sectionTitle: 'Set Academic Year and Semester',
                             ),
                             const Gap(10),
-                            StatefulBuilder(
-                              builder: (context, setState) {
-                                Future<void> selectDate(
-                                    {required bool isStartDate}) async {
-                                  final now = DateTime.now();
-                                  final DateTime? pickedDate =
-                                      await showDatePicker(
-                                    context: context,
-                                    initialDate: now,
-                                    firstDate: DateTime(now.year),
-                                    lastDate: DateTime(now.year + 1, 12, 31),
-                                  );
-                                  if (pickedDate != null) {
-                                    setState(() {
-                                      if (isStartDate) {
-                                        startDate = pickedDate;
-                                      } else {
-                                        endDate = pickedDate;
-                                      }
-                                    });
-                                  }
-                                }
-
-                                return Row(
-                                  children: [
-                                    // SELECT START DATE
-                                    Flexible(
-                                      child: SizedBox(
-                                        height: 50,
-                                        child: ElevatedButton.icon(
-                                          onPressed: () =>
-                                              selectDate(isStartDate: true),
-                                          style: ButtonStyle(
-                                            backgroundColor:
-                                                WidgetStatePropertyAll(
-                                                    Colors.green[800]),
-                                            foregroundColor:
-                                                const WidgetStatePropertyAll(
-                                                    Colors.white),
-                                          ),
-                                          label: Text(
-                                            startDate != null
-                                                ? 'Start: ${DateFormat.yMMMMd().format(startDate!)}'
-                                                : 'Set Start Date',
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                          icon: const Icon(
-                                              Icons.calendar_today_rounded),
-                                        ),
+                            Form(
+                              key: acadYearSemFormKey,
+                              child: Row(
+                                children: [
+                                  // ACADEMIC YEAR
+                                  Expanded(
+                                    child: DropdownButtonFormField(
+                                      decoration: const InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        label: Text('Academic Year'),
                                       ),
-                                    ),
-                                    const Gap(10),
-                                    // SELECT END DATE
-                                    Flexible(
-                                      child: SizedBox(
-                                        height: 50,
-                                        child: ElevatedButton.icon(
-                                          onPressed: () =>
-                                              selectDate(isStartDate: false),
-                                          style: const ButtonStyle(
-                                            backgroundColor:
-                                                WidgetStatePropertyAll(
-                                                    Colors.red),
-                                            foregroundColor:
-                                                WidgetStatePropertyAll(
-                                                    Colors.white),
-                                          ),
-                                          label: Text(
-                                            endDate != null
-                                                ? 'End: ${DateFormat.yMMMMd().format(endDate!)}'
-                                                : 'Set End Date',
-                                            style: const TextStyle(
-                                              fontSize: 16,
+                                      value: currentYear,
+                                      items: [
+                                        currentYear - 1,
+                                        currentYear,
+                                        currentYear + 1,
+                                        currentYear + 2,
+                                        currentYear + 3,
+                                      ]
+                                          .map(
+                                            (year) => DropdownMenuItem(
+                                              value: year,
+                                              child:
+                                                  Text('$year - ${year + 1}'),
                                             ),
-                                          ),
-                                          icon: const Icon(
-                                              Icons.calendar_month_rounded),
-                                        ),
-                                      ),
+                                          )
+                                          .toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          selectedAcademicYear = value;
+                                        });
+                                      },
                                     ),
-                                  ],
-                                );
-                              },
+                                  ),
+                                  const Gap(10),
+                                  // SEMESTER
+                                  Expanded(
+                                    child: DropdownButtonFormField(
+                                      decoration: const InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        label: Text('Semester'),
+                                      ),
+                                      value: selectedSemester,
+                                      items:
+                                          ['First Semester', 'Second Semester']
+                                              .map(
+                                                (semester) => DropdownMenuItem(
+                                                  value: semester,
+                                                  child: Text(semester),
+                                                ),
+                                              )
+                                              .toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          selectedSemester = value!;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -394,44 +372,32 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
       return;
     }
 
-    if (startDate == null) {
-      QuickAlert.show(
-        context: context,
-        type: QuickAlertType.error,
-        title: 'Error: Please set the start date.',
-        confirmBtnText: 'Okay',
-        onConfirmBtnTap: Navigator.of(context).pop,
-      );
-
-      return;
-    }
-
-    if (endDate == null) {
-      QuickAlert.show(
-        context: context,
-        type: QuickAlertType.error,
-        title: 'Error: Please set the end date.',
-        confirmBtnText: 'Okay',
-        onConfirmBtnTap: Navigator.of(context).pop,
-      );
-
-      return;
-    }
-
     QuickAlert.show(
       context: context,
       type: QuickAlertType.loading,
     );
 
-    await firestoreService.createClass(
+    await firestoreService
+        .createClass(
       context,
       selectedCourse!,
       widget.userId,
       selectedYear!,
       selectedBlock!,
-      startDate!,
-      endDate!,
-    );
+    )
+        .then((_) {
+      clearFields();
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+    });
+  }
+
+  void clearFields() {
+    selectedCourse = null;
+    selectedYear = null;
+    selectedBlock = null;
+    selectedAcademicYear = DateTime.now().year;
+    selectedSemester = 'First Semester';
   }
 
   @override
@@ -458,7 +424,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          "My Active Classes",
+                          "Study Area",
                           style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.bold,
@@ -467,7 +433,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                         ElevatedButton.icon(
                           onPressed: showAddClass,
                           label: const Text(
-                            'ADD NEW CLASS',
+                            'Add New Class',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           icon: const Icon(Icons.add),
@@ -498,135 +464,149 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
 
                             final classes = snapshot.data!.docs;
 
-                            return GridView.builder(
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                crossAxisSpacing: 20.0,
-                                mainAxisSpacing: 20.0,
-                                childAspectRatio: 3 / 2,
-                              ),
-                              itemCount: classes.length,
-                              itemBuilder: (context, index) {
-                                // Default card design for other items
-                                return FutureBuilder(
-                                  future: firestoreService.getCourseData(
-                                      classes[index]['courseId']),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return const Center(
-                                          child: CircleAvatar());
-                                    }
+                            if (classes.isEmpty) {
+                              return const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                        'No classes available. Click the button above to add one!'),
+                                  ],
+                                ),
+                              );
+                            } else {
+                              return GridView.builder(
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: 20.0,
+                                  mainAxisSpacing: 20.0,
+                                  childAspectRatio: 3 / 2,
+                                ),
+                                itemCount: classes.length,
+                                itemBuilder: (context, index) {
+                                  // Default card design for other items
+                                  return FutureBuilder(
+                                    future: firestoreService.getCourseData(
+                                        classes[index]['courseId']),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return const Center(
+                                            child: CircleAvatar());
+                                      }
 
-                                    final courseData = snapshot.data!.data();
+                                      final courseData = snapshot.data!.data();
 
-                                    final courseCode =
-                                        courseData!['courseCode'];
+                                      final courseCode =
+                                          courseData!['courseCode'];
 
-                                    final courseTitle = courseList
-                                        .firstWhere((element) =>
-                                            element.code == courseCode)
-                                        .title;
+                                      final courseTitle = courseList
+                                          .firstWhere((element) =>
+                                              element.code == courseCode)
+                                          .title;
 
-                                    return Center(
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  InstructorClassScreen(
-                                                classCode: classes[index].id,
-                                                courseCodeYearBlock:
-                                                    '$courseCode - IT ${classes[index]['year']}${classes[index]['block']}',
-                                                courseTitle: courseTitle,
+                                      return Center(
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    InstructorClassScreen(
+                                                  classCode: classes[index].id,
+                                                  courseCodeYearBlock:
+                                                      '$courseCode - IT ${classes[index]['year']}${classes[index]['block']}',
+                                                  courseTitle: courseTitle,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: Card(
+                                            clipBehavior: Clip.antiAlias,
+                                            color: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(15),
+                                              side: const BorderSide(
+                                                color: Color.fromARGB(
+                                                    255, 19, 27, 99),
+                                                width: 4,
                                               ),
                                             ),
-                                          );
-                                        },
-                                        child: Card(
-                                          clipBehavior: Clip.antiAlias,
-                                          color: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(15),
-                                            side: const BorderSide(
-                                              color: Color.fromARGB(
-                                                  255, 19, 27, 99),
-                                              width: 4,
-                                            ),
-                                          ),
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              // COURSE CODE + PROGRAM-YEAR-BLOCK
-                                              Container(
-                                                width: 225,
-                                                height: 50,
-                                                decoration: const BoxDecoration(
-                                                  color: primary,
-                                                  borderRadius:
-                                                      BorderRadius.only(
-                                                    bottomRight:
-                                                        Radius.circular(15),
-                                                  ),
-                                                ),
-                                                child: Center(
-                                                  child: Text(
-                                                    '$courseCode - IT ${classes[index]['year']}${classes[index]['block']}',
-                                                    style: const TextStyle(
-                                                      fontSize: 20,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      color: Colors.white,
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                // COURSE CODE + PROGRAM-YEAR-BLOCK
+                                                Container(
+                                                  width: 225,
+                                                  height: 50,
+                                                  decoration:
+                                                      const BoxDecoration(
+                                                    color: primary,
+                                                    borderRadius:
+                                                        BorderRadius.only(
+                                                      bottomRight:
+                                                          Radius.circular(15),
                                                     ),
                                                   ),
-                                                ),
-                                              ),
-
-                                              // COURSE TITLE + JAVA ICON
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  SizedBox(
-                                                    width: 155,
+                                                  child: Center(
                                                     child: Text(
-                                                      courseTitle,
-                                                      textAlign:
-                                                          TextAlign.center,
+                                                      '$courseCode - IT ${classes[index]['year']}${classes[index]['block']}',
                                                       style: const TextStyle(
-                                                        fontSize: 18,
+                                                        fontSize: 20,
                                                         fontWeight:
-                                                            FontWeight.w800,
-                                                        color: Colors.black,
+                                                            FontWeight.w500,
+                                                        color: Colors.white,
                                                       ),
-                                                      overflow:
-                                                          TextOverflow.clip,
                                                     ),
                                                   ),
-                                                  Image.asset(
-                                                    "assets/images/java-logo.png",
-                                                    fit: BoxFit.contain,
-                                                    height: 75,
-                                                  )
-                                                ],
-                                              ),
+                                                ),
 
-                                              // INVISIBLE WIDGET TO CENTER THE COURSE TITLE
-                                              const Gap(25),
-                                            ],
+                                                // COURSE TITLE + JAVA ICON
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    SizedBox(
+                                                      width: 155,
+                                                      child: Text(
+                                                        courseTitle,
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: const TextStyle(
+                                                          fontSize: 18,
+                                                          fontWeight:
+                                                              FontWeight.w800,
+                                                          color: Colors.black,
+                                                        ),
+                                                        overflow:
+                                                            TextOverflow.clip,
+                                                      ),
+                                                    ),
+                                                    Image.asset(
+                                                      "assets/images/java-logo.png",
+                                                      fit: BoxFit.contain,
+                                                      height: 75,
+                                                    )
+                                                  ],
+                                                ),
+
+                                                // INVISIBLE WIDGET TO CENTER THE COURSE TITLE
+                                                const Gap(25),
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            );
+                                      );
+                                    },
+                                  );
+                                },
+                              );
+                            }
                           }),
                     ),
                   ),

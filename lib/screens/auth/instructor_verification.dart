@@ -164,7 +164,7 @@ class _InstructorVerificationScreenState
                                   foregroundColor:
                                       WidgetStatePropertyAll(Colors.white),
                                 ),
-                                onPressed: () {},
+                                onPressed: sendVerificationEmail,
                                 child: const Text('Resend email'),
                               ),
                             ),

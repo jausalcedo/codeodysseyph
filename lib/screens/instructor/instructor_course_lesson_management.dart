@@ -47,7 +47,7 @@ class _InstructorCourseLessonManagementState
 
   // LESSON CONTROLLERS
   final lessonTitleController = TextEditingController();
-  final lessonDescriptionController = TextEditingController();
+  // final lessonDescriptionController = TextEditingController();
   final addBeforeIndexController = TextEditingController();
 
   // LEARNING MATERIAL THINGS
@@ -74,20 +74,28 @@ class _InstructorCourseLessonManagementState
             StatefulBuilder(
               builder: (context, setState) => Row(
                 children: [
-                  DropdownButton(
-                    value: addWhere,
-                    items: ['Add to Last', 'Add Before']
-                        .map((value) => DropdownMenuItem(
-                              value: value,
-                              child: Text(value),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        addWhere = value!;
-                      });
-                    },
-                  ),
+                  numberOfLessons != 0
+                      ? SizedBox(
+                          width: 140,
+                          child: DropdownButtonFormField(
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                            ),
+                            value: addWhere,
+                            items: ['Add to Last', 'Add Before']
+                                .map((value) => DropdownMenuItem(
+                                      value: value,
+                                      child: Text(value),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                addWhere = value!;
+                              });
+                            },
+                          ),
+                        )
+                      : const SizedBox(),
                   const Gap(5),
                   addWhere == 'Add to Last'
                       ? const SizedBox()
@@ -120,11 +128,7 @@ class _InstructorCourseLessonManagementState
                   IconButton(
                     onPressed: () {
                       // CLEAR ALL FIELDS
-                      lessonTitleController.clear();
-                      lessonDescriptionController.clear();
-                      addBeforeIndexController.clear();
-                      fileName = null;
-                      fileBytes = null;
+                      clearFields();
                       // CLOSE THE MODAL
                       Navigator.of(context).pop();
                     },
@@ -189,25 +193,25 @@ class _InstructorCourseLessonManagementState
                           ),
                           const Gap(10),
 
-                          // DESCRIPTION
-                          const Text(
-                            'Description:',
-                            style: TextStyle(fontSize: 20),
-                          ),
-                          TextFormField(
-                            controller: lessonDescriptionController,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              hintText: 'Enter a short lesson description',
-                            ),
-                            validator: (value) {
-                              if (value == null || value == '') {
-                                return 'Required. Please enter a short description.';
-                              }
-                              return null;
-                            },
-                          ),
-                          const Gap(10),
+                          // // DESCRIPTION
+                          // const Text(
+                          //   'Description:',
+                          //   style: TextStyle(fontSize: 20),
+                          // ),
+                          // TextFormField(
+                          //   controller: lessonDescriptionController,
+                          //   decoration: const InputDecoration(
+                          //     border: OutlineInputBorder(),
+                          //     hintText: 'Enter a short lesson description',
+                          //   ),
+                          //   validator: (value) {
+                          //     if (value == null || value == '') {
+                          //       return 'Required. Please enter a short description.';
+                          //     }
+                          //     return null;
+                          //   },
+                          // ),
+                          // const Gap(10),
 
                           // LEARNING MATERIAL
                           const Text(
@@ -297,17 +301,26 @@ class _InstructorCourseLessonManagementState
       fileName: fileName!,
       fileBytes: fileBytes!,
       lessonTitle: lessonTitleController.text,
-      lessonDescription: lessonDescriptionController.text,
+      // lessonDescription: lessonDescriptionController.text,
       insertAtIndex: addWhere == 'Add Before'
           ? int.parse(addBeforeIndexController.text) - 1
           : null,
     )
         .then((_) {
+      clearFields();
       // ignore: use_build_context_synchronously
       Navigator.of(context).pop();
       // ignore: use_build_context_synchronously
       Navigator.of(context).pop();
     });
+  }
+
+  void clearFields() {
+    lessonTitleController.clear();
+    // lessonDescriptionController.clear();
+    addBeforeIndexController.clear();
+    fileName = null;
+    fileBytes = null;
   }
 
   Future<void> deleteLesson(Map<String, dynamic> lesson) async {

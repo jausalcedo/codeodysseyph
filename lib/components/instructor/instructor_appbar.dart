@@ -67,7 +67,7 @@ class _InstructorAppbarState extends State<InstructorAppbar> {
         horizontal: BorderSide(color: Colors.black87),
       ),
       title: Image.asset(
-        'assets/images/Logo - Long Row.png',
+        'assets/images/Logo - Long Row Transparent.png',
         height: 75,
       ),
       actions: [

@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 // import 'package:quickalert/quickalert.dart';
 
-class ErrorService {
+class AlertService {
   // MATERIAL
-  // BANNER
+  // SHOW BANNER
   void showBanner(BuildContext context, String message) {
+    hideBanner(context);
     ScaffoldMessenger.of(context).showMaterialBanner(
       MaterialBanner(
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: ScaffoldMessenger.of(context).hideCurrentMaterialBanner,
+            onPressed: () => hideBanner(context),
             child: const Text('Dismiss'),
           ),
         ],
       ),
     );
+  }
+
+  // HIDE BANNER
+  void hideBanner(BuildContext context) {
+    ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
   }
 
   // // QUICKALERTS
