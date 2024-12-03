@@ -25,11 +25,11 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
   String? selectedCourse;
   String? selectedYear;
   String? selectedBlock;
-  int? selectedAcademicYear;
+  int selectedAcademicYear = DateTime.now().year;
   String selectedSemester = 'First Semester';
 
   // SERVICES
-  final firestoreService = CloudFirestoreService();
+  final _firestoreService = CloudFirestoreService();
 
   // FORM KEYS
   final addClassFormKey = GlobalKey<FormState>();
@@ -111,7 +111,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                             const Gap(10),
                             FutureBuilder(
                               future:
-                                  firestoreService.getCourses(widget.userId),
+                                  _firestoreService.getCourses(widget.userId),
                               builder: (context, snapshot) {
                                 if (snapshot.connectionState ==
                                     ConnectionState.waiting) {
@@ -282,7 +282,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                                         border: OutlineInputBorder(),
                                         label: Text('Academic Year'),
                                       ),
-                                      value: currentYear,
+                                      value: selectedAcademicYear,
                                       items: [
                                         currentYear - 1,
                                         currentYear,
@@ -300,7 +300,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                                           .toList(),
                                       onChanged: (value) {
                                         setState(() {
-                                          selectedAcademicYear = value;
+                                          selectedAcademicYear = value!;
                                         });
                                       },
                                     ),
@@ -377,13 +377,46 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
       type: QuickAlertType.loading,
     );
 
-    await firestoreService
+    final courseData = await _firestoreService.getCourseData(selectedCourse!);
+    final courseCode = courseData['courseCode'];
+
+    // CHECK IF THERE IS ALREADY A CLASS IN CURRENT ACADYEAR AND SEM OF THAT COURSE
+    final noDuplicate = await _firestoreService.noDuplicateClass(
+      courseCode: courseCode,
+      year: selectedYear!,
+      block: selectedBlock!,
+      academicYear: selectedAcademicYear,
+      semester: selectedSemester,
+    );
+
+    if (!noDuplicate) {
+      // POP THE LOADING
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+
+      return QuickAlert.show(
+        // ignore: use_build_context_synchronously
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Error!',
+        text:
+            'You already have an existing class for $courseCode\nfor the $selectedSemester of the Academic Year $selectedAcademicYear - ${selectedAcademicYear + 1}.',
+        confirmBtnText: 'Okay',
+        // ignore: use_build_context_synchronously
+        onConfirmBtnTap: Navigator.of(context).pop,
+      );
+    }
+
+    await _firestoreService
         .createClass(
-      context,
-      selectedCourse!,
-      widget.userId,
-      selectedYear!,
-      selectedBlock!,
+      // ignore: use_build_context_synchronously
+      context: context,
+      courseId: selectedCourse!,
+      instructorId: widget.userId,
+      year: selectedYear!,
+      block: selectedBlock!,
+      academicYear: selectedAcademicYear,
+      semester: selectedSemester,
     )
         .then((_) {
       clearFields();
@@ -452,163 +485,154 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                         horizontal: 20,
                       ),
                       child: StreamBuilder(
-                          stream: firestoreService
-                              .getInstructorClasses(widget.userId),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            }
+                        stream: _firestoreService
+                            .getInstructorClasses(widget.userId),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
 
-                            final classes = snapshot.data!.docs;
+                          final classes = snapshot.data!.docs;
 
-                            if (classes.isEmpty) {
-                              return const Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                        'No classes available. Click the button above to add one!'),
-                                  ],
-                                ),
-                              );
-                            } else {
-                              return GridView.builder(
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  crossAxisSpacing: 20.0,
-                                  mainAxisSpacing: 20.0,
-                                  childAspectRatio: 3 / 2,
-                                ),
-                                itemCount: classes.length,
-                                itemBuilder: (context, index) {
-                                  // Default card design for other items
-                                  return FutureBuilder(
-                                    future: firestoreService.getCourseData(
-                                        classes[index]['courseId']),
-                                    builder: (context, snapshot) {
-                                      if (snapshot.connectionState ==
-                                          ConnectionState.waiting) {
-                                        return const Center(
-                                            child: CircleAvatar());
-                                      }
+                          if (classes.isEmpty) {
+                            return const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                      'No classes available. Click the button above to add one!'),
+                                ],
+                              ),
+                            );
+                          } else {
+                            return GridView.builder(
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 20.0,
+                                mainAxisSpacing: 20.0,
+                                childAspectRatio: 3 / 2,
+                              ),
+                              itemCount: classes.length,
+                              itemBuilder: (context, index) {
+                                // CLASS DATA
+                                final courseCode = classes[index]['courseCode'];
+                                final year = classes[index]['year'][0];
+                                final block = classes[index]['block'];
+                                final academicYear =
+                                    classes[index]['academicYear'];
+                                final semester = classes[index]['semester'];
 
-                                      final courseData = snapshot.data!.data();
+                                String courseTitle = courseList
+                                    .firstWhere(
+                                        (element) => element.code == courseCode)
+                                    .title;
 
-                                      final courseCode =
-                                          courseData!['courseCode'];
-
-                                      final courseTitle = courseList
-                                          .firstWhere((element) =>
-                                              element.code == courseCode)
-                                          .title;
-
-                                      return Center(
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            Navigator.of(context).push(
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    InstructorClassScreen(
-                                                  userId: widget.userId,
-                                                  classCode: classes[index].id,
-                                                  courseCodeYearBlock:
-                                                      '$courseCode - IT ${classes[index]['year']}${classes[index]['block']}',
-                                                  courseTitle: courseTitle,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          child: Card(
-                                            clipBehavior: Clip.antiAlias,
-                                            color: Colors.white,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(15),
-                                              side: const BorderSide(
-                                                color: Color.fromARGB(
-                                                    255, 19, 27, 99),
-                                                width: 4,
-                                              ),
-                                            ),
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                // COURSE CODE + PROGRAM-YEAR-BLOCK
-                                                Container(
-                                                  width: 225,
-                                                  height: 50,
-                                                  decoration:
-                                                      const BoxDecoration(
-                                                    color: primary,
-                                                    borderRadius:
-                                                        BorderRadius.only(
-                                                      bottomRight:
-                                                          Radius.circular(15),
-                                                    ),
-                                                  ),
-                                                  child: Center(
-                                                    child: Text(
-                                                      '$courseCode - IT ${classes[index]['year']}${classes[index]['block']}',
-                                                      style: const TextStyle(
-                                                        fontSize: 20,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: Colors.white,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-
-                                                // COURSE TITLE + JAVA ICON
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    SizedBox(
-                                                      width: 155,
-                                                      child: Text(
-                                                        courseTitle,
-                                                        textAlign:
-                                                            TextAlign.center,
-                                                        style: const TextStyle(
-                                                          fontSize: 18,
-                                                          fontWeight:
-                                                              FontWeight.w800,
-                                                          color: Colors.black,
-                                                        ),
-                                                        overflow:
-                                                            TextOverflow.clip,
-                                                      ),
-                                                    ),
-                                                    Image.asset(
-                                                      "assets/images/java-logo.png",
-                                                      fit: BoxFit.contain,
-                                                      height: 75,
-                                                    )
-                                                  ],
-                                                ),
-
-                                                // INVISIBLE WIDGET TO CENTER THE COURSE TITLE
-                                                const Gap(25),
-                                              ],
-                                            ),
+                                // Default card design for other items
+                                return Center(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              InstructorClassScreen(
+                                            userId: widget.userId,
+                                            classCode: classes[index].id,
+                                            courseCodeYearBlock:
+                                                '$courseCode - IT $year$block',
+                                            courseTitle: courseTitle,
                                           ),
                                         ),
                                       );
                                     },
-                                  );
-                                },
-                              );
-                            }
-                          }),
+                                    child: Card(
+                                      clipBehavior: Clip.antiAlias,
+                                      color: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                        side: const BorderSide(
+                                          color:
+                                              Color.fromARGB(255, 19, 27, 99),
+                                          width: 4,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          // COURSE CODE + PROGRAM-YEAR-BLOCK
+                                          Container(
+                                            width: 225,
+                                            height: 50,
+                                            decoration: const BoxDecoration(
+                                              color: primary,
+                                              borderRadius: BorderRadius.only(
+                                                bottomRight:
+                                                    Radius.circular(15),
+                                              ),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                '$courseCode - IT $year$block',
+                                                style: const TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+
+                                          // COURSE TITLE + JAVA ICON
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              SizedBox(
+                                                width: 155,
+                                                child: Text(
+                                                  courseTitle,
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: Colors.black,
+                                                  ),
+                                                  overflow: TextOverflow.clip,
+                                                ),
+                                              ),
+                                              Image.asset(
+                                                "assets/images/java-logo.png",
+                                                fit: BoxFit.contain,
+                                                height: 75,
+                                              )
+                                            ],
+                                          ),
+
+                                          // INVISIBLE WIDGET TO CENTER THE COURSE TITLE
+                                          Center(
+                                            child: Padding(
+                                              padding: const EdgeInsets.only(
+                                                  bottom: 5),
+                                              child: Text(
+                                                  '$semester A.Y. $academicYear - ${academicYear + 1}'),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          }
+                        },
+                      ),
                     ),
                   ),
                 ],

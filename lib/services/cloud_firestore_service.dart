@@ -173,6 +173,8 @@ class CloudFirestoreService {
     return await _firestore
         .collection('courses')
         .where('instructorId', isEqualTo: instructorId)
+        .orderBy('courseCode')
+        .orderBy('timeStamp')
         .get();
   }
 
@@ -318,13 +320,34 @@ class CloudFirestoreService {
     );
   }
 
-  Future<void> createClass(
-    BuildContext context,
-    String courseId,
-    String instructorId,
-    String year,
-    String block,
-  ) async {
+  Future<bool> noDuplicateClass({
+    required String courseCode,
+    required String year,
+    required String block,
+    required int academicYear,
+    required String semester,
+  }) async {
+    final classData = await _firestore
+        .collection('classes')
+        .where('courseCode', isEqualTo: courseCode)
+        .where('year', isEqualTo: year)
+        .where('block', isEqualTo: block)
+        .where('academicYear', isEqualTo: academicYear)
+        .where('semester', isEqualTo: semester)
+        .get();
+
+    return classData.docs.isEmpty;
+  }
+
+  Future<void> createClass({
+    required BuildContext context,
+    required String courseId,
+    required String instructorId,
+    required String year,
+    required String block,
+    required int academicYear,
+    required String semester,
+  }) async {
     // GET INSTRUCTOR DATA
     await _firestore.collection('users').doc(instructorId).get().then(
       (instructorData) async {
@@ -355,16 +378,24 @@ class CloudFirestoreService {
         }
 
         if (classCodeOk) {
-          // FETCH LESSONS
+          // FETCH COURSE OUTLINE
           await _firestore.collection('courses').doc(courseId).get().then(
             (courseData) async {
               final courseCode = courseData['courseCode'];
+              final lessons = courseData['lessons'];
+              final files = courseData['files'];
+
               // USE THE CODE AS THE ID FOR THE DOCUMENT
               await _firestore.collection('classes').doc(classCode).set({
-                'courseId': courseId,
+                'courseCode': courseCode,
                 'instructorId': instructorId,
+                'lessons': lessons,
+                'files': files,
                 'year': year,
                 'block': block,
+                'academicYear': academicYear,
+                'semester': semester,
+                'timeStamp': FieldValue.serverTimestamp(),
                 'students': [],
               }).then(
                 (_) {
