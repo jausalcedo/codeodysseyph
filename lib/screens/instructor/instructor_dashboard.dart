@@ -443,7 +443,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
       ),
       body: Center(
         child: SizedBox(
-          width: 1050,
+          width: 1080,
           child: Padding(
             padding: const EdgeInsets.all(10),
             child: Card(
