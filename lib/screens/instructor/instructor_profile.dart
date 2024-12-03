@@ -4,7 +4,12 @@ import 'package:gap/gap.dart';
 import 'package:quickalert/quickalert.dart';
 
 class InstructorProfileScreen extends StatelessWidget {
-  const InstructorProfileScreen({super.key});
+  const InstructorProfileScreen({
+    super.key,
+    required this.userId,
+  });
+
+  final String userId;
 
   @override
   Widget build(BuildContext context) {
@@ -217,9 +222,9 @@ class InstructorProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-      appBar: const PreferredSize(
-        preferredSize: Size(double.infinity, 75),
-        child: InstructorAppbar(),
+      appBar: PreferredSize(
+        preferredSize: const Size(double.infinity, 75),
+        child: InstructorAppbar(userId: userId),
       ),
     );
   }

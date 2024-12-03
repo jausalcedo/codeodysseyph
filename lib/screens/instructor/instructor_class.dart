@@ -7,11 +7,13 @@ import 'package:gap/gap.dart';
 class InstructorClassScreen extends StatefulWidget {
   const InstructorClassScreen({
     super.key,
+    required this.userId,
     required this.classCode,
     required this.courseCodeYearBlock,
     required this.courseTitle,
   });
 
+  final String userId;
   final String classCode;
   final String courseCodeYearBlock;
   final String courseTitle;
@@ -839,9 +841,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
           ],
         ),
       ),
-      appBar: const PreferredSize(
-        preferredSize: Size(double.infinity, 75),
-        child: InstructorAppbar(),
+      appBar: PreferredSize(
+        preferredSize: const Size(double.infinity, 75),
+        child: InstructorAppbar(userId: widget.userId),
       ),
     );
   }

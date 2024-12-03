@@ -13,9 +13,11 @@ import 'package:quickalert/quickalert.dart';
 class InstructorCourseLessonManagement extends StatefulWidget {
   const InstructorCourseLessonManagement({
     super.key,
+    required this.userId,
     required this.courseId,
   });
 
+  final String userId;
   final String courseId;
 
   @override
@@ -359,9 +361,11 @@ class _InstructorCourseLessonManagementState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const PreferredSize(
-        preferredSize: Size(double.infinity, 75),
-        child: InstructorAppbar(),
+      appBar: PreferredSize(
+        preferredSize: const Size(double.infinity, 75),
+        child: InstructorAppbar(
+          userId: widget.userId,
+        ),
       ),
       body: StreamBuilder(
         stream: FirebaseFirestore.instance

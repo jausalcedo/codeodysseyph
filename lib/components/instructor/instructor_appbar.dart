@@ -9,7 +9,9 @@ import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 
 class InstructorAppbar extends StatefulWidget {
-  const InstructorAppbar({super.key});
+  const InstructorAppbar({super.key, required this.userId});
+
+  final String userId;
 
   @override
   State<InstructorAppbar> createState() => _InstructorAppbarState();
@@ -21,7 +23,7 @@ class _InstructorAppbarState extends State<InstructorAppbar> {
   void openProfileScreen(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const InstructorProfileScreen(),
+        builder: (context) => InstructorProfileScreen(userId: widget.userId),
       ),
     );
   }
@@ -78,14 +80,16 @@ class _InstructorAppbarState extends State<InstructorAppbar> {
         //   size: 30,
         // ),
         // const Gap(25),
-        const TextButton(
-          style: ButtonStyle(
+        TextButton(
+          style: const ButtonStyle(
               backgroundColor: WidgetStatePropertyAll(accent),
               foregroundColor: WidgetStatePropertyAll(primary)),
           onPressed: null,
           child: Text(
-            'Instructor',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            widget.userId == 'W8KspheVoSaL40E0B106cdR5Dsj2'
+                ? 'Admin'
+                : 'Instructor',
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
         const Gap(25),

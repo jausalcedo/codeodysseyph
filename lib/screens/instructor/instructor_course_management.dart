@@ -139,8 +139,10 @@ class _InstructorCourseManagementScreenState
   void openCourseLessonManagementScreen(String documentId) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) =>
-            InstructorCourseLessonManagement(courseId: documentId),
+        builder: (context) => InstructorCourseLessonManagement(
+          userId: widget.userId,
+          courseId: documentId,
+        ),
       ),
     );
   }
@@ -217,9 +219,9 @@ class _InstructorCourseManagementScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: InstructorDrawer(userId: widget.userId),
-      appBar: const PreferredSize(
-        preferredSize: Size(double.infinity, 75),
-        child: InstructorAppbar(),
+      appBar: PreferredSize(
+        preferredSize: const Size(double.infinity, 75),
+        child: InstructorAppbar(userId: widget.userId),
       ),
       body: Center(
         child: SizedBox(

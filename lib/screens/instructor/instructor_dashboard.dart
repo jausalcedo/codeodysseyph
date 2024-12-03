@@ -404,9 +404,9 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: InstructorDrawer(userId: widget.userId),
-      appBar: const PreferredSize(
-        preferredSize: Size(double.infinity, 75),
-        child: InstructorAppbar(),
+      appBar: PreferredSize(
+        preferredSize: const Size(double.infinity, 75),
+        child: InstructorAppbar(userId: widget.userId),
       ),
       body: Center(
         child: SizedBox(
@@ -513,6 +513,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                                               MaterialPageRoute(
                                                 builder: (context) =>
                                                     InstructorClassScreen(
+                                                  userId: widget.userId,
                                                   classCode: classes[index].id,
                                                   courseCodeYearBlock:
                                                       '$courseCode - IT ${classes[index]['year']}${classes[index]['block']}',
