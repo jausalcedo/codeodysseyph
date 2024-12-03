@@ -32,6 +32,7 @@ class _InstructorCourseManagementScreenState
   String outlineType = 'Create from Scratch';
   String? codeOdysseyCourseOutline;
   String? myCourseOutline;
+  String? courseOutlineLabel;
 
   // Uint8List? fileBytes;
   // String? fileName;
@@ -94,6 +95,11 @@ class _InstructorCourseManagementScreenState
     // });
 
     if (outlineType == 'Create from Scratch') {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.loading,
+      );
+
       await _firestoreService
           .createCourseOutline(
         context,
@@ -103,6 +109,8 @@ class _InstructorCourseManagementScreenState
         // fileBytes!,
       )
           .then((_) {
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
         setState(() {
           selectedCourse = null;
           // fileName = null;
@@ -127,12 +135,28 @@ class _InstructorCourseManagementScreenState
         );
       }
 
-      await _firestoreService.createCourseOutlineFromTemplate(
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.loading,
+      );
+
+      await _firestoreService
+          .createCourseOutlineFromTemplate(
         context,
         selectedCourse!,
         widget.userId,
         templateId,
-      );
+      )
+          .then((_) {
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
+        setState(() {
+          selectedCourse = null;
+          outlineType = 'Create from Scratch';
+          codeOdysseyCourseOutline = null;
+          myCourseOutline = null;
+        });
+      });
     }
   }
 
@@ -268,6 +292,8 @@ class _InstructorCourseManagementScreenState
                                     onChanged: (value) {
                                       setState(() {
                                         selectedCourse = value;
+                                        myCourseOutline = null;
+                                        codeOdysseyCourseOutline = null;
                                       });
                                     },
                                     validator: (value) {
@@ -415,9 +441,10 @@ class _InstructorCourseManagementScreenState
                                             child: DropdownButtonFormField(
                                               decoration: const InputDecoration(
                                                 border: OutlineInputBorder(),
-                                                label: Text('From CodeOdyssey'),
+                                                label: Text(
+                                                    'From My Course Outlines'),
                                               ),
-                                              value: codeOdysseyCourseOutline,
+                                              value: myCourseOutline,
                                               items: courses.map(
                                                 (course) {
                                                   final courseCode =
@@ -432,15 +459,24 @@ class _InstructorCourseManagementScreenState
 
                                                   return DropdownMenuItem(
                                                     value: course.id,
-                                                    child: Text(
-                                                        '$courseCode - $courseTitle v$version'),
+                                                    child: Tooltip(
+                                                      message:
+                                                          '$courseCode - $courseTitle v$version',
+                                                      child: SizedBox(
+                                                        width: 260,
+                                                        child: Text(
+                                                          '$courseCode - $courseTitle v$version',
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+                                                      ),
+                                                    ),
                                                   );
                                                 },
                                               ).toList(),
                                               onChanged: (value) {
                                                 setState(() {
-                                                  codeOdysseyCourseOutline =
-                                                      value!;
+                                                  myCourseOutline = value!;
                                                 });
                                               },
                                             ),
