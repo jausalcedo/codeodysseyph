@@ -299,7 +299,7 @@ class _InstructorCourseLessonManagementState
     await _firestoreService
         .addLesson(
       context: context,
-      courseId: widget.courseId,
+      documentId: widget.courseId,
       fileName: fileName!,
       fileBytes: fileBytes!,
       lessonTitle: lessonTitleController.text,
@@ -345,7 +345,7 @@ class _InstructorCourseLessonManagementState
         );
 
         await _firestoreService
-            .deleteLesson(context, widget.courseId, lesson)
+            .deleteLesson(context, 'courses', widget.courseId, lesson)
             .then((_) {
           // DISMISS LOADING MODAL
           // ignore: use_build_context_synchronously

@@ -187,15 +187,17 @@ class CloudFirestoreService {
         .get();
   }
 
-  Future<void> addToFiles(String courseId, String fullPath) async {
-    await _firestore.collection('courses').doc(courseId).update({
+  Future<void> addToFiles(
+      String collection, String documentId, String fullPath) async {
+    await _firestore.collection(collection).doc(documentId).update({
       'files': FieldValue.arrayUnion([fullPath]),
     });
   }
 
   Future<void> addLesson({
     BuildContext? context,
-    String? courseId,
+    String? collection,
+    String? documentId,
     String? lessonTitle,
     // String? lessonDescription,
     String? fileName,
@@ -204,21 +206,22 @@ class CloudFirestoreService {
   }) async {
     try {
       final learningMaterialPath = await _storageService.uploadFile(
-        'courses/files/',
+        '$collection/files/',
         fileName!,
         fileBytes!,
       );
 
-      await addToFiles(courseId!, learningMaterialPath);
+      await addToFiles(collection!, documentId!, learningMaterialPath);
 
       if (insertAtIndex == null) {
-        await _firestore.collection('courses').doc(courseId).update({
+        await _firestore.collection(collection).doc(documentId).update({
           'lessons': FieldValue.arrayUnion([
             {
               'title': lessonTitle,
               // 'description': lessonDescription,
               'learningMaterial': learningMaterialPath,
               'additionalResources': [],
+              'activities': [],
             }
           ]),
           'lastUpdated': FieldValue.serverTimestamp(),
@@ -231,7 +234,7 @@ class CloudFirestoreService {
         });
       } else {
         final documentReference =
-            _firestore.collection('courses').doc(courseId);
+            _firestore.collection(collection).doc(documentId);
 
         await _firestore.runTransaction((transaction) async {
           // READ CURRENT DATA
@@ -248,6 +251,7 @@ class CloudFirestoreService {
               // 'description': lessonDescription,
               'learningMaterial': learningMaterialPath,
               'additionalResources': [],
+              'activities': []
             },
           );
 
@@ -275,12 +279,13 @@ class CloudFirestoreService {
 
   Future<void> deleteLesson(
     BuildContext context,
+    String collection,
     String courseId,
     Map<String, dynamic> lesson,
   ) async {
     try {
       // REMOVE FROM COURSE FILES
-      await _firestore.collection('courses').doc(courseId).update({
+      await _firestore.collection(collection).doc(courseId).update({
         'files': FieldValue.arrayRemove([lesson['learningMaterial']])
       }).then((_) async {
         // REMOVE FROM STORAGE
@@ -430,6 +435,11 @@ class CloudFirestoreService {
         .collection('classes')
         .where('instructorId', isEqualTo: instructorId)
         .snapshots();
+  }
+
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getClassData(
+      String classCode) {
+    return _firestore.collection('classes').doc(classCode).snapshots();
   }
 
   // --- STUDENT FUNCTIONS ---
