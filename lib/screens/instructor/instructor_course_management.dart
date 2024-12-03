@@ -39,7 +39,7 @@ class _InstructorCourseManagementScreenState
   // bool uploadOk = true;
 
   // FORM KEYS
-  final formKey = GlobalKey<FormState>();
+  final createCourseOutlineFormKey = GlobalKey<FormState>();
 
   // COURSE STREAMS
   late final Stream<QuerySnapshot> courseStream;
@@ -67,7 +67,7 @@ class _InstructorCourseManagementScreenState
 
   void createCourseOutline() async {
     // VALIDATE COURSE
-    if (!formKey.currentState!.validate()) {
+    if (!createCourseOutlineFormKey.currentState!.validate()) {
       return;
     }
 
@@ -111,7 +111,28 @@ class _InstructorCourseManagementScreenState
         });
       });
     } else {
-      //
+      String? templateId;
+      if (outlineType == 'From CodeOdyssey') {
+        templateId = codeOdysseyCourseOutline;
+      } else {
+        templateId = myCourseOutline;
+      }
+
+      if (templateId == null) {
+        return QuickAlert.show(
+          context: context,
+          type: QuickAlertType.error,
+          title: 'Error',
+          text: 'Please select a course outline template.',
+        );
+      }
+
+      await _firestoreService.createCourseOutlineFromTemplate(
+        context,
+        selectedCourse!,
+        widget.userId,
+        templateId,
+      );
     }
   }
 
@@ -217,7 +238,7 @@ class _InstructorCourseManagementScreenState
                       const Text('Create a New Course Outline'),
                       const Gap(5),
                       Form(
-                        key: formKey,
+                        key: createCourseOutlineFormKey,
                         child: Row(
                           // mainAxisSize: MainAxisSize.max,
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -278,11 +299,13 @@ class _InstructorCourseManagementScreenState
                                           ),
                                         )
                                         .toList(),
-                                    onChanged: (value) {
-                                      setState(() {
-                                        outlineType = value!;
-                                      });
-                                    },
+                                    onChanged: selectedCourse == null
+                                        ? null
+                                        : (value) {
+                                            setState(() {
+                                              outlineType = value as String;
+                                            });
+                                          },
                                   ),
                                 ),
                                 const Gap(5),

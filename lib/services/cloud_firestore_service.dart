@@ -46,7 +46,7 @@ class CloudFirestoreService {
       'lessons': [],
       'lastUpdated': FieldValue.serverTimestamp(),
       'timeStamp': FieldValue.serverTimestamp(),
-      'files': []
+      'files': [],
     }).then((_) {
       final tempSelectedCourse =
           courseList.firstWhere((element) => element.code == selectedCourse);
@@ -90,42 +90,53 @@ class CloudFirestoreService {
   Future<void> createCourseOutlineFromTemplate(
     BuildContext context,
     String selectedCourse,
-    String userId,
+    String instructorId,
     String templateId,
   ) async {
-    // QUERY EXISTING COURSE OUTLINES WITH THE SAME SELECTED COURSE CODE AND INSTRUCTOR ID
-    final querySnapshot = await _firestore
+    // FETCH TEMPLATE COURSE OUTLINE
+    await _firestore
         .collection('courses')
-        .where('courseCode', isEqualTo: selectedCourse)
-        .where('instructorId', isEqualTo: userId)
-        .get();
+        .doc(templateId)
+        .get()
+        .then((courseOutline) async {
+      final tempCourseCode = courseOutline['courseCode'];
+      final tempLessons = courseOutline['lessons'];
+      final tempFiles = courseOutline['files'];
 
-    // DETERMINE VERSION NUMBER
-    int newVersion = 1;
-    if (querySnapshot.docs.isNotEmpty) {
-      final versions = querySnapshot.docs.map((doc) {
-        return doc['version'] ?? 1; // DEFAULT TO VERSION 1 IF NOT SET
-      }).toList();
-      newVersion = versions.reduce((a, b) => a > b ? a : b) + 1;
-    }
+      // QUERY EXISTING COURSE OUTLINES WITH THE SAME SELECTED COURSE CODE AND INSTRUCTOR ID
+      final querySnapshot = await _firestore
+          .collection('courses')
+          .where('courseCode', isEqualTo: selectedCourse)
+          .where('instructorId', isEqualTo: instructorId)
+          .get();
 
-    await _firestore.collection('courses').add({
-      'courseCode': selectedCourse,
-      'instructorId': userId,
-      'version': newVersion,
-      'lessons': [],
-      'lastUpdated': FieldValue.serverTimestamp(),
-      'timeStamp': FieldValue.serverTimestamp(),
-      'files': []
-    }).then((_) {
-      final tempSelectedCourse =
-          courseList.firstWhere((element) => element.code == selectedCourse);
+      // DETERMINE VERSION NUMBER
+      int newVersion = 1;
+      if (querySnapshot.docs.isNotEmpty) {
+        final versions = querySnapshot.docs.map((doc) {
+          return doc['version'] ?? 1; // DEFAULT TO VERSION 1 IF NOT SET
+        }).toList();
+        newVersion = versions.reduce((a, b) => a > b ? a : b) + 1;
+      }
 
-      _errorService.showBanner(
-        // ignore: use_build_context_synchronously
-        context,
-        '${tempSelectedCourse.code} - ${tempSelectedCourse.title} Course Outline Successfully Added!',
-      );
+      await _firestore.collection('courses').add({
+        'courseCode': tempCourseCode,
+        'instructorId': instructorId,
+        'version': newVersion,
+        'lessons': tempLessons,
+        'lastUpdated': FieldValue.serverTimestamp(),
+        'timeStamp': FieldValue.serverTimestamp(),
+        'files': tempFiles,
+      }).then((_) {
+        final tempSelectedCourse =
+            courseList.firstWhere((element) => element.code == selectedCourse);
+
+        _errorService.showBanner(
+          // ignore: use_build_context_synchronously
+          context,
+          '${tempSelectedCourse.code} - ${tempSelectedCourse.title} Course Outline Successfully Added!',
+        );
+      });
     });
   }
 
