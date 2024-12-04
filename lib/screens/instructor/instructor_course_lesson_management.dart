@@ -52,7 +52,7 @@ class _InstructorCourseLessonManagementState
   // final lessonDescriptionController = TextEditingController();
   final addBeforeIndexController = TextEditingController();
 
-  // LEARNING MATERIAL THINGS
+  // ADD LESSON ESSENTIALS
   String? fileName;
   Uint8List? fileBytes;
   int? numberOfLessons;

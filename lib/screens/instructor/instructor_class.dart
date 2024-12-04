@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:disclosure/disclosure.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:quickalert/quickalert.dart';
@@ -55,8 +58,265 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     }
   }
 
+  // LESSON CONTROLLERS
+  final lessonTitleController = TextEditingController();
+  final addBeforeIndexController = TextEditingController();
+
+  // ADD LESSON ESSENTIALS
+  String? fileName;
+  Uint8List? fileBytes;
+  int? numberOfLessons;
+  String addWhere = 'Add to Last';
+
+  // FORM KEYS
+  final lessonFormKey = GlobalKey<FormState>();
+  final addBeforeLessonFormKey = GlobalKey<FormState>();
+
   void openAddLessonModal() {
-    // TO DO
+    // SHOW MODAL
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Add New Lesson',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            StatefulBuilder(
+              builder: (context, setState) => Row(
+                children: [
+                  // ADD TO WHERE
+                  numberOfLessons != 0
+                      ? SizedBox(
+                          width: 140,
+                          child: DropdownButtonFormField(
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                            ),
+                            value: addWhere,
+                            items: ['Add to Last', 'Add Before']
+                                .map((value) => DropdownMenuItem(
+                                      value: value,
+                                      child: Text(value),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                addWhere = value!;
+                              });
+                            },
+                          ),
+                        )
+                      : const SizedBox(),
+                  const Gap(5),
+                  // IF ADD BEFORE, SHOW INDEX INPUT
+                  addWhere == 'Add Before'
+                      ? Form(
+                          key: addBeforeLessonFormKey,
+                          child: SizedBox(
+                            width: 115,
+                            child: TextFormField(
+                              controller: addBeforeIndexController,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                label: Text('Before Lesson'),
+                              ),
+                              textAlign: TextAlign.center,
+                              validator: (value) {
+                                if (value == null || value == '') {
+                                  return 'Required.';
+                                }
+
+                                if (int.parse(value) <= 0 ||
+                                    int.parse(value) > numberOfLessons!) {
+                                  return 'Invalid input.';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        )
+                      : const SizedBox(),
+                  const Gap(10),
+                  // CLOSE MODAL BUTTON
+                  IconButton(
+                    onPressed: () {
+                      // CLEAR ALL FIELDS
+                      clearFields();
+                      // CLOSE THE MODAL
+                      Navigator.of(context).pop();
+                    },
+                    icon: const Icon(Icons.close_rounded),
+                    style: const ButtonStyle(
+                      foregroundColor: WidgetStatePropertyAll(Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          ],
+        ),
+        content: SizedBox(
+          width: 750,
+          height: 350,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                void pickFile() async {
+                  FilePickerResult? result =
+                      await FilePicker.platform.pickFiles(
+                    allowMultiple: false,
+                    // allowedExtensions: ['pdf', 'pptx', 'ppt'],
+                    allowedExtensions: ['pdf'],
+                    type: FileType.custom,
+                  );
+
+                  if (result != null) {
+                    setState(() {
+                      fileBytes = result.files.first.bytes!;
+                      fileName = result.files.first.name;
+                    });
+                  }
+                }
+
+                return ListView(
+                  children: [
+                    Form(
+                      key: lessonFormKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // TITLE
+                          const Text(
+                            'Title:',
+                            style: TextStyle(fontSize: 20),
+                          ),
+                          TextFormField(
+                            controller: lessonTitleController,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: 'Enter lesson title',
+                            ),
+                            validator: (value) {
+                              if (value == null || value == '') {
+                                return 'Required. Please enter lesson title.';
+                              }
+                              return null;
+                            },
+                          ),
+                          const Gap(10),
+
+                          // LEARNING MATERIAL
+                          const Text(
+                            'Learning Material:',
+                            style: TextStyle(fontSize: 20),
+                          ),
+
+                          // FILE NAME
+                          Text(
+                            fileName ?? 'None Selected',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const Gap(10),
+
+                          // SELECT FILE BUTTON
+                          ElevatedButton.icon(
+                            onPressed: pickFile,
+                            label: Text(
+                              fileName == null ? 'Select File' : 'Change File',
+                            ),
+                            icon: const Icon(Icons.attach_file_rounded),
+                            style: const ButtonStyle(
+                              backgroundColor: WidgetStatePropertyAll(primary),
+                              foregroundColor:
+                                  WidgetStatePropertyAll(Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+        actions: [
+          // ADD BUTTON
+          Center(
+            child: TextButton.icon(
+              onPressed: addLesson,
+              label: const Text(
+                'Add',
+                style: TextStyle(fontSize: 18),
+              ),
+              icon: const Icon(Icons.add),
+              style: ButtonStyle(
+                backgroundColor: WidgetStatePropertyAll(Colors.green[800]),
+                foregroundColor: const WidgetStatePropertyAll(Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void addLesson() async {
+    if (!lessonFormKey.currentState!.validate()) {
+      return;
+    }
+
+    if (addWhere == 'Add Before') {
+      if (!addBeforeLessonFormKey.currentState!.validate()) {
+        return;
+      }
+    }
+
+    if (fileName == null) {
+      return QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Error',
+        text: 'Please select a learning material.',
+        onConfirmBtnTap: Navigator.of(context).pop,
+      );
+    }
+
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.loading,
+    );
+
+    await _firestoreService
+        .addLesson(
+      context: context,
+      collection: 'classes',
+      documentId: widget.classCode,
+      fileName: fileName!,
+      fileBytes: fileBytes!,
+      lessonTitle: lessonTitleController.text,
+      insertAtIndex: addWhere == 'Add Before'
+          ? int.parse(addBeforeIndexController.text) - 1
+          : null,
+    )
+        .then((_) {
+      clearFields();
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+    });
+  }
+
+  void clearFields() {
+    lessonTitleController.clear();
+    addBeforeIndexController.clear();
+    fileName = null;
+    fileBytes = null;
   }
 
   void openAddActivityModal() {
@@ -67,10 +327,43 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     // TO DO
   }
 
+  Future<void> deleteLesson(Map<String, dynamic> lesson) async {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.warning,
+      title: 'Confirm Delete?\n${lesson['title']}',
+      text: 'This action cannot be undone.',
+      confirmBtnText: 'Delete',
+      confirmBtnColor: Colors.red,
+      onConfirmBtnTap: () async {
+        // DISMISS CONFIRM BUTTON
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
+
+        // SHOW LOADING
+        QuickAlert.show(
+          context: context,
+          type: QuickAlertType.loading,
+        );
+
+        await _firestoreService
+            .deleteLesson(context, 'classes', widget.classCode, lesson)
+            .then((_) {
+          // DISMISS LOADING MODAL
+          // ignore: use_build_context_synchronously
+          Navigator.of(context).pop();
+        });
+      },
+      showCancelBtn: true,
+      cancelBtnText: 'Cancel',
+      onCancelBtnTap: Navigator.of(context).pop,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    tabController = TabController(length: 3, vsync: this); // 3 tabs
+    tabController = TabController(length: 4, vsync: this); // 4 tabs
   }
 
   @override
@@ -172,6 +465,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                     controller: tabController,
                     tabs: const [
                       Tab(text: 'Course Work'),
+                      Tab(text: 'Examinations'),
                       Tab(text: 'Student Performance'),
                       Tab(text: 'Annoucements'),
                     ],
@@ -286,6 +580,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                 ],
                               ),
                               const Gap(5),
+
+                              // LESSON LIST
                               Expanded(
                                 child: ListView(
                                   children: [
@@ -302,23 +598,25 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
 
                                         final classData = snapshot.data!.data();
 
-                                        final lessons = classData!['lessons'];
+                                        final lessonList =
+                                            classData!['lessons'];
+                                        numberOfLessons = lessonList.length;
 
                                         return DisclosureGroup(
                                           multiple: false,
                                           clearable: true,
                                           // insets: const EdgeInsets.all(15),
                                           children: List<Widget>.generate(
-                                            lessons.length,
+                                            lessonList.length,
                                             (index) {
                                               final List<dynamic> activities =
-                                                  lessons[index]
+                                                  lessonList[index]
                                                           ['activities'] ??
                                                       [];
 
                                               final List<dynamic>
                                                   additionalResources =
-                                                  lessons[index][
+                                                  lessonList[index][
                                                           'additionalResources'] ??
                                                       [];
 
@@ -344,7 +642,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                 header: DisclosureButton(
                                                   child: ListTile(
                                                     title: Text(
-                                                      'Lesson ${index + 1}: ${lessons[index]['title']}',
+                                                      'Lesson ${index + 1}: ${lessonList[index]['title']}',
                                                       style: const TextStyle(
                                                         color: Colors.white,
                                                       ),
@@ -380,7 +678,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                   .spaceBetween,
                                                           children: [
                                                             Text(
-                                                              'Learning Material: ${lessons[index]['title']}.pdf',
+                                                              'Learning Material: ${lessonList[index]['title']}.pdf',
                                                               style:
                                                                   const TextStyle(
                                                                 fontSize: 20,
@@ -400,7 +698,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                               ),
                                                               onPressed: () =>
                                                                   downloadLearningMaterial(
-                                                                      lessons[index]
+                                                                      lessonList[
+                                                                              index]
                                                                           [
                                                                           'learningMaterial']),
                                                               child: const Row(
@@ -500,6 +799,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                             ],
                           ),
                         ),
+                        // EXAMINATIONS
+                        const Placeholder(),
                         // STUDENT PERFORMANCE
                         const Placeholder(),
                         // ANNOUNCEMENTS
