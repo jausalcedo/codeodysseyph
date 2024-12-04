@@ -68,7 +68,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   int? numberOfLessons;
   String addWhere = 'Add to Last';
 
-  // FORM KEYS
+  // LESSON FORM KEYS
   final lessonFormKey = GlobalKey<FormState>();
   final addBeforeLessonFormKey = GlobalKey<FormState>();
 
@@ -144,7 +144,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                   IconButton(
                     onPressed: () {
                       // CLEAR ALL FIELDS
-                      clearFields();
+                      clearLessonFields();
                       // CLOSE THE MODAL
                       Navigator.of(context).pop();
                     },
@@ -304,7 +304,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
           : null,
     )
         .then((_) {
-      clearFields();
+      clearLessonFields();
       // ignore: use_build_context_synchronously
       Navigator.of(context).pop();
       // ignore: use_build_context_synchronously
@@ -312,15 +312,325 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     });
   }
 
-  void clearFields() {
+  void clearLessonFields() {
     lessonTitleController.clear();
     addBeforeIndexController.clear();
     fileName = null;
     fileBytes = null;
   }
 
-  void openAddActivityModal() {
-    // TO DO
+  // ADD ACTIVITY ESSENTIALS
+  final activityTitleController = TextEditingController();
+  String activityType = 'Multiple Choice';
+  int? lessonIndexToBindActivity;
+
+  // ADD ACTIVITY FORM KEYS
+  final addActivityFormKey = GlobalKey<FormState>();
+  final questionFormKey = GlobalKey<FormState>();
+
+  // MULTIPLE CHOICE ESSENTIALS
+  final questionController = TextEditingController();
+  final choiceControllers =
+      List.generate(4, (index) => TextEditingController());
+  final correctAnswerController = TextEditingController();
+  List<Map<String, dynamic>> questionList = [];
+
+  // CODING PROBLEM CONTROLLERS
+
+  Future<void> openAddActivityModal() async {
+    // FETCH RAW CLASS DATA
+    await _firestoreService
+        .getCourseClassDataFuture('classes', widget.classCode)
+        .then((futureClassData) {
+      final Map<String, dynamic> classData = futureClassData.data()!;
+      final List<dynamic> lessonList = classData['lessons'];
+      final numberOfLessons = lessonList.length;
+
+      showDialog(
+        // ignore: use_build_context_synchronously
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Add New Activity',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                onPressed: () {
+                  // CLEAR ALL FIELDS
+                  clearActivityFields();
+                  // CLOSE THE MODAL
+                  Navigator.of(context).pop();
+                },
+                icon: const Icon(Icons.close_rounded),
+                style: const ButtonStyle(
+                  foregroundColor: WidgetStatePropertyAll(Colors.red),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 750,
+            height: 535,
+            child: StatefulBuilder(
+              builder: (BuildContext context, setState) {
+                return Column(
+                  children: [
+                    // LESSON
+                    numberOfLessons != 0
+                        ? Form(
+                            key: addActivityFormKey,
+                            child: DropdownButtonFormField(
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                label: Text('Lesson'),
+                              ),
+                              items: List.generate(
+                                lessonList.length,
+                                (index) => DropdownMenuItem(
+                                  value: index,
+                                  child: Text(lessonList[index]['title']),
+                                ),
+                              ),
+                              onChanged: (value) {
+                                lessonIndexToBindActivity = value;
+                              },
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Required. Please choose a lesson.';
+                                }
+                                return null;
+                              },
+                            ),
+                          )
+                        : const SizedBox(),
+                    const Gap(10),
+                    Row(
+                      children: [
+                        // TITLE
+                        Expanded(
+                          child: TextFormField(
+                            controller: activityTitleController,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              label: Text('Title (Optional)'),
+                            ),
+                          ),
+                        ),
+                        const Gap(10),
+
+                        // ACTIVITY TYPE
+                        Expanded(
+                          child: DropdownButtonFormField(
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              label: Text('Activity Type'),
+                            ),
+                            value: activityType,
+                            items: ['Multiple Choice', 'Coding Problem']
+                                .map((type) => DropdownMenuItem(
+                                      value: type,
+                                      child: Text(type),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                activityType = value!;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Gap(10),
+                    const Divider(),
+                    const Gap(10),
+
+                    // FIELDS FOR EACH ACTIVITY TYPE
+                    activityType == 'Multiple Choice'
+                        ? SizedBox(
+                            width: 750,
+                            height: 370,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      Expanded(
+                                        child: ListView.builder(
+                                          itemCount: questionList.length,
+                                          itemBuilder: (context, index) =>
+                                              ListTile(
+                                            title: Text(
+                                                questionList[index]['title']),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Gap(10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Form(
+                                        key: questionFormKey,
+                                        child: Expanded(
+                                          child: ListView(
+                                            children: [
+                                              // QUESTION
+                                              TextFormField(
+                                                decoration:
+                                                    const InputDecoration(
+                                                  border: OutlineInputBorder(),
+                                                  label: Text('Question'),
+                                                ),
+                                                controller: questionController,
+                                                validator: (value) {
+                                                  if (value == null ||
+                                                      value.isEmpty ||
+                                                      value == '') {
+                                                    return 'Required. Please provide a question.';
+                                                  }
+                                                  return null;
+                                                },
+                                              ),
+                                              const Gap(10),
+
+                                              // CHOICES
+                                              ...List.generate(
+                                                choiceControllers.length,
+                                                (index) => Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          bottom: 5),
+                                                  child: TextFormField(
+                                                    decoration: InputDecoration(
+                                                      border:
+                                                          const OutlineInputBorder(),
+                                                      label: Text(
+                                                          'Choice ${String.fromCharCode(index + 65)}'),
+                                                    ),
+                                                    controller:
+                                                        choiceControllers[
+                                                            index],
+                                                    validator: (value) {
+                                                      if (value == null ||
+                                                          value.isEmpty ||
+                                                          value == '') {
+                                                        return 'Required. Please provide an option.';
+                                                      }
+                                                      return null;
+                                                    },
+                                                  ),
+                                                ),
+                                              ),
+                                              const Gap(5),
+
+                                              // CORRECT ANSWER
+                                              TextFormField(
+                                                decoration:
+                                                    const InputDecoration(
+                                                  border: OutlineInputBorder(),
+                                                  label: Text('Correct Answer'),
+                                                ),
+                                                controller:
+                                                    correctAnswerController,
+                                                validator: (value) {
+                                                  if (value == null ||
+                                                      value.isEmpty ||
+                                                      value == '') {
+                                                    return 'Required. Please provide the correct answer.';
+                                                  }
+
+                                                  if (choiceControllers.every(
+                                                    (controller) =>
+                                                        controller.text !=
+                                                        value,
+                                                  )) {
+                                                    return 'Please input a value from the choices.';
+                                                  }
+
+                                                  return null;
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      const Gap(10),
+                                      ElevatedButton.icon(
+                                        style: const ButtonStyle(
+                                          backgroundColor:
+                                              WidgetStatePropertyAll(primary),
+                                          foregroundColor:
+                                              WidgetStatePropertyAll(
+                                                  Colors.white),
+                                        ),
+                                        onPressed: addQuestion,
+                                        label: const Text('Add Question'),
+                                        icon: const Icon(Icons.add_rounded),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : const Text('Coding Problem')
+                  ],
+                );
+              },
+            ),
+          ),
+          actions: [
+            Center(
+              child: ElevatedButton(
+                style: ButtonStyle(
+                  backgroundColor: WidgetStatePropertyAll(Colors.green[800]),
+                  foregroundColor: const WidgetStatePropertyAll(Colors.white),
+                ),
+                onPressed: addActivity,
+                child: const Text(
+                  'Save',
+                  style: TextStyle(fontSize: 18),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  void addQuestion() {
+    if (!questionFormKey.currentState!.validate()) {
+      return;
+    }
+    setState(() {
+      questionList.add({});
+    });
+  }
+
+  Future<void> addActivity() async {
+    if (!addActivityFormKey.currentState!.validate()) {
+      return;
+    }
+  }
+
+  void clearActivityFields() {
+    activityTitleController.clear();
+    activityType = 'Multiple Choice';
+    lessonIndexToBindActivity = null;
+
+    questionController.clear();
+    for (int i = 0; i < choiceControllers.length; i++) {
+      choiceControllers[i].clear();
+    }
+    correctAnswerController.clear();
   }
 
   void openAddAdditionalResourceModal() {
@@ -587,7 +897,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                   children: [
                                     StreamBuilder(
                                       stream: _firestoreService
-                                          .getClassData(widget.classCode),
+                                          .getClassDataStream(widget.classCode),
                                       builder: (context, snapshot) {
                                         if (snapshot.connectionState ==
                                             ConnectionState.waiting) {

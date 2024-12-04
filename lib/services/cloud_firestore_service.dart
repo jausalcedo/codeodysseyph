@@ -140,10 +140,11 @@ class CloudFirestoreService {
     });
   }
 
-  Future<DocumentSnapshot<Map<String, dynamic>>> getCourseData(
-    String courseId,
+  Future<DocumentSnapshot<Map<String, dynamic>>> getCourseClassDataFuture(
+    String collection,
+    String courseIdClassCode,
   ) async {
-    return await _firestore.collection('courses').doc(courseId).get();
+    return await _firestore.collection(collection).doc(courseIdClassCode).get();
   }
 
   Future<void> deleteCourseOutline(
@@ -168,7 +169,7 @@ class CloudFirestoreService {
     }
   }
 
-  Future<QuerySnapshot<Map<String, dynamic>>> getCourses(
+  Future<QuerySnapshot<Map<String, dynamic>>> getCoursesFuture(
       String instructorId) async {
     return await _firestore
         .collection('courses')
@@ -178,7 +179,7 @@ class CloudFirestoreService {
         .get();
   }
 
-  Future<QuerySnapshot<Map<String, dynamic>>> getSimilarCourses(
+  Future<QuerySnapshot<Map<String, dynamic>>> getSimilarCoursesFuture(
       String instructorId, String courseCode) async {
     return await _firestore
         .collection('courses')
@@ -429,7 +430,7 @@ class CloudFirestoreService {
     );
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> getInstructorClasses(
+  Stream<QuerySnapshot<Map<String, dynamic>>> getInstructorClassesStream(
       String instructorId) {
     return _firestore
         .collection('classes')
@@ -437,7 +438,7 @@ class CloudFirestoreService {
         .snapshots();
   }
 
-  Stream<DocumentSnapshot<Map<String, dynamic>>> getClassData(
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getClassDataStream(
       String classCode) {
     return _firestore.collection('classes').doc(classCode).snapshots();
   }

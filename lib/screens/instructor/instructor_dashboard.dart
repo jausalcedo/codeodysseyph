@@ -110,8 +110,8 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                             ),
                             const Gap(10),
                             FutureBuilder(
-                              future:
-                                  _firestoreService.getCourses(widget.userId),
+                              future: _firestoreService
+                                  .getCoursesFuture(widget.userId),
                               builder: (context, snapshot) {
                                 if (snapshot.connectionState ==
                                     ConnectionState.waiting) {
@@ -377,7 +377,8 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
       type: QuickAlertType.loading,
     );
 
-    final courseData = await _firestoreService.getCourseData(selectedCourse!);
+    final courseData = await _firestoreService.getCourseClassDataFuture(
+        'courses', selectedCourse!);
     final courseCode = courseData['courseCode'];
 
     // CHECK IF THERE IS ALREADY A CLASS IN CURRENT ACADYEAR AND SEM OF THAT COURSE
@@ -486,7 +487,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                       ),
                       child: StreamBuilder(
                         stream: _firestoreService
-                            .getInstructorClasses(widget.userId),
+                            .getInstructorClassesStream(widget.userId),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {

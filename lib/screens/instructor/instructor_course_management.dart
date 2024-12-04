@@ -189,7 +189,9 @@ class _InstructorCourseManagementScreenState
         QuickAlert.show(context: context, type: QuickAlertType.loading);
 
         // GET SYLLABUS REFERENCE
-        await _firestoreService.getCourseData(courseId).then((result) async {
+        await _firestoreService
+            .getCourseClassDataFuture('courses', courseId)
+            .then((result) async {
           final courseData = result.data()!;
           final syllabusRef = courseData['files'];
 
@@ -341,8 +343,8 @@ class _InstructorCourseManagementScreenState
                                 // FROM CODEODYSSEY TEAM
                                 outlineType == 'From CodeOdyssey'
                                     ? FutureBuilder(
-                                        future:
-                                            _firestoreService.getSimilarCourses(
+                                        future: _firestoreService
+                                            .getSimilarCoursesFuture(
                                                 'W8KspheVoSaL40E0B106cdR5Dsj2',
                                                 selectedCourse!),
                                         builder: (context, snapshot) {
@@ -399,8 +401,8 @@ class _InstructorCourseManagementScreenState
                                 // FROM EXISTING OUTLINES
                                 outlineType == 'From My Existing Outlines'
                                     ? FutureBuilder(
-                                        future:
-                                            _firestoreService.getSimilarCourses(
+                                        future: _firestoreService
+                                            .getSimilarCoursesFuture(
                                                 widget.userId, selectedCourse!),
                                         builder: (context, snapshot) {
                                           if (snapshot.connectionState ==

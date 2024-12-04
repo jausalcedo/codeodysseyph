@@ -221,8 +221,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                             itemBuilder: (context, index) {
                               // OPEN CLASS
                               return FutureBuilder(
-                                future: firestoreService
-                                    .getCourseData(classes[index]['courseId']),
+                                future:
+                                    firestoreService.getCourseClassDataFuture(
+                                        'courses', classes[index]['courseId']),
                                 builder: (context, snapshot) {
                                   if (snapshot.connectionState ==
                                       ConnectionState.waiting) {
