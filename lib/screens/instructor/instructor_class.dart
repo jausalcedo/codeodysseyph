@@ -8,6 +8,7 @@ import 'package:disclosure/disclosure.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:intl/intl.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -125,7 +126,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                               ),
                               textAlign: TextAlign.center,
                               validator: (value) {
-                                if (value == null || value == '') {
+                                if (value == null || value.trim().isEmpty) {
                                   return 'Required.';
                                 }
 
@@ -201,7 +202,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                               hintText: 'Enter lesson title',
                             ),
                             validator: (value) {
-                              if (value == null || value == '') {
+                              if (value == null || value.trim().isEmpty) {
                                 return 'Required. Please enter lesson title.';
                               }
                               return null;
@@ -323,9 +324,12 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   final activityTitleController = TextEditingController();
   String activityType = 'Multiple Choice';
   int? lessonIndexToBindActivity;
+  DateTime? deadline;
+  final maxScoreController = TextEditingController();
 
   // ADD ACTIVITY FORM KEYS
-  final addActivityFormKey = GlobalKey<FormState>();
+  final chooseLessonFormKey = GlobalKey<FormState>();
+  final maxScoreFormKey = GlobalKey<FormState>();
   final questionFormKey = GlobalKey<FormState>();
 
   // MULTIPLE CHOICE ESSENTIALS
@@ -334,8 +338,16 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       List.generate(4, (index) => TextEditingController());
   final correctAnswerController = TextEditingController();
   List<Map<String, dynamic>> questionList = [];
+  int? duplicateChoiceIndex;
 
   // CODING PROBLEM CONTROLLERS
+  final problemStatementController = TextEditingController();
+  final constraintsController = TextEditingController();
+  final List<Map<String, dynamic>> examples = [];
+  final List<Map<String, dynamic>> testCases = [];
+  final inputController = TextEditingController();
+  final outputController = TextEditingController();
+  String? lessonTag;
 
   Future<void> openAddActivityModal() async {
     // FETCH RAW CLASS DATA
@@ -373,15 +385,98 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
           ),
           content: SizedBox(
             width: 750,
-            height: 535,
+            height: 590,
             child: StatefulBuilder(
               builder: (BuildContext context, setState) {
+                Future<void> setDeadline() async {
+                  final now = DateTime.now();
+                  final pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: deadline ?? now,
+                    firstDate: DateTime(now.year),
+                    lastDate: DateTime(now.year + 1),
+                  );
+
+                  if (deadline != null) {
+                    TimeOfDay? pickedTime = await showTimePicker(
+                      // ignore: use_build_context_synchronously
+                      context: context,
+                      initialTime: TimeOfDay.now(),
+                    );
+
+                    if (pickedTime != null) {
+                      setState(() {
+                        deadline = DateTime(
+                          pickedDate!.year,
+                          pickedDate.month,
+                          pickedDate.day,
+                          pickedTime.hour,
+                          pickedTime.minute,
+                        );
+                      });
+                    }
+                  }
+
+                  if (pickedDate != null && pickedDate != deadline) {
+                    setState(() {
+                      deadline = pickedDate;
+                    });
+                  }
+                }
+
+                void addQuestion() {
+                  if (!questionFormKey.currentState!.validate()) {
+                    return;
+                  }
+
+                  if (!chooseLessonFormKey.currentState!.validate()) {
+                    return;
+                  }
+
+                  final choices = [
+                    choiceControllers[0].text,
+                    choiceControllers[1].text,
+                    choiceControllers[2].text,
+                    choiceControllers[3].text,
+                  ];
+
+                  duplicateChoiceIndex = areChoicesUnique(choices);
+
+                  if (duplicateChoiceIndex != null) {
+                    QuickAlert.show(
+                      context: context,
+                      type: QuickAlertType.error,
+                      title: 'Error',
+                      text:
+                          'Duplicate choice value: ${choiceControllers[duplicateChoiceIndex!].text}. Please make sure that all choices are unique.',
+                    );
+                    return;
+                  }
+
+                  setState(() {
+                    questionList.add({
+                      'question': questionController.text,
+                      'choices': choices,
+                      'correctAnswer': correctAnswerController.text,
+                    });
+                    clearMultipleChoiceFields();
+                  });
+                }
+
+                void addToExamples() {
+                  // TO DO
+                }
+
+                void addToTestCases() {
+                  // TO DO
+                }
+
                 return Column(
                   children: [
                     // LESSON
                     numberOfLessons != 0
                         ? Form(
-                            key: addActivityFormKey,
+                            key: chooseLessonFormKey,
                             child: DropdownButtonFormField(
                               decoration: const InputDecoration(
                                 border: OutlineInputBorder(),
@@ -445,6 +540,50 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                       ],
                     ),
                     const Gap(10),
+                    Row(
+                      children: [
+                        // DEADLINE
+                        Expanded(
+                          child: SizedBox(
+                            height: 45,
+                            child: ElevatedButton(
+                              style: const ButtonStyle(
+                                backgroundColor:
+                                    WidgetStatePropertyAll(primary),
+                                foregroundColor:
+                                    WidgetStatePropertyAll(Colors.white),
+                              ),
+                              onPressed: setDeadline,
+                              child: Text(deadline != null
+                                  ? DateFormat.yMMMEd().format(deadline!)
+                                  : 'Set Deadline'),
+                            ),
+                          ),
+                        ),
+                        const Gap(10),
+
+                        // MAX SCORE
+                        Expanded(
+                          child: Form(
+                            key: maxScoreFormKey,
+                            child: TextFormField(
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                label: Text('Max Score'),
+                              ),
+                              controller: maxScoreController,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Required. Please set the max score students can get.';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                    const Gap(10),
                     const Divider(),
                     const Gap(10),
 
@@ -453,134 +592,336 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                         ? SizedBox(
                             width: 750,
                             height: 370,
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    children: [
-                                      Expanded(
-                                        child: ListView.builder(
-                                          itemCount: questionList.length,
-                                          itemBuilder: (context, index) =>
-                                              ListTile(
-                                            title: Text(
-                                                questionList[index]['title']),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Gap(10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Form(
-                                        key: questionFormKey,
-                                        child: Expanded(
-                                          child: ListView(
-                                            children: [
-                                              // QUESTION
-                                              TextFormField(
-                                                decoration:
-                                                    const InputDecoration(
-                                                  border: OutlineInputBorder(),
-                                                  label: Text('Question'),
-                                                ),
-                                                controller: questionController,
-                                                validator: (value) {
-                                                  if (value == null ||
-                                                      value.isEmpty ||
-                                                      value == '') {
-                                                    return 'Required. Please provide a question.';
-                                                  }
-                                                  return null;
-                                                },
-                                              ),
-                                              const Gap(10),
-
-                                              // CHOICES
-                                              ...List.generate(
-                                                choiceControllers.length,
-                                                (index) => Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                          bottom: 5),
-                                                  child: TextFormField(
-                                                    decoration: InputDecoration(
-                                                      border:
-                                                          const OutlineInputBorder(),
-                                                      label: Text(
-                                                          'Choice ${String.fromCharCode(index + 65)}'),
+                            child: StatefulBuilder(
+                              builder: (context, setState) => Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Question List:'),
+                                        questionList.isNotEmpty == true
+                                            ? Expanded(
+                                                child: ListView.builder(
+                                                  itemCount:
+                                                      questionList.length,
+                                                  itemBuilder:
+                                                      (context, index) => Card(
+                                                    child: ListTile(
+                                                      title: Text(
+                                                        questionList[index]
+                                                            ['question'],
+                                                        style: const TextStyle(
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+                                                      ),
+                                                      subtitle: Text(
+                                                        'Choices: ${questionList[index]['choices'][0]}, ${questionList[index]['choices'][1]}, ${questionList[index]['choices'][2]}, ${questionList[index]['choices'][3]}',
+                                                        style: const TextStyle(
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+                                                      ),
                                                     ),
-                                                    controller:
-                                                        choiceControllers[
-                                                            index],
-                                                    validator: (value) {
-                                                      if (value == null ||
-                                                          value.isEmpty ||
-                                                          value == '') {
-                                                        return 'Required. Please provide an option.';
-                                                      }
-                                                      return null;
-                                                    },
                                                   ),
                                                 ),
-                                              ),
-                                              const Gap(5),
-
-                                              // CORRECT ANSWER
-                                              TextFormField(
-                                                decoration:
-                                                    const InputDecoration(
-                                                  border: OutlineInputBorder(),
-                                                  label: Text('Correct Answer'),
+                                              )
+                                            : const Text(
+                                                'No questions yet. Add your first question now!'),
+                                      ],
+                                    ),
+                                  ),
+                                  const Gap(10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Form(
+                                          key: questionFormKey,
+                                          child: Expanded(
+                                            child: ListView(
+                                              children: [
+                                                // QUESTION
+                                                TextFormField(
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    label: Text('Question'),
+                                                  ),
+                                                  controller:
+                                                      questionController,
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.trim().isEmpty) {
+                                                      return 'Required. Please provide a question.';
+                                                    }
+                                                    return null;
+                                                  },
                                                 ),
-                                                controller:
-                                                    correctAnswerController,
-                                                validator: (value) {
-                                                  if (value == null ||
-                                                      value.isEmpty ||
-                                                      value == '') {
-                                                    return 'Required. Please provide the correct answer.';
-                                                  }
+                                                const Gap(10),
 
-                                                  if (choiceControllers.every(
-                                                    (controller) =>
-                                                        controller.text !=
-                                                        value,
-                                                  )) {
-                                                    return 'Please input a value from the choices.';
-                                                  }
+                                                // CHOICES
+                                                ...List.generate(
+                                                  choiceControllers.length,
+                                                  (index) => Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            bottom: 5),
+                                                    child: TextFormField(
+                                                      decoration:
+                                                          InputDecoration(
+                                                        border:
+                                                            const OutlineInputBorder(),
+                                                        label: Text(
+                                                            'Choice ${String.fromCharCode(index + 65)}'),
+                                                      ),
+                                                      controller:
+                                                          choiceControllers[
+                                                              index],
+                                                      validator: (value) {
+                                                        if (value == null ||
+                                                            value
+                                                                .trim()
+                                                                .isEmpty) {
+                                                          return 'Required. Choice ${String.fromCharCode(index + 65)} cannot be empty.';
+                                                        }
 
-                                                  return null;
-                                                },
-                                              ),
-                                            ],
+                                                        return null;
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                                const Gap(5),
+
+                                                // CORRECT ANSWER
+                                                TextFormField(
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    label:
+                                                        Text('Correct Answer'),
+                                                  ),
+                                                  controller:
+                                                      correctAnswerController,
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.trim().isEmpty) {
+                                                      return 'Required. Please provide the correct answer.';
+                                                    }
+
+                                                    if (choiceControllers.every(
+                                                      (controller) =>
+                                                          controller.text !=
+                                                          value,
+                                                    )) {
+                                                      return 'Please input a value from the choices.';
+                                                    }
+
+                                                    return null;
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const Gap(10),
+                                        ElevatedButton.icon(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(primary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white),
+                                          ),
+                                          onPressed: addQuestion,
+                                          label: const Text('Add Question'),
+                                          icon: const Icon(Icons.add_rounded),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : ListView(
+                            children: [
+                              // PROBLEM STATEMENT
+                              TextFormField(
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  label: Text('Problem Statement'),
+                                ),
+                                maxLines: 3,
+                                controller: problemStatementController,
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Required. Please provide the problem statement.';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const Gap(10),
+
+                              // CONSTRAINTS
+                              TextFormField(
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  label: Text('Constraints'),
+                                ),
+                                maxLines: 3,
+                                controller: constraintsController,
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Required. Please provide the constraints.';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const Gap(10),
+
+                              // EXAMPLES AND TEST CASES
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    // EXAMPLES
+                                    Expanded(
+                                      child: ListView.builder(
+                                        itemCount: examples.length,
+                                        itemBuilder: (context, index) =>
+                                            const Card(
+                                          child: ListTile(
+                                            title: Text('Input : Output'),
                                           ),
                                         ),
                                       ),
-                                      const Gap(10),
-                                      ElevatedButton.icon(
-                                        style: const ButtonStyle(
-                                          backgroundColor:
-                                              WidgetStatePropertyAll(primary),
-                                          foregroundColor:
-                                              WidgetStatePropertyAll(
-                                                  Colors.white),
+                                    ),
+
+                                    // TEST CASES
+                                    Expanded(
+                                      child: ListView.builder(
+                                        itemCount: testCases.length,
+                                        itemBuilder: (context, index) =>
+                                            const Card(
+                                          child: ListTile(
+                                            title: Text('Input : Output'),
+                                          ),
                                         ),
-                                        onPressed: addQuestion,
-                                        label: const Text('Add Question'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              Row(
+                                children: [
+                                  // INPUT
+                                  Expanded(
+                                    child: TextFormField(
+                                      decoration: const InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        label: Text('Input'),
+                                      ),
+                                      controller: inputController,
+                                      validator: (value) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
+                                          return 'Required. Please an input.';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  const Gap(10),
+
+                                  // OUTPUT
+                                  Expanded(
+                                    child: TextFormField(
+                                      decoration: const InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        label: Text('Output'),
+                                      ),
+                                      controller: outputController,
+                                      validator: (value) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
+                                          return 'Required. Please an output.';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  const Gap(10),
+
+                                  MenuAnchor(
+                                    alignmentOffset: const Offset(-100, 0),
+                                    builder: (context, controller, child) {
+                                      return ElevatedButton.icon(
+                                        style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(primary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white)),
+                                        onPressed: () {
+                                          if (controller.isOpen) {
+                                            controller.close();
+                                          } else {
+                                            controller.open();
+                                          }
+                                        },
+                                        label: const Text('Add'),
                                         icon: const Icon(Icons.add_rounded),
+                                      );
+                                    },
+                                    menuChildren: [
+                                      // TO EXAMPLES
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: TextButton(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(
+                                                    secondary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white),
+                                            shape: WidgetStatePropertyAll(
+                                                ContinuousRectangleBorder()),
+                                          ),
+                                          onPressed: addToExamples,
+                                          child: const Text('to Examples'),
+                                        ),
+                                      ),
+                                      // TO TEST CASES
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: TextButton(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(
+                                                    secondary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white),
+                                            shape: WidgetStatePropertyAll(
+                                                ContinuousRectangleBorder()),
+                                          ),
+                                          onPressed: addToTestCases,
+                                          child: const Text('to Test Cases'),
+                                        ),
                                       ),
                                     ],
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              )
+                            ],
                           )
-                        : const Text('Coding Problem')
                   ],
                 );
               },
@@ -606,31 +947,65 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     });
   }
 
-  void addQuestion() {
-    if (!questionFormKey.currentState!.validate()) {
-      return;
+  int? areChoicesUnique(List<String> choices) {
+    final Map<String, int> seenStrings = {};
+    for (int i = 0; i < choices.length; i++) {
+      if (seenStrings.containsKey(choices[i])) {
+        // Return the index of the duplicate
+        return i;
+      } else {
+        // Store the string and its index
+        seenStrings[choices[i]] = i;
+      }
     }
-    setState(() {
-      questionList.add({});
-    });
+    return null;
   }
 
   Future<void> addActivity() async {
-    if (!addActivityFormKey.currentState!.validate()) {
+    if (!chooseLessonFormKey.currentState!.validate()) {
       return;
     }
+
+    if (!maxScoreFormKey.currentState!.validate()) {
+      return;
+    }
+
+    if (deadline == null) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Error',
+        text: 'Please set a deadline for the activity.',
+      );
+    }
   }
+
+  // // MULTIPLE CHOICE ESSENTIALS
+  // final questionController = TextEditingController();
+  // final choiceControllers =
+  //     List.generate(4, (index) => TextEditingController());
+  // final correctAnswerController = TextEditingController();
+  // List<Map<String, dynamic>> questionList = [];
+  // int? duplicateChoiceIndex;
 
   void clearActivityFields() {
     activityTitleController.clear();
     activityType = 'Multiple Choice';
     lessonIndexToBindActivity = null;
+    deadline = null;
+    maxScoreController.clear();
 
+    clearMultipleChoiceFields();
+  }
+
+  void clearMultipleChoiceFields() {
     questionController.clear();
     for (int i = 0; i < choiceControllers.length; i++) {
       choiceControllers[i].clear();
     }
     correctAnswerController.clear();
+    questionList = [];
+    duplicateChoiceIndex = null;
   }
 
   void openAddAdditionalResourceModal() {
@@ -760,7 +1135,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                               ),
                             ),
                             const Text(
-                              "Class Code",
+                              'Class Code',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.black,
