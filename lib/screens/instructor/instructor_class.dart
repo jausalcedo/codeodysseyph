@@ -1,7 +1,7 @@
 import 'dart:typed_data';
-
 import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
 import 'package:codeodysseyph/constants/colors.dart';
+import 'package:codeodysseyph/screens/instructor/instructor_activity.dart';
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:disclosure/disclosure.dart';
@@ -331,20 +331,23 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   final chooseLessonFormKey = GlobalKey<FormState>();
   final maxScoreFormKey = GlobalKey<FormState>();
   final questionFormKey = GlobalKey<FormState>();
+  final problemStatementFormKey = GlobalKey<FormState>();
+  final constraintsFormKey = GlobalKey<FormState>();
+  final inputOutputFormKey = GlobalKey<FormState>();
 
   // MULTIPLE CHOICE ESSENTIALS
   final questionController = TextEditingController();
   final choiceControllers =
       List.generate(4, (index) => TextEditingController());
   final correctAnswerController = TextEditingController();
-  List<Map<String, dynamic>> questionList = [];
+  List<Map<String, dynamic>> questions = [];
   int? duplicateChoiceIndex;
 
   // CODING PROBLEM CONTROLLERS
   final problemStatementController = TextEditingController();
   final constraintsController = TextEditingController();
-  final List<Map<String, dynamic>> examples = [];
-  final List<Map<String, dynamic>> testCases = [];
+  List<Map<String, dynamic>> examples = [];
+  List<Map<String, dynamic>> testCases = [];
   final inputController = TextEditingController();
   final outputController = TextEditingController();
   String? lessonTag;
@@ -371,10 +374,24 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
               ),
               IconButton(
                 onPressed: () {
-                  // CLEAR ALL FIELDS
-                  clearActivityFields();
-                  // CLOSE THE MODAL
-                  Navigator.of(context).pop();
+                  QuickAlert.show(
+                    context: context,
+                    type: QuickAlertType.warning,
+                    title: 'Are you sure?',
+                    text: 'Any unsaved data will be lost.',
+                    confirmBtnText: 'Yes',
+                    onConfirmBtnTap: () {
+                      // CLEAR ALL FIELDS
+                      clearActivityFields();
+                      // CLOSE THE ALERT
+                      Navigator.of(context).pop();
+                      // CLOSE THE ADD ACTIVTIY MODAL
+                      Navigator.of(context).pop();
+                    },
+                    showCancelBtn: true,
+                    cancelBtnText: 'Go Back',
+                    onCancelBtnTap: Navigator.of(context).pop,
+                  );
                 },
                 icon: const Icon(Icons.close_rounded),
                 style: const ButtonStyle(
@@ -393,12 +410,12 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                   final pickedDate = await showDatePicker(
                     context: context,
                     initialDate: deadline ?? now,
-                    firstDate: DateTime(now.year),
-                    lastDate: DateTime(now.year + 1),
+                    firstDate: now,
+                    lastDate: DateTime(now.year + 1, now.month - 6, now.day),
                   );
 
-                  if (deadline != null) {
-                    TimeOfDay? pickedTime = await showTimePicker(
+                  if (pickedDate != null) {
+                    final pickedTime = await showTimePicker(
                       // ignore: use_build_context_synchronously
                       context: context,
                       initialTime: TimeOfDay.now(),
@@ -407,7 +424,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                     if (pickedTime != null) {
                       setState(() {
                         deadline = DateTime(
-                          pickedDate!.year,
+                          pickedDate.year,
                           pickedDate.month,
                           pickedDate.day,
                           pickedTime.hour,
@@ -416,62 +433,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                       });
                     }
                   }
-
-                  if (pickedDate != null && pickedDate != deadline) {
-                    setState(() {
-                      deadline = pickedDate;
-                    });
-                  }
                 }
 
-                void addQuestion() {
-                  if (!questionFormKey.currentState!.validate()) {
-                    return;
-                  }
-
-                  if (!chooseLessonFormKey.currentState!.validate()) {
-                    return;
-                  }
-
-                  final choices = [
-                    choiceControllers[0].text,
-                    choiceControllers[1].text,
-                    choiceControllers[2].text,
-                    choiceControllers[3].text,
-                  ];
-
-                  duplicateChoiceIndex = areChoicesUnique(choices);
-
-                  if (duplicateChoiceIndex != null) {
-                    QuickAlert.show(
-                      context: context,
-                      type: QuickAlertType.error,
-                      title: 'Error',
-                      text:
-                          'Duplicate choice value: ${choiceControllers[duplicateChoiceIndex!].text}. Please make sure that all choices are unique.',
-                    );
-                    return;
-                  }
-
-                  setState(() {
-                    questionList.add({
-                      'question': questionController.text,
-                      'choices': choices,
-                      'correctAnswer': correctAnswerController.text,
-                    });
-                    clearMultipleChoiceFields();
-                  });
-                }
-
-                void addToExamples() {
-                  // TO DO
-                }
-
-                void addToTestCases() {
-                  // TO DO
-                }
-
-                return Column(
+                return ListView(
                   children: [
                     // LESSON
                     numberOfLessons != 0
@@ -555,7 +519,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                               ),
                               onPressed: setDeadline,
                               child: Text(deadline != null
-                                  ? DateFormat.yMMMEd().format(deadline!)
+                                  ? DateFormat.yMMMEd()
+                                      .add_jm()
+                                      .format(deadline!)
                                   : 'Set Deadline'),
                             ),
                           ),
@@ -576,6 +542,15 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Required. Please set the max score students can get.';
                                 }
+
+                                if (int.tryParse(value) == null) {
+                                  return 'Please input a number';
+                                }
+
+                                if (int.parse(value) <= 0) {
+                                  return 'Please enter a non-negative and non-zero score';
+                                }
+
                                 return null;
                               },
                             ),
@@ -591,336 +566,515 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                     activityType == 'Multiple Choice'
                         ? SizedBox(
                             width: 750,
-                            height: 370,
+                            height: 365,
                             child: StatefulBuilder(
-                              builder: (context, setState) => Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('Question List:'),
-                                        questionList.isNotEmpty == true
-                                            ? Expanded(
-                                                child: ListView.builder(
-                                                  itemCount:
-                                                      questionList.length,
-                                                  itemBuilder:
-                                                      (context, index) => Card(
-                                                    child: ListTile(
-                                                      title: Text(
-                                                        questionList[index]
-                                                            ['question'],
-                                                        style: const TextStyle(
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
+                              builder: (context, setState) {
+                                void addQuestion() {
+                                  if (!questionFormKey.currentState!
+                                      .validate()) {
+                                    return;
+                                  }
+
+                                  if (!chooseLessonFormKey.currentState!
+                                      .validate()) {
+                                    return;
+                                  }
+
+                                  final choices = [
+                                    choiceControllers[0].text,
+                                    choiceControllers[1].text,
+                                    choiceControllers[2].text,
+                                    choiceControllers[3].text,
+                                  ];
+
+                                  duplicateChoiceIndex =
+                                      areChoicesUnique(choices);
+
+                                  if (duplicateChoiceIndex != null) {
+                                    QuickAlert.show(
+                                      context: context,
+                                      type: QuickAlertType.error,
+                                      title: 'Error',
+                                      text:
+                                          'Duplicate choice value: ${choiceControllers[duplicateChoiceIndex!].text}. Please make sure that all choices are unique.',
+                                    );
+                                    return;
+                                  }
+
+                                  setState(() {
+                                    questions.add({
+                                      'question': questionController.text,
+                                      'choices': choices,
+                                      'correctAnswer':
+                                          correctAnswerController.text,
+                                    });
+                                    clearMultipleChoiceFields();
+                                  });
+                                }
+
+                                return Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('Question List:'),
+                                          questions.isNotEmpty
+                                              ? Expanded(
+                                                  child: ListView.builder(
+                                                    itemCount: questions.length,
+                                                    itemBuilder:
+                                                        (context, index) =>
+                                                            Card(
+                                                      child: ListTile(
+                                                        title: Tooltip(
+                                                          message:
+                                                              questions[index]
+                                                                  ['question'],
+                                                          child: Text(
+                                                            questions[index]
+                                                                ['question'],
+                                                            style:
+                                                                const TextStyle(
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                            ),
+                                                          ),
                                                         ),
-                                                      ),
-                                                      subtitle: Text(
-                                                        'Choices: ${questionList[index]['choices'][0]}, ${questionList[index]['choices'][1]}, ${questionList[index]['choices'][2]}, ${questionList[index]['choices'][3]}',
-                                                        style: const TextStyle(
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
+                                                        subtitle: Tooltip(
+                                                          message: questions[
+                                                                  index]
+                                                              ['correctAnswer'],
+                                                          child: Text(
+                                                            'Correct Answer: ${questions[index]['correctAnswer']}',
+                                                            style:
+                                                                const TextStyle(
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                            ),
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
                                                   ),
-                                                ),
-                                              )
-                                            : const Text(
-                                                'No questions yet. Add your first question now!'),
-                                      ],
+                                                )
+                                              : const Text(
+                                                  'No questions yet. Add your first question now!'),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  const Gap(10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Form(
-                                          key: questionFormKey,
-                                          child: Expanded(
-                                            child: ListView(
-                                              children: [
-                                                // QUESTION
-                                                TextFormField(
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    border:
-                                                        OutlineInputBorder(),
-                                                    label: Text('Question'),
+                                    const Gap(10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Form(
+                                            key: questionFormKey,
+                                            child: Expanded(
+                                              child: ListView(
+                                                children: [
+                                                  // QUESTION
+                                                  TextFormField(
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                      label: Text('Question'),
+                                                    ),
+                                                    controller:
+                                                        questionController,
+                                                    validator: (value) {
+                                                      if (value == null ||
+                                                          value
+                                                              .trim()
+                                                              .isEmpty) {
+                                                        return 'Required. Please provide a question.';
+                                                      }
+                                                      return null;
+                                                    },
                                                   ),
-                                                  controller:
-                                                      questionController,
-                                                  validator: (value) {
-                                                    if (value == null ||
-                                                        value.trim().isEmpty) {
-                                                      return 'Required. Please provide a question.';
-                                                    }
-                                                    return null;
-                                                  },
-                                                ),
-                                                const Gap(10),
+                                                  const Gap(10),
 
-                                                // CHOICES
-                                                ...List.generate(
-                                                  choiceControllers.length,
-                                                  (index) => Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                            bottom: 5),
-                                                    child: TextFormField(
-                                                      decoration:
-                                                          InputDecoration(
-                                                        border:
-                                                            const OutlineInputBorder(),
-                                                        label: Text(
-                                                            'Choice ${String.fromCharCode(index + 65)}'),
+                                                  // CHOICES
+                                                  ...List.generate(
+                                                    choiceControllers.length,
+                                                    (index) => Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                              bottom: 5),
+                                                      child: TextFormField(
+                                                        decoration:
+                                                            InputDecoration(
+                                                          border:
+                                                              const OutlineInputBorder(),
+                                                          label: Text(
+                                                              'Choice ${String.fromCharCode(index + 65)}'),
+                                                        ),
+                                                        controller:
+                                                            choiceControllers[
+                                                                index],
+                                                        validator: (value) {
+                                                          if (value == null ||
+                                                              value
+                                                                  .trim()
+                                                                  .isEmpty) {
+                                                            return 'Required. Choice ${String.fromCharCode(index + 65)} cannot be empty.';
+                                                          }
+
+                                                          return null;
+                                                        },
                                                       ),
-                                                      controller:
-                                                          choiceControllers[
-                                                              index],
-                                                      validator: (value) {
-                                                        if (value == null ||
-                                                            value
-                                                                .trim()
-                                                                .isEmpty) {
-                                                          return 'Required. Choice ${String.fromCharCode(index + 65)} cannot be empty.';
-                                                        }
-
-                                                        return null;
-                                                      },
                                                     ),
                                                   ),
-                                                ),
-                                                const Gap(5),
+                                                  const Gap(5),
 
-                                                // CORRECT ANSWER
-                                                TextFormField(
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    border:
-                                                        OutlineInputBorder(),
-                                                    label:
-                                                        Text('Correct Answer'),
+                                                  // CORRECT ANSWER
+                                                  TextFormField(
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                      label: Text(
+                                                          'Correct Answer'),
+                                                    ),
+                                                    controller:
+                                                        correctAnswerController,
+                                                    validator: (value) {
+                                                      if (value == null ||
+                                                          value
+                                                              .trim()
+                                                              .isEmpty) {
+                                                        return 'Required. Please provide the correct answer.';
+                                                      }
+
+                                                      if (choiceControllers
+                                                          .every(
+                                                        (controller) =>
+                                                            controller.text !=
+                                                            value,
+                                                      )) {
+                                                        return 'Please input a value from the choices.';
+                                                      }
+
+                                                      return null;
+                                                    },
                                                   ),
-                                                  controller:
-                                                      correctAnswerController,
-                                                  validator: (value) {
-                                                    if (value == null ||
-                                                        value.trim().isEmpty) {
-                                                      return 'Required. Please provide the correct answer.';
-                                                    }
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          const Gap(10),
+                                          ElevatedButton.icon(
+                                            style: const ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      primary),
+                                              foregroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      Colors.white),
+                                            ),
+                                            onPressed: addQuestion,
+                                            label: const Text('Add Question'),
+                                            icon: const Icon(Icons.add_rounded),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          )
+                        : SizedBox(
+                            width: 750,
+                            height: 365,
+                            child: StatefulBuilder(
+                              builder: (context, setState) {
+                                void addToExamples() {
+                                  if (!inputOutputFormKey.currentState!
+                                      .validate()) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    examples.add({
+                                      'input': inputController.text,
+                                      'output': outputController.text,
+                                    });
+                                  });
+                                  clearInputOutputControllers();
+                                }
 
-                                                    if (choiceControllers.every(
-                                                      (controller) =>
-                                                          controller.text !=
-                                                          value,
-                                                    )) {
-                                                      return 'Please input a value from the choices.';
-                                                    }
+                                void addToTestCases() {
+                                  if (!inputOutputFormKey.currentState!
+                                      .validate()) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    testCases.add({
+                                      'input': inputController.text,
+                                      'output': outputController.text,
+                                    });
+                                  });
+                                  clearInputOutputControllers();
+                                }
 
-                                                    return null;
-                                                  },
+                                return Column(
+                                  children: [
+                                    SizedBox(
+                                      height: 315,
+                                      child: ListView(
+                                        children: [
+                                          // PROBLEM STATEMENT
+                                          Form(
+                                            key: problemStatementFormKey,
+                                            child: TextFormField(
+                                              decoration: const InputDecoration(
+                                                border: OutlineInputBorder(),
+                                                label:
+                                                    Text('Problem Statement'),
+                                              ),
+                                              minLines: 1,
+                                              maxLines: 2,
+                                              controller:
+                                                  problemStatementController,
+                                              validator: (value) {
+                                                if (value == null ||
+                                                    value.trim().isEmpty) {
+                                                  return 'Required. Please provide the problem statement.';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                          ),
+                                          const Gap(10),
+
+                                          // CONSTRAINTS
+                                          Form(
+                                            key: constraintsFormKey,
+                                            child: TextFormField(
+                                              decoration: const InputDecoration(
+                                                border: OutlineInputBorder(),
+                                                label: Text('Constraints'),
+                                              ),
+                                              minLines: 1,
+                                              maxLines: 2,
+                                              controller: constraintsController,
+                                              validator: (value) {
+                                                if (value == null ||
+                                                    value.trim().isEmpty) {
+                                                  return 'Required. Please provide the constraints.';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                          ),
+                                          const Gap(10),
+
+                                          // EXAMPLES AND TEST CASES
+                                          SizedBox(
+                                            height: 140,
+                                            child: Row(
+                                              children: [
+                                                // EXAMPLES
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      const Text('Examples:'),
+                                                      examples.isNotEmpty
+                                                          ? Expanded(
+                                                              child: ListView
+                                                                  .builder(
+                                                                itemCount:
+                                                                    examples
+                                                                        .length,
+                                                                itemBuilder:
+                                                                    (context,
+                                                                            index) =>
+                                                                        Card(
+                                                                  child:
+                                                                      ListTile(
+                                                                    title: Text(
+                                                                        'Input: ${examples[index]['input']}'),
+                                                                    subtitle: Text(
+                                                                        'Output: ${examples[index]['output']}'),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            )
+                                                          : const Text(
+                                                              'No examples yet.'),
+                                                    ],
+                                                  ),
+                                                ),
+
+                                                // TEST CASES
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      const Text('Test Cases:'),
+                                                      testCases.isNotEmpty
+                                                          ? Expanded(
+                                                              child: ListView
+                                                                  .builder(
+                                                                itemCount:
+                                                                    testCases
+                                                                        .length,
+                                                                itemBuilder:
+                                                                    (context,
+                                                                            index) =>
+                                                                        Card(
+                                                                  child:
+                                                                      ListTile(
+                                                                    title: Text(
+                                                                        'Input: ${testCases[index]['input']}'),
+                                                                    subtitle: Text(
+                                                                        'Output: ${testCases[index]['output']}'),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            )
+                                                          : const Text(
+                                                              'No test cases yet.'),
+                                                    ],
+                                                  ),
                                                 ),
                                               ],
                                             ),
                                           ),
-                                        ),
-                                        const Gap(10),
-                                        ElevatedButton.icon(
+                                          const Gap(10),
+
+                                          Form(
+                                            key: inputOutputFormKey,
+                                            child: Row(
+                                              children: [
+                                                // INPUT
+                                                Expanded(
+                                                  child: TextFormField(
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                      label: Text('Input'),
+                                                    ),
+                                                    controller: inputController,
+                                                    validator: (value) {
+                                                      if (value == null ||
+                                                          value
+                                                              .trim()
+                                                              .isEmpty) {
+                                                        return 'Required. Please provide an input.';
+                                                      }
+                                                      return null;
+                                                    },
+                                                  ),
+                                                ),
+                                                const Gap(10),
+
+                                                // OUTPUT
+                                                Expanded(
+                                                  child: TextFormField(
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                      label: Text('Output'),
+                                                    ),
+                                                    controller:
+                                                        outputController,
+                                                    validator: (value) {
+                                                      if (value == null ||
+                                                          value
+                                                              .trim()
+                                                              .isEmpty) {
+                                                        return 'Required. Please provide an output.';
+                                                      }
+                                                      return null;
+                                                    },
+                                                  ),
+                                                ),
+                                                const Gap(10),
+                                              ],
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                    const Gap(10),
+                                    MenuAnchor(
+                                      alignmentOffset: const Offset(-100, 0),
+                                      builder: (context, controller, child) {
+                                        return ElevatedButton.icon(
                                           style: const ButtonStyle(
-                                            backgroundColor:
-                                                WidgetStatePropertyAll(primary),
-                                            foregroundColor:
-                                                WidgetStatePropertyAll(
-                                                    Colors.white),
-                                          ),
-                                          onPressed: addQuestion,
-                                          label: const Text('Add Question'),
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      primary),
+                                              foregroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      Colors.white)),
+                                          onPressed: () {
+                                            if (controller.isOpen) {
+                                              controller.close();
+                                            } else {
+                                              controller.open();
+                                            }
+                                          },
+                                          label: const Text('Add'),
                                           icon: const Icon(Icons.add_rounded),
+                                        );
+                                      },
+                                      menuChildren: [
+                                        // TO EXAMPLES
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: TextButton(
+                                            style: const ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      secondary),
+                                              foregroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      Colors.white),
+                                              shape: WidgetStatePropertyAll(
+                                                  ContinuousRectangleBorder()),
+                                            ),
+                                            onPressed: addToExamples,
+                                            child: const Text('to Examples'),
+                                          ),
+                                        ),
+                                        // TO TEST CASES
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: TextButton(
+                                            style: const ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      secondary),
+                                              foregroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      Colors.white),
+                                              shape: WidgetStatePropertyAll(
+                                                  ContinuousRectangleBorder()),
+                                            ),
+                                            onPressed: addToTestCases,
+                                            child: const Text('to Test Cases'),
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        : ListView(
-                            children: [
-                              // PROBLEM STATEMENT
-                              TextFormField(
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  label: Text('Problem Statement'),
-                                ),
-                                maxLines: 3,
-                                controller: problemStatementController,
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Required. Please provide the problem statement.';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const Gap(10),
-
-                              // CONSTRAINTS
-                              TextFormField(
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  label: Text('Constraints'),
-                                ),
-                                maxLines: 3,
-                                controller: constraintsController,
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Required. Please provide the constraints.';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const Gap(10),
-
-                              // EXAMPLES AND TEST CASES
-                              Expanded(
-                                child: Row(
-                                  children: [
-                                    // EXAMPLES
-                                    Expanded(
-                                      child: ListView.builder(
-                                        itemCount: examples.length,
-                                        itemBuilder: (context, index) =>
-                                            const Card(
-                                          child: ListTile(
-                                            title: Text('Input : Output'),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-
-                                    // TEST CASES
-                                    Expanded(
-                                      child: ListView.builder(
-                                        itemCount: testCases.length,
-                                        itemBuilder: (context, index) =>
-                                            const Card(
-                                          child: ListTile(
-                                            title: Text('Input : Output'),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
                                   ],
-                                ),
-                              ),
-
-                              Row(
-                                children: [
-                                  // INPUT
-                                  Expanded(
-                                    child: TextFormField(
-                                      decoration: const InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        label: Text('Input'),
-                                      ),
-                                      controller: inputController,
-                                      validator: (value) {
-                                        if (value == null ||
-                                            value.trim().isEmpty) {
-                                          return 'Required. Please an input.';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                  const Gap(10),
-
-                                  // OUTPUT
-                                  Expanded(
-                                    child: TextFormField(
-                                      decoration: const InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        label: Text('Output'),
-                                      ),
-                                      controller: outputController,
-                                      validator: (value) {
-                                        if (value == null ||
-                                            value.trim().isEmpty) {
-                                          return 'Required. Please an output.';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                  const Gap(10),
-
-                                  MenuAnchor(
-                                    alignmentOffset: const Offset(-100, 0),
-                                    builder: (context, controller, child) {
-                                      return ElevatedButton.icon(
-                                        style: const ButtonStyle(
-                                            backgroundColor:
-                                                WidgetStatePropertyAll(primary),
-                                            foregroundColor:
-                                                WidgetStatePropertyAll(
-                                                    Colors.white)),
-                                        onPressed: () {
-                                          if (controller.isOpen) {
-                                            controller.close();
-                                          } else {
-                                            controller.open();
-                                          }
-                                        },
-                                        label: const Text('Add'),
-                                        icon: const Icon(Icons.add_rounded),
-                                      );
-                                    },
-                                    menuChildren: [
-                                      // TO EXAMPLES
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: TextButton(
-                                          style: const ButtonStyle(
-                                            backgroundColor:
-                                                WidgetStatePropertyAll(
-                                                    secondary),
-                                            foregroundColor:
-                                                WidgetStatePropertyAll(
-                                                    Colors.white),
-                                            shape: WidgetStatePropertyAll(
-                                                ContinuousRectangleBorder()),
-                                          ),
-                                          onPressed: addToExamples,
-                                          child: const Text('to Examples'),
-                                        ),
-                                      ),
-                                      // TO TEST CASES
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: TextButton(
-                                          style: const ButtonStyle(
-                                            backgroundColor:
-                                                WidgetStatePropertyAll(
-                                                    secondary),
-                                            foregroundColor:
-                                                WidgetStatePropertyAll(
-                                                    Colors.white),
-                                            shape: WidgetStatePropertyAll(
-                                                ContinuousRectangleBorder()),
-                                          ),
-                                          onPressed: addToTestCases,
-                                          child: const Text('to Test Cases'),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              )
-                            ],
+                                );
+                              },
+                            ),
                           )
                   ],
                 );
@@ -971,22 +1125,76 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     }
 
     if (deadline == null) {
-      QuickAlert.show(
+      return QuickAlert.show(
         context: context,
         type: QuickAlertType.error,
         title: 'Error',
         text: 'Please set a deadline for the activity.',
       );
     }
-  }
 
-  // // MULTIPLE CHOICE ESSENTIALS
-  // final questionController = TextEditingController();
-  // final choiceControllers =
-  //     List.generate(4, (index) => TextEditingController());
-  // final correctAnswerController = TextEditingController();
-  // List<Map<String, dynamic>> questionList = [];
-  // int? duplicateChoiceIndex;
+    dynamic activityContent;
+
+    if (activityType == 'Multiple Choice') {
+      if (questions.isEmpty) {
+        return QuickAlert.show(
+          context: context,
+          type: QuickAlertType.error,
+          title: 'Error',
+          text: 'Please add at least one question.',
+        );
+      }
+      activityContent = questions;
+    } else {
+      if (examples.isEmpty) {
+        return QuickAlert.show(
+          context: context,
+          type: QuickAlertType.error,
+          title: 'Error',
+          text: 'Please add at least one example.',
+        );
+      }
+      if (testCases.isEmpty) {
+        return QuickAlert.show(
+          context: context,
+          type: QuickAlertType.error,
+          title: 'Error',
+          text: 'Please add at least one test case.',
+        );
+      }
+      activityContent = {
+        'problemStatement': problemStatementController.text,
+        'constraints': constraintsController.text,
+        'examples': examples,
+        'testCases': testCases,
+      };
+    }
+
+    final newActivity = {
+      'title': lessonTitleController.text,
+      'activityType': activityType,
+      'deadline': deadline,
+      'maxScore': int.parse(maxScoreController.text),
+      'content': activityContent,
+    };
+
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.loading,
+    );
+
+    await _firestoreService
+        .addActivityToLesson(
+      context: context,
+      instructorId: widget.userId,
+      classCode: widget.classCode,
+      lessonIndex: lessonIndexToBindActivity!,
+      newActivity: newActivity,
+    )
+        .then((_) {
+      clearActivityFields();
+    });
+  }
 
   void clearActivityFields() {
     activityTitleController.clear();
@@ -996,6 +1204,11 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     maxScoreController.clear();
 
     clearMultipleChoiceFields();
+    questions = [];
+
+    clearCodingProblemFields();
+    examples = [];
+    testCases = [];
   }
 
   void clearMultipleChoiceFields() {
@@ -1004,8 +1217,17 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       choiceControllers[i].clear();
     }
     correctAnswerController.clear();
-    questionList = [];
     duplicateChoiceIndex = null;
+  }
+
+  void clearCodingProblemFields() {
+    problemStatementController.clear();
+    constraintsController.clear();
+  }
+
+  void clearInputOutputControllers() {
+    inputController.clear();
+    outputController.clear();
   }
 
   void openAddAdditionalResourceModal() {
@@ -1042,6 +1264,21 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       showCancelBtn: true,
       cancelBtnText: 'Cancel',
       onCancelBtnTap: Navigator.of(context).pop,
+    );
+  }
+
+  // NAVIGATION OPERATIONS
+  void openInstructorActivityScreen(
+      String userId, dynamic activity, String lessonTitle, int activityNumber) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => InstructorActivityScreen(
+          userId: userId,
+          activity: activity,
+          lessonTitle: lessonTitle,
+          activityNumber: activityNumber,
+        ),
+      ),
     );
   }
 
@@ -1293,20 +1530,21 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                           // insets: const EdgeInsets.all(15),
                                           children: List<Widget>.generate(
                                             lessonList.length,
-                                            (index) {
+                                            (lessonIndex) {
                                               final List<dynamic> activities =
-                                                  lessonList[index]
+                                                  lessonList[lessonIndex]
                                                           ['activities'] ??
                                                       [];
 
                                               final List<dynamic>
                                                   additionalResources =
-                                                  lessonList[index][
+                                                  lessonList[lessonIndex][
                                                           'additionalResources'] ??
                                                       [];
 
                                               return Disclosure(
-                                                key: ValueKey('lesson-$index'),
+                                                key: ValueKey(
+                                                    'lesson-$lessonIndex'),
                                                 wrapper: (state, child) {
                                                   return Card.outlined(
                                                     color: primary,
@@ -1327,7 +1565,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                 header: DisclosureButton(
                                                   child: ListTile(
                                                     title: Text(
-                                                      'Lesson ${index + 1}: ${lessonList[index]['title']}',
+                                                      'Lesson ${lessonIndex + 1}: ${lessonList[lessonIndex]['title']}',
                                                       style: const TextStyle(
                                                         color: Colors.white,
                                                       ),
@@ -1363,7 +1601,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                   .spaceBetween,
                                                           children: [
                                                             Text(
-                                                              'Learning Material: ${lessonList[index]['title']}.pdf',
+                                                              'Learning Material: ${lessonList[lessonIndex]['title']}.pdf',
                                                               style:
                                                                   const TextStyle(
                                                                 fontSize: 20,
@@ -1384,7 +1622,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                               onPressed: () =>
                                                                   downloadLearningMaterial(
                                                                       lessonList[
-                                                                              index]
+                                                                              lessonIndex]
                                                                           [
                                                                           'learningMaterial']),
                                                               child: const Row(
@@ -1418,17 +1656,52 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                           .length,
                                                                   itemBuilder:
                                                                       (context,
-                                                                              index) =>
-                                                                          Card(
-                                                                    child:
-                                                                        ListTile(
-                                                                      title: Text(
-                                                                          'Activity ${index + 1} - ${activities[index]['activityTitle']}'),
-                                                                      subtitle:
-                                                                          Text(
-                                                                              'Type: ${activities[index]['activityType']}'),
-                                                                    ),
-                                                                  ),
+                                                                          index) {
+                                                                    final DateTime
+                                                                        deadline =
+                                                                        activities[index]['deadline']
+                                                                            .toDate();
+
+                                                                    return Card(
+                                                                      child:
+                                                                          ListTile(
+                                                                        title: Text(
+                                                                            'Activity ${index + 1} ${activities[index]['title'] != '' ? ':${activities[index]['title']}' : ''} (${activities[index]['maxScore']} points)'),
+                                                                        subtitle:
+                                                                            Text('Type: ${activities[index]['activityType']}'),
+                                                                        trailing:
+                                                                            SizedBox(
+                                                                          width:
+                                                                              250,
+                                                                          child:
+                                                                              Row(
+                                                                            mainAxisAlignment:
+                                                                                MainAxisAlignment.spaceBetween,
+                                                                            children: [
+                                                                              Text(
+                                                                                'Deadline:\n${DateFormat.yMMMEd().add_jm().format(deadline)}',
+                                                                                style: const TextStyle(fontSize: 14),
+                                                                              ),
+                                                                              const IconButton(
+                                                                                onPressed: null,
+                                                                                icon: Icon(Icons.delete_rounded),
+                                                                              )
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                        onTap: () =>
+                                                                            openInstructorActivityScreen(
+                                                                          widget
+                                                                              .userId,
+                                                                          activities[
+                                                                              index],
+                                                                          'Lesson ${lessonIndex + 1}: ${lessonList[index]['title']}',
+                                                                          index +
+                                                                              1,
+                                                                        ),
+                                                                      ),
+                                                                    );
+                                                                  },
                                                                 ),
                                                               ),
                                                         const Gap(5),

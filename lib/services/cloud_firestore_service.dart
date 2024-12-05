@@ -443,6 +443,74 @@ class CloudFirestoreService {
     return _firestore.collection('classes').doc(classCode).snapshots();
   }
 
+  Future<void> addActivityToLesson({
+    required BuildContext context,
+    required String instructorId,
+    required String classCode,
+    required int lessonIndex,
+    required Map<String, dynamic> newActivity,
+  }) async {
+    final classReference = _firestore.collection('classes').doc(classCode);
+    final testBankReference = _firestore.collection('testBank');
+
+    await classReference.get().then((classData) async {
+      List<dynamic> lessons = classData.data()?['lessons'] ?? [];
+
+      if (lessonIndex < lessons.length) {
+        // GET THE LESSON
+        Map<String, dynamic> targetLesson = lessons[lessonIndex];
+
+        // ADD LESSON TAG AND METADATA
+        newActivity.addAll({
+          'lessonTag': targetLesson['title'],
+          'metaData': {
+            'createdBy': instructorId,
+            'dateCreated': DateTime.now(),
+          },
+        });
+
+        // ADD TO TEST BANK
+        await testBankReference.add(newActivity);
+
+        // ENSURE ACTIVITIES ARRAY EXISTS
+        List<dynamic> activities = targetLesson['activities'] ?? [];
+
+        // ADD THE NEW ACTIVITY TO THE ACTIVITIES ARRAY
+        activities.add(newActivity);
+        targetLesson['activities'] = activities;
+
+        // REPLACE THE LESSON IN LESSONS ARRAY
+        lessons[lessonIndex] = targetLesson;
+
+        // UPDATE THE DOCUMENT
+        await classReference.update({'lessons': lessons}).then((_) {
+          // DISMISS LOADING
+          // ignore: use_build_context_synchronously
+          Navigator.of(context).pop();
+
+          // DISPLAY SUCCESS
+          QuickAlert.show(
+              // ignore: use_build_context_synchronously
+              context: context,
+              type: QuickAlertType.success,
+              title: 'Success!',
+              text:
+                  'You have added a new activity on Lesson ${lessonIndex + 1}: ${targetLesson['title']}',
+              onConfirmBtnTap: () {
+                // DISMISS SUCCESS
+                Navigator.of(context).pop();
+                // CLOSE ADD ACTIVITY MODAL
+                Navigator.of(context).pop();
+              });
+        });
+      }
+    });
+  }
+
+  Future<void> deleteActivityFromLesson() async {
+    // TO DO
+  }
+
   // --- STUDENT FUNCTIONS ---
 
   Future<void> joinClass(
