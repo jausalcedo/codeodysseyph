@@ -1389,7 +1389,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                       Tab(text: 'Course Work'),
                       Tab(text: 'Examinations'),
                       Tab(text: 'Student Performance'),
-                      Tab(text: 'Annoucements'),
+                      Tab(text: 'Announcements'),
                     ],
                   ),
                   Expanded(
