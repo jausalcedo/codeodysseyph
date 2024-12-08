@@ -157,7 +157,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         preferredSize: Size(double.infinity, 75),
         child: StudentAppbar(),
       ),
-      drawer: StudentDrawer(userId: widget.studentId),
+      drawer: StudentDrawer(studentId: widget.studentId),
       body: Center(
         child: SizedBox(
           width: 1080,

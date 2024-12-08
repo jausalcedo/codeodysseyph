@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
 class StudentDrawer extends StatefulWidget {
-  const StudentDrawer({super.key, required this.userId});
+  const StudentDrawer({super.key, required this.studentId});
 
-  final String userId;
+  final String studentId;
 
   @override
   State<StudentDrawer> createState() => _StudentDrawerState();
@@ -17,7 +17,8 @@ class _StudentDrawerState extends State<StudentDrawer> {
   void openDashboardScreen() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => StudentDashboardScreen(studentId: widget.userId),
+        builder: (context) =>
+            StudentDashboardScreen(studentId: widget.studentId),
       ),
     );
   }
@@ -25,7 +26,7 @@ class _StudentDrawerState extends State<StudentDrawer> {
   void openCodePlaygroundScreen() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => StudentCodePlayground(userId: widget.userId),
+        builder: (context) => StudentCodePlayground(userId: widget.studentId),
       ),
     );
   }

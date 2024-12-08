@@ -1,4 +1,5 @@
 import 'package:codeodysseyph/components/student/student_appbar.dart';
+import 'package:codeodysseyph/components/student/student_drawer.dart';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
@@ -73,6 +74,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
         preferredSize: Size(double.infinity, 75),
         child: StudentAppbar(),
       ),
+      drawer: StudentDrawer(studentId: widget.studentId),
       body: Center(
         child: SizedBox(
           width: 1080,

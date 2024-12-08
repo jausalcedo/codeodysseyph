@@ -262,7 +262,7 @@ public class Main {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: StudentDrawer(
-        userId: widget.userId,
+        studentId: widget.userId,
       ),
       appBar: const PreferredSize(
         preferredSize: Size(double.infinity, 75),
