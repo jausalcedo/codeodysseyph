@@ -25,7 +25,7 @@ class InstructorActivityScreen extends StatefulWidget {
 class _InstructorActivityScreenState extends State<InstructorActivityScreen> {
   late List<String?> myAnswers;
 
-  void confirmSubmit() {
+  void openConfirmSubmitDialog() {
     QuickAlert.show(
       context: context,
       type: QuickAlertType.warning,
@@ -156,7 +156,7 @@ class _InstructorActivityScreenState extends State<InstructorActivityScreen> {
                               foregroundColor:
                                   const WidgetStatePropertyAll(Colors.white),
                             ),
-                            onPressed: confirmSubmit,
+                            onPressed: openConfirmSubmitDialog,
                             child: const Text('Finish attempt'),
                           ),
                         ),

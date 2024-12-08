@@ -1,6 +1,7 @@
 import 'package:codeodysseyph/components/student/student_appbar.dart';
 import 'package:codeodysseyph/components/student/student_drawer.dart';
 import 'package:codeodysseyph/constants/colors.dart';
+import 'package:codeodysseyph/screens/student/student_activity_multiple_choice.dart';
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:disclosure/disclosure.dart';
@@ -211,15 +212,15 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                           children: List<Widget>.generate(
                                             lessonList.length,
                                             (lessonIndex) {
+                                              final lesson =
+                                                  lessonList[lessonIndex];
+
                                               final List<dynamic> activities =
-                                                  lessonList[lessonIndex]
-                                                          ['activities'] ??
-                                                      [];
+                                                  lesson['activities'] ?? [];
 
                                               final List<dynamic>
                                                   additionalResources =
-                                                  lessonList[lessonIndex][
-                                                          'additionalResources'] ??
+                                                  lesson['additionalResources'] ??
                                                       [];
 
                                               return Disclosure(
@@ -245,7 +246,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                 header: DisclosureButton(
                                                   child: ListTile(
                                                     title: Text(
-                                                      'Lesson ${lessonIndex + 1}: ${lessonList[lessonIndex]['title']}',
+                                                      'Lesson ${lessonIndex + 1}: ${lesson['title']}',
                                                       style: const TextStyle(
                                                         color: Colors.white,
                                                       ),
@@ -281,7 +282,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                                   .spaceBetween,
                                                           children: [
                                                             Text(
-                                                              'Learning Material: ${lessonList[lessonIndex]['title']}.pdf',
+                                                              'Learning Material: ${lesson['title']}.pdf',
                                                               style:
                                                                   const TextStyle(
                                                                 fontSize: 20,
@@ -301,9 +302,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                               ),
                                                               onPressed: () =>
                                                                   downloadLearningMaterial(
-                                                                      lessonList[
-                                                                              lessonIndex]
-                                                                          [
+                                                                      lesson[
                                                                           'learningMaterial']),
                                                               child: const Row(
                                                                 children: [
@@ -333,45 +332,38 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                                           .length,
                                                                   itemBuilder:
                                                                       (context,
-                                                                          index) {
+                                                                          activityIndex) {
+                                                                    final activity =
+                                                                        activities[
+                                                                            activityIndex];
+
                                                                     final DateTime
                                                                         deadline =
-                                                                        activities[index]['deadline']
+                                                                        activity['deadline']
                                                                             .toDate();
 
                                                                     return Card(
                                                                       child: ListTile(
-                                                                          title: Text('Activity ${index + 1} ${activities[index]['title'] != '' ? ':${activities[index]['title']}' : ''} (${activities[index]['maxScore']} points)'),
-                                                                          subtitle: Text('Type: ${activities[index]['activityType']}'),
-                                                                          trailing: SizedBox(
-                                                                            width:
-                                                                                250,
-                                                                            child:
-                                                                                Row(
-                                                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                                              children: [
-                                                                                Text(
-                                                                                  'Deadline:\n${DateFormat.yMMMEd().add_jm().format(deadline)}',
-                                                                                  style: const TextStyle(fontSize: 14),
+                                                                          title: Text('Activity ${activityIndex + 1} ${activity['title'] != '' ? ':${activity['title']}' : ''} (${activity['maxScore']} points)'),
+                                                                          subtitle: Text('Type: ${activity['activityType']}'),
+                                                                          trailing: Text(
+                                                                            'Deadline:\n${DateFormat.yMMMEd().add_jm().format(deadline)}',
+                                                                            style:
+                                                                                const TextStyle(fontSize: 14),
+                                                                          ),
+                                                                          onTap: () {
+                                                                            if (activity['activityType'] ==
+                                                                                'Multiple Choice') {
+                                                                              Navigator.of(context).push(MaterialPageRoute(
+                                                                                builder: (context) => StudentMultipleChoiceActivityScreen(
+                                                                                  studentId: widget.studentId,
+                                                                                  activity: activity,
+                                                                                  lessonTitle: lesson['title'],
+                                                                                  activityNumber: activityIndex + 1,
                                                                                 ),
-                                                                                const IconButton(
-                                                                                  onPressed: null,
-                                                                                  icon: Icon(Icons.delete_rounded),
-                                                                                )
-                                                                              ],
-                                                                            ),
-                                                                          ),
-                                                                          onTap: () {}
-                                                                          //     openInstructorActivityScreen(
-                                                                          //   widget
-                                                                          //       .userId,
-                                                                          //   activities[
-                                                                          //       index],
-                                                                          //   'Lesson ${lessonIndex + 1}: ${lessonList[index]['title']}',
-                                                                          //   index +
-                                                                          //       1,
-                                                                          // ),
-                                                                          ),
+                                                                              ));
+                                                                            }
+                                                                          }),
                                                                     );
                                                                   },
                                                                 ),
