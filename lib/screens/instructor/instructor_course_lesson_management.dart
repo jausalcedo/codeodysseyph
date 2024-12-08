@@ -13,11 +13,11 @@ import 'package:quickalert/quickalert.dart';
 class InstructorCourseLessonManagement extends StatefulWidget {
   const InstructorCourseLessonManagement({
     super.key,
-    required this.userId,
+    required this.instructorId,
     required this.courseId,
   });
 
-  final String userId;
+  final String instructorId;
   final String courseId;
 
   @override
@@ -27,22 +27,6 @@ class InstructorCourseLessonManagement extends StatefulWidget {
 
 class _InstructorCourseLessonManagementState
     extends State<InstructorCourseLessonManagement> {
-  String extractSyllabusName(String syllabusWithTimeStamp) {
-    final splitted = syllabusWithTimeStamp.split('-');
-
-    String finalSyllabusName = '';
-
-    for (int i = 1; i < splitted.length; i++) {
-      if (i != splitted.length - 1) {
-        finalSyllabusName += '${splitted[i]}-';
-      } else {
-        finalSyllabusName += splitted[i];
-      }
-    }
-
-    return finalSyllabusName;
-  }
-
   // FORM KEYS
   final lessonFormKey = GlobalKey<FormState>();
   final addBeforeLessonFormKey = GlobalKey<FormState>();
@@ -364,7 +348,7 @@ class _InstructorCourseLessonManagementState
       appBar: PreferredSize(
         preferredSize: const Size(double.infinity, 75),
         child: InstructorAppbar(
-          userId: widget.userId,
+          userId: widget.instructorId,
         ),
       ),
       body: StreamBuilder(

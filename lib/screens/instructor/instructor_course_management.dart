@@ -16,9 +16,12 @@ import 'package:quickalert/quickalert.dart';
 
 // ignore: must_be_immutable
 class InstructorCourseManagementScreen extends StatefulWidget {
-  const InstructorCourseManagementScreen({super.key, required this.userId});
+  const InstructorCourseManagementScreen({
+    super.key,
+    required this.instructorId,
+  });
 
-  final String userId;
+  final String instructorId;
 
   @override
   State<InstructorCourseManagementScreen> createState() =>
@@ -104,7 +107,7 @@ class _InstructorCourseManagementScreenState
           .createCourseOutline(
         context,
         selectedCourse!,
-        widget.userId,
+        widget.instructorId,
         // fileName!,
         // fileBytes!,
       )
@@ -144,7 +147,7 @@ class _InstructorCourseManagementScreenState
           .createCourseOutlineFromTemplate(
         context,
         selectedCourse!,
-        widget.userId,
+        widget.instructorId,
         templateId,
       )
           .then((_) {
@@ -164,7 +167,7 @@ class _InstructorCourseManagementScreenState
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => InstructorCourseLessonManagement(
-          userId: widget.userId,
+          instructorId: widget.instructorId,
           courseId: documentId,
         ),
       ),
@@ -236,7 +239,7 @@ class _InstructorCourseManagementScreenState
     super.initState();
     courseStream = FirebaseFirestore.instance
         .collection('courses')
-        .where('instructorId', isEqualTo: widget.userId)
+        .where('instructorId', isEqualTo: widget.instructorId)
         .orderBy('timeStamp', descending: true)
         .snapshots();
   }
@@ -244,10 +247,10 @@ class _InstructorCourseManagementScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: InstructorDrawer(userId: widget.userId),
+      drawer: InstructorDrawer(userId: widget.instructorId),
       appBar: PreferredSize(
         preferredSize: const Size(double.infinity, 75),
-        child: InstructorAppbar(userId: widget.userId),
+        child: InstructorAppbar(userId: widget.instructorId),
       ),
       body: Center(
         child: SizedBox(
@@ -403,7 +406,8 @@ class _InstructorCourseManagementScreenState
                                     ? FutureBuilder(
                                         future: _firestoreService
                                             .getSimilarCoursesFuture(
-                                                widget.userId, selectedCourse!),
+                                                widget.instructorId,
+                                                selectedCourse!),
                                         builder: (context, snapshot) {
                                           if (snapshot.connectionState ==
                                               ConnectionState.waiting) {

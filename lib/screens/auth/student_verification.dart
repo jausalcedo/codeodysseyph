@@ -77,7 +77,7 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen> {
 
   @override
   Widget build(BuildContext context) => isEmailVerified
-      ? StudentDashboardScreen(userId: widget.userId)
+      ? StudentDashboardScreen(studentId: widget.userId)
       : Scaffold(
           body: Stack(
             alignment: Alignment.center,

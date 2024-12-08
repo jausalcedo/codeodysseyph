@@ -11,9 +11,9 @@ import 'package:quickalert/quickalert.dart';
 
 // ignore: must_be_immutable
 class InstructorDashboardScreen extends StatefulWidget {
-  const InstructorDashboardScreen({super.key, required this.userId});
+  const InstructorDashboardScreen({super.key, required this.instructorId});
 
-  final String userId;
+  final String instructorId;
 
   @override
   State<InstructorDashboardScreen> createState() =>
@@ -40,330 +40,329 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          titlePadding: const EdgeInsets.only(top: 20, bottom: 0),
-          // ALERT DIALOG TITLE
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // INVINCIBLE WIDGET
-              const Gap(50),
+      builder: (BuildContext context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        titlePadding: const EdgeInsets.only(top: 20, bottom: 0),
+        // ALERT DIALOG TITLE
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // INVINCIBLE WIDGET
+            const Gap(50),
 
-              // ALERT DIALOG TITLE
-              const Text(
-                'Create Class',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: primary,
-                ),
+            // ALERT DIALOG TITLE
+            const Text(
+              'Create Class',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: primary,
               ),
+            ),
 
-              // CLOSE BUTTON
-              Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.close,
-                    color: Colors.red,
-                  ),
-                  onPressed: () {
-                    clearFields();
-                    Navigator.of(context).pop();
-                  },
+            // CLOSE BUTTON
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.close,
+                  color: Colors.red,
                 ),
+                onPressed: () {
+                  clearFields();
+                  Navigator.of(context).pop();
+                },
               ),
-            ],
-          ),
-          // CREATE CLASS STEPS
-          content: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(35, 0, 35, 15),
-              child: Form(
-                key: addClassFormKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // SELECT COURSE
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          width: 2,
-                          color: primary,
-                        ),
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
+            ),
+          ],
+        ),
+        // CREATE CLASS STEPS
+        content: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(35, 0, 35, 15),
+            child: Form(
+              key: addClassFormKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // SELECT COURSE
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        width: 2,
+                        color: primary,
                       ),
-                      width: 800,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          children: [
-                            const CreateClassSectionTitle(
-                              number: '1',
-                              sectionTitle: 'Select Course',
-                            ),
-                            const Gap(10),
-                            FutureBuilder(
-                              future: _firestoreService
-                                  .getCoursesFuture(widget.userId),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return const Center(
-                                    child: CircularProgressIndicator(),
-                                  );
-                                }
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    width: 800,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          const CreateClassSectionTitle(
+                            number: '1',
+                            sectionTitle: 'Select Course',
+                          ),
+                          const Gap(10),
+                          FutureBuilder(
+                            future: _firestoreService
+                                .getCoursesFuture(widget.instructorId),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
 
-                                final courses = snapshot.data!.docs;
+                              final courses = snapshot.data!.docs;
 
-                                return DropdownButtonFormField(
+                              return DropdownButtonFormField(
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  label: Text('Course'),
+                                ),
+                                items: courses.map(
+                                  (course) {
+                                    final courseCode = course['courseCode'];
+                                    final courseTitle = courseList
+                                        .firstWhere(
+                                          (element) =>
+                                              element.code == courseCode,
+                                        )
+                                        .title;
+
+                                    return DropdownMenuItem(
+                                      value: course.id,
+                                      child: Text(
+                                          '$courseCode - $courseTitle v${course['version']}'),
+                                    );
+                                  },
+                                ).toList(),
+                                onChanged: (selectedValue) {
+                                  selectedCourse = selectedValue!;
+                                },
+                                validator: (value) {
+                                  if (value == '' || value == null) {
+                                    return 'Required. Please select a course outline.';
+                                  }
+                                  return null;
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Gap(20),
+
+                  // SELECT YEAR AND BLOCK
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        width: 2,
+                        color: primary,
+                      ),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    width: 800,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const CreateClassSectionTitle(
+                            number: '2',
+                            sectionTitle: 'Select Year and Block',
+                          ),
+                          const Gap(10),
+                          Row(
+                            children: [
+                              // SELECT YEAR
+                              Flexible(
+                                child: DropdownButtonFormField(
                                   decoration: const InputDecoration(
+                                    label: Text('Year'),
                                     border: OutlineInputBorder(),
-                                    label: Text('Course'),
                                   ),
-                                  items: courses.map(
-                                    (course) {
-                                      final courseCode = course['courseCode'];
-                                      final courseTitle = courseList
-                                          .firstWhere(
-                                            (element) =>
-                                                element.code == courseCode,
-                                          )
-                                          .title;
-
-                                      return DropdownMenuItem(
-                                        value: course.id,
-                                        child: Text(
-                                            '$courseCode - $courseTitle v${course['version']}'),
-                                      );
-                                    },
-                                  ).toList(),
-                                  onChanged: (selectedValue) {
-                                    selectedCourse = selectedValue!;
+                                  items: ['1st', '2nd', '3rd', '4th']
+                                      .map((year) => DropdownMenuItem(
+                                            value: year,
+                                            child: Text(year),
+                                          ))
+                                      .toList(),
+                                  onChanged: (value) {
+                                    if (value != null) {
+                                      setState(() {
+                                        selectedYear = value;
+                                      });
+                                    }
                                   },
                                   validator: (value) {
                                     if (value == '' || value == null) {
-                                      return 'Required. Please select a course outline.';
+                                      return 'Required. Please select year.';
                                     }
                                     return null;
                                   },
-                                );
-                              },
-                            ),
-                          ],
-                        ),
+                                ),
+                              ),
+                              const Gap(10),
+                              // SELECT BLOCK
+                              Flexible(
+                                child: DropdownButtonFormField(
+                                  decoration: const InputDecoration(
+                                    label: Text('Block'),
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  items: ['A', 'B', 'C', 'D', 'E']
+                                      .map((block) => DropdownMenuItem(
+                                            value: block,
+                                            child: Text(block),
+                                          ))
+                                      .toList(),
+                                  onChanged: (value) {
+                                    if (value != null) {
+                                      setState(() {
+                                        selectedBlock = value;
+                                      });
+                                    }
+                                  },
+                                  validator: (value) {
+                                    if (value == '' || value == null) {
+                                      return 'Required. Please select a block.';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    const Gap(20),
+                  ),
+                  const Gap(20),
 
-                    // SELECT YEAR AND BLOCK
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          width: 2,
-                          color: primary,
-                        ),
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
+                  // SELECT ACADEMIC YEAR AND SEMESTER
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        width: 2,
+                        color: primary,
                       ),
-                      width: 800,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const CreateClassSectionTitle(
-                              number: '2',
-                              sectionTitle: 'Select Year and Block',
-                            ),
-                            const Gap(10),
-                            Row(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    width: 800,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const CreateClassSectionTitle(
+                            number: '3',
+                            sectionTitle: 'Set Academic Year and Semester',
+                          ),
+                          const Gap(10),
+                          Form(
+                            key: acadYearSemFormKey,
+                            child: Row(
                               children: [
-                                // SELECT YEAR
-                                Flexible(
+                                // ACADEMIC YEAR
+                                Expanded(
                                   child: DropdownButtonFormField(
                                     decoration: const InputDecoration(
-                                      label: Text('Year'),
                                       border: OutlineInputBorder(),
+                                      label: Text('Academic Year'),
                                     ),
-                                    items: ['1st', '2nd', '3rd', '4th']
-                                        .map((year) => DropdownMenuItem(
-                                              value: year,
-                                              child: Text(year),
-                                            ))
+                                    value: selectedAcademicYear,
+                                    items: [
+                                      currentYear - 1,
+                                      currentYear,
+                                      currentYear + 1,
+                                      currentYear + 2,
+                                      currentYear + 3,
+                                    ]
+                                        .map(
+                                          (year) => DropdownMenuItem(
+                                            value: year,
+                                            child: Text('$year - ${year + 1}'),
+                                          ),
+                                        )
                                         .toList(),
                                     onChanged: (value) {
-                                      if (value != null) {
-                                        setState(() {
-                                          selectedYear = value;
-                                        });
-                                      }
-                                    },
-                                    validator: (value) {
-                                      if (value == '' || value == null) {
-                                        return 'Required. Please select year.';
-                                      }
-                                      return null;
+                                      setState(() {
+                                        selectedAcademicYear = value!;
+                                      });
                                     },
                                   ),
                                 ),
                                 const Gap(10),
-                                // SELECT BLOCK
-                                Flexible(
+                                // SEMESTER
+                                Expanded(
                                   child: DropdownButtonFormField(
                                     decoration: const InputDecoration(
-                                      label: Text('Block'),
                                       border: OutlineInputBorder(),
+                                      label: Text('Semester'),
                                     ),
-                                    items: ['A', 'B', 'C', 'D', 'E']
-                                        .map((block) => DropdownMenuItem(
-                                              value: block,
-                                              child: Text(block),
-                                            ))
+                                    value: selectedSemester,
+                                    items: ['First Semester', 'Second Semester']
+                                        .map(
+                                          (semester) => DropdownMenuItem(
+                                            value: semester,
+                                            child: Text(semester),
+                                          ),
+                                        )
                                         .toList(),
                                     onChanged: (value) {
-                                      if (value != null) {
-                                        setState(() {
-                                          selectedBlock = value;
-                                        });
-                                      }
-                                    },
-                                    validator: (value) {
-                                      if (value == '' || value == null) {
-                                        return 'Required. Please select a block.';
-                                      }
-                                      return null;
+                                      setState(() {
+                                        selectedSemester = value!;
+                                      });
                                     },
                                   ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                    const Gap(20),
-
-                    // SELECT ACADEMIC YEAR AND SEMESTER
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          width: 2,
-                          color: primary,
-                        ),
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      width: 800,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const CreateClassSectionTitle(
-                              number: '3',
-                              sectionTitle: 'Set Academic Year and Semester',
-                            ),
-                            const Gap(10),
-                            Form(
-                              key: acadYearSemFormKey,
-                              child: Row(
-                                children: [
-                                  // ACADEMIC YEAR
-                                  Expanded(
-                                    child: DropdownButtonFormField(
-                                      decoration: const InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        label: Text('Academic Year'),
-                                      ),
-                                      value: selectedAcademicYear,
-                                      items: [
-                                        currentYear - 1,
-                                        currentYear,
-                                        currentYear + 1,
-                                        currentYear + 2,
-                                        currentYear + 3,
-                                      ]
-                                          .map(
-                                            (year) => DropdownMenuItem(
-                                              value: year,
-                                              child:
-                                                  Text('$year - ${year + 1}'),
-                                            ),
-                                          )
-                                          .toList(),
-                                      onChanged: (value) {
-                                        setState(() {
-                                          selectedAcademicYear = value!;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  const Gap(10),
-                                  // SEMESTER
-                                  Expanded(
-                                    child: DropdownButtonFormField(
-                                      decoration: const InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        label: Text('Semester'),
-                                      ),
-                                      value: selectedSemester,
-                                      items:
-                                          ['First Semester', 'Second Semester']
-                                              .map(
-                                                (semester) => DropdownMenuItem(
-                                                  value: semester,
-                                                  child: Text(semester),
-                                                ),
-                                              )
-                                              .toList(),
-                                      onChanged: (value) {
-                                        setState(() {
-                                          selectedSemester = value!;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              onPressed: createClass,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+              ),
+              child: const Text(
+                'Finalize',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.white,
                 ),
               ),
             ),
           ),
-          actions: [
-            Center(
-              child: ElevatedButton(
-                onPressed: createClass,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                ),
-                child: const Text(
-                  'Finalize',
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
-        );
-      },
+          const SizedBox(height: 10),
+        ],
+      ),
     );
   }
 
@@ -413,7 +412,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
       // ignore: use_build_context_synchronously
       context: context,
       courseId: selectedCourse!,
-      instructorId: widget.userId,
+      instructorId: widget.instructorId,
       year: selectedYear!,
       block: selectedBlock!,
       academicYear: selectedAcademicYear,
@@ -437,10 +436,10 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: InstructorDrawer(userId: widget.userId),
+      drawer: InstructorDrawer(userId: widget.instructorId),
       appBar: PreferredSize(
         preferredSize: const Size(double.infinity, 75),
-        child: InstructorAppbar(userId: widget.userId),
+        child: InstructorAppbar(userId: widget.instructorId),
       ),
       body: Center(
         child: SizedBox(
@@ -487,7 +486,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                       ),
                       child: StreamBuilder(
                         stream: _firestoreService
-                            .getInstructorClassesStream(widget.userId),
+                            .getInstructorClassesStream(widget.instructorId),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
@@ -540,7 +539,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                                         MaterialPageRoute(
                                           builder: (context) =>
                                               InstructorClassScreen(
-                                            userId: widget.userId,
+                                            instructorId: widget.instructorId,
                                             classCode: classes[index].id,
                                             courseCodeYearBlock:
                                                 '$courseCode - IT $year$block',
@@ -615,7 +614,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                                             ],
                                           ),
 
-                                          // INVISIBLE WIDGET TO CENTER THE COURSE TITLE
+                                          // SEMESTER AND ACADEMIC YEAR
                                           Center(
                                             child: Padding(
                                               padding: const EdgeInsets.only(

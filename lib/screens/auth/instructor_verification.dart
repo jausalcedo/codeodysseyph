@@ -80,7 +80,7 @@ class _InstructorVerificationScreenState
 
   @override
   Widget build(BuildContext context) => isEmailVerified
-      ? InstructorDashboardScreen(userId: widget.userId)
+      ? InstructorDashboardScreen(instructorId: widget.userId)
       // ? InstructorCourseManagementScreen(userId: widget.userId)
       : Scaffold(
           body: Stack(

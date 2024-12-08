@@ -15,13 +15,13 @@ import 'package:url_launcher/url_launcher.dart';
 class InstructorClassScreen extends StatefulWidget {
   const InstructorClassScreen({
     super.key,
-    required this.userId,
+    required this.instructorId,
     required this.classCode,
     required this.courseCodeYearBlock,
     required this.courseTitle,
   });
 
-  final String userId;
+  final String instructorId;
   final String classCode;
   final String courseCodeYearBlock;
   final String courseTitle;
@@ -1186,7 +1186,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     await _firestoreService
         .addActivityToLesson(
       context: context,
-      instructorId: widget.userId,
+      instructorId: widget.instructorId,
       classCode: widget.classCode,
       lessonIndex: lessonIndexToBindActivity!,
       newActivity: newActivity,
@@ -1273,7 +1273,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => InstructorActivityScreen(
-          userId: userId,
+          instructorId: userId,
           activity: activity,
           lessonTitle: lessonTitle,
           activityNumber: activityNumber,
@@ -1299,7 +1299,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size(double.infinity, 75),
-        child: InstructorAppbar(userId: widget.userId),
+        child: InstructorAppbar(userId: widget.instructorId),
       ),
       body: Center(
         child: SizedBox(
@@ -1692,7 +1692,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                         onTap: () =>
                                                                             openInstructorActivityScreen(
                                                                           widget
-                                                                              .userId,
+                                                                              .instructorId,
                                                                           activities[
                                                                               index],
                                                                           'Lesson ${lessonIndex + 1}: ${lessonList[index]['title']}',

@@ -17,7 +17,8 @@ class _InstructorDrawerState extends State<InstructorDrawer> {
   void openDashboardScreen() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => InstructorDashboardScreen(userId: widget.userId),
+        builder: (context) =>
+            InstructorDashboardScreen(instructorId: widget.userId),
       ),
     );
   }
@@ -35,7 +36,7 @@ class _InstructorDrawerState extends State<InstructorDrawer> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) =>
-            InstructorCourseManagementScreen(userId: widget.userId),
+            InstructorCourseManagementScreen(instructorId: widget.userId),
       ),
     );
   }

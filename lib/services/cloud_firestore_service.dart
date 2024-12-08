@@ -516,29 +516,55 @@ class CloudFirestoreService {
   Future<void> joinClass(
       BuildContext context, String classCode, String studentId) async {
     try {
-      QuickAlert.show(
-        context: context,
-        type: QuickAlertType.loading,
-      );
+      final classDoc =
+          await _firestore.collection('classes').doc(classCode).get();
 
-      await _firestore.collection('classes').doc(classCode).update({
-        'students': FieldValue.arrayUnion([studentId])
-      }).then((_) {
+      if (classDoc.exists) {
+        List<dynamic> currentStudents = classDoc.data()?['students'] ?? [];
+
+        // CHECK IF STUDENT IS NOT IN THE LIST
+        if (!currentStudents.contains(studentId)) {
+          await _firestore.collection('classes').doc(classCode).update({
+            'students': FieldValue.arrayUnion([studentId])
+          }).then((_) {
+            // ignore: use_build_context_synchronously
+            Navigator.of(context).pop();
+
+            QuickAlert.show(
+              // ignore: use_build_context_synchronously
+              context: context,
+              type: QuickAlertType.success,
+              title: 'Successfully joined the class!',
+              onConfirmBtnTap: () {
+                // POP THE SUCCESS MODAL
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+            );
+          });
+        } else {
+          // IF ALREADY EXISTING, JUST INFORM THEM
+          // ignore: use_build_context_synchronously
+          Navigator.of(context).pop();
+
+          QuickAlert.show(
+            // ignore: use_build_context_synchronously
+            context: context,
+            type: QuickAlertType.info,
+            title: 'You are already in this class!',
+          );
+        }
+      } else {
         // ignore: use_build_context_synchronously
         Navigator.of(context).pop();
 
         QuickAlert.show(
           // ignore: use_build_context_synchronously
           context: context,
-          type: QuickAlertType.success,
-          title: 'Successfully joined the class!',
-          onConfirmBtnTap: () {
-            // POP THE SUCCESS MODAL
-            Navigator.of(context).pop();
-            Navigator.of(context).pop();
-          },
+          type: QuickAlertType.error,
+          title: 'Class not found!',
         );
-      });
+      }
     } on FirebaseException catch (ex) {
       _errorService.showBanner(
         // ignore: use_build_context_synchronously

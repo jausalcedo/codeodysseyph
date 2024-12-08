@@ -17,7 +17,7 @@ class _StudentDrawerState extends State<StudentDrawer> {
   void openDashboardScreen() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => StudentDashboardScreen(userId: widget.userId),
+        builder: (context) => StudentDashboardScreen(studentId: widget.userId),
       ),
     );
   }

@@ -6,13 +6,13 @@ import 'package:quickalert/quickalert.dart';
 class InstructorActivityScreen extends StatefulWidget {
   const InstructorActivityScreen({
     super.key,
-    required this.userId,
+    required this.instructorId,
     required this.activity,
     required this.lessonTitle,
     required this.activityNumber,
   });
 
-  final String userId;
+  final String instructorId;
   final Map<String, dynamic> activity;
   final String lessonTitle;
   final int activityNumber;
@@ -67,7 +67,7 @@ class _InstructorActivityScreenState extends State<InstructorActivityScreen> {
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size(double.infinity, 75),
-        child: InstructorAppbar(userId: widget.userId),
+        child: InstructorAppbar(userId: widget.instructorId),
       ),
       body: activityType == 'Multiple Choice'
           ? Row(
