@@ -1282,6 +1282,15 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     );
   }
 
+  // ASSESSMENT FUNCTIONS
+  void openAddQuizModal() {
+    // TO DO
+  }
+
+  void openAddExamModal() {
+    // TO DO
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1387,7 +1396,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                     controller: tabController,
                     tabs: const [
                       Tab(text: 'Course Work'),
-                      Tab(text: 'Examinations'),
+                      Tab(text: 'Assessments'),
                       Tab(text: 'Student Performance'),
                       Tab(text: 'Announcements'),
                     ],
@@ -1640,9 +1649,6 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                         // ACTIVITIES
                                                         const Text(
                                                           'Activities:',
-                                                          // style: TextStyle(
-                                                          //   fontSize: 20,
-                                                          // ),
                                                         ),
                                                         activities.isEmpty
                                                             ? const Text(
@@ -1709,9 +1715,6 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                         // ADDITIONAL RESOURCES
                                                         const Text(
                                                           'Additional Resources:',
-                                                          // style: TextStyle(
-                                                          //   fontSize: 20,
-                                                          // ),
                                                         ),
                                                         additionalResources
                                                                 .isEmpty
@@ -1757,8 +1760,220 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                             ],
                           ),
                         ),
+
                         // EXAMINATIONS
-                        const Placeholder(),
+                        Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // QUIZZES
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Quizzes',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  MenuAnchor(
+                                    alignmentOffset: const Offset(-100, 0),
+                                    builder: (context, controller, child) {
+                                      return ElevatedButton.icon(
+                                        style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(primary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white)),
+                                        onPressed: () {
+                                          if (controller.isOpen) {
+                                            controller.close();
+                                          } else {
+                                            controller.open();
+                                          }
+                                        },
+                                        label: const Text('Add'),
+                                        icon: const Icon(Icons.add_rounded),
+                                      );
+                                    },
+                                    menuChildren: [
+                                      // ADD QUIZ
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: TextButton.icon(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(
+                                                    secondary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white),
+                                            shape: WidgetStatePropertyAll(
+                                                ContinuousRectangleBorder()),
+                                          ),
+                                          onPressed: openAddQuizModal,
+                                          label: const Text('New Quiz'),
+                                          icon: const Icon(
+                                              Icons.library_books_rounded),
+                                        ),
+                                      ),
+
+                                      // ADD ACTIVITY
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: TextButton.icon(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(
+                                                    secondary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white),
+                                            shape: WidgetStatePropertyAll(
+                                                ContinuousRectangleBorder()),
+                                          ),
+                                          onPressed: openAddExamModal,
+                                          label: const Text('New Examination'),
+                                          icon: const Icon(Icons
+                                              .drive_file_rename_outline_rounded),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              Expanded(
+                                child: ListView(
+                                  children: [
+                                    Card(
+                                      color: primary,
+                                      child: ListTile(
+                                        textColor: Colors.white,
+                                        title: const Text(
+                                          'Midterm Quiz 1',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        subtitle: const Text(
+                                            'Exam Type: Multiple Choice'),
+                                        trailing: SizedBox(
+                                          width: 350,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              const Text(
+                                                  'Deadline\nThu, December 12, 2024 11:59 PM'),
+                                              const Gap(25),
+                                              // Text('Score\n50/50')
+                                              SizedBox(
+                                                width: 85,
+                                                child: TextField(
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    label: Text(
+                                                      'Score',
+                                                      style: TextStyle(
+                                                          color: Colors.white),
+                                                    ),
+                                                    floatingLabelAlignment:
+                                                        FloatingLabelAlignment
+                                                            .center,
+                                                  ),
+                                                  controller:
+                                                      TextEditingController
+                                                          .fromValue(
+                                                    const TextEditingValue(
+                                                        text: '100/100'),
+                                                  ),
+                                                  style: const TextStyle(
+                                                      color: Colors.white),
+                                                  readOnly: true,
+                                                ),
+                                              )
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Text(
+                                'Examinations',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Expanded(
+                                child: ListView(
+                                  children: [
+                                    Card(
+                                      color: primary,
+                                      child: ListTile(
+                                        textColor: Colors.white,
+                                        title: const Text(
+                                          'Midterm Written Examination',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        subtitle: const Text(
+                                            'Exam Type: Multiple Choice'),
+                                        trailing: SizedBox(
+                                          width: 350,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              const Text(
+                                                  'Deadline\nThu, December 12, 2024 11:59 PM'),
+                                              const Gap(25),
+                                              // Text('Score\n50/50')
+                                              SizedBox(
+                                                width: 85,
+                                                child: TextField(
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    label: Text(
+                                                      'Score',
+                                                      style: TextStyle(
+                                                          color: Colors.white),
+                                                    ),
+                                                    floatingLabelAlignment:
+                                                        FloatingLabelAlignment
+                                                            .center,
+                                                  ),
+                                                  controller:
+                                                      TextEditingController
+                                                          .fromValue(
+                                                    const TextEditingValue(
+                                                        text: '100/100'),
+                                                  ),
+                                                  style: const TextStyle(
+                                                      color: Colors.white),
+                                                  readOnly: true,
+                                                ),
+                                              )
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         // STUDENT PERFORMANCE
                         const Placeholder(),
                         // ANNOUNCEMENTS
