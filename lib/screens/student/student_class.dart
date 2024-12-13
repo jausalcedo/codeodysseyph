@@ -162,7 +162,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                     controller: tabController,
                     tabs: const [
                       Tab(text: 'Course Work'),
-                      Tab(text: 'Examinations'),
+                      Tab(text: 'Assessments'),
                       Tab(text: 'My Grades'),
                       Tab(text: 'Announcements'),
                     ],
@@ -418,8 +418,182 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                             ],
                           ),
                         ),
-                        // EXAMINATIONS
-                        const Placeholder(),
+
+                        // ASSESSMENTS
+                        Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // QUIZZES
+                              // QUIZ LIST
+                              // Expanded(
+                              //   child: ListView(
+                              //     children: [
+                              //       Card(
+                              //         color: primary,
+                              //         child: ListTile(
+                              //           textColor: Colors.white,
+                              //           title: const Text(
+                              //             'Midterm Quiz 1',
+                              //             style: TextStyle(
+                              //                 fontWeight: FontWeight.bold),
+                              //           ),
+                              //           subtitle: const Text(
+                              //               'Exam Type: Multiple Choice'),
+                              //           trailing: SizedBox(
+                              //             width: 350,
+                              //             child: Row(
+                              //               mainAxisAlignment:
+                              //                   MainAxisAlignment.center,
+                              //               children: [
+                              //                 const Text(
+                              //                     'Deadline\nThu, December 12, 2024 11:59 PM'),
+                              //                 const Gap(25),
+                              //                 // Text('Score\n50/50')
+                              //                 SizedBox(
+                              //                   width: 85,
+                              //                   child: TextField(
+                              //                     decoration:
+                              //                         const InputDecoration(
+                              //                       border:
+                              //                           OutlineInputBorder(),
+                              //                       label: Text(
+                              //                         'Score',
+                              //                         style: TextStyle(
+                              //                             color: Colors.white),
+                              //                       ),
+                              //                       floatingLabelAlignment:
+                              //                           FloatingLabelAlignment
+                              //                               .center,
+                              //                     ),
+                              //                     controller:
+                              //                         TextEditingController
+                              //                             .fromValue(
+                              //                       const TextEditingValue(
+                              //                           text: '100/100'),
+                              //                     ),
+                              //                     style: const TextStyle(
+                              //                         color: Colors.white),
+                              //                     readOnly: true,
+                              //                   ),
+                              //                 )
+                              //               ],
+                              //             ),
+                              //           ),
+                              //         ),
+                              //       ),
+                              //     ],
+                              //   ),
+                              // ),
+                              const Text(
+                                'Examinations',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              StreamBuilder(
+                                stream: _firestoreService
+                                    .getClassDataStream(widget.classCode),
+                                builder: (BuildContext context,
+                                    AsyncSnapshot snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }
+
+                                  final classData = snapshot.data!.data();
+
+                                  final List<dynamic> examList =
+                                      classData['exams'] ?? [];
+
+                                  return Expanded(
+                                    child: examList.isEmpty
+                                        ? const Column(
+                                            children: [Text('No exams yet.')],
+                                          )
+                                        : ListView.builder(
+                                            itemCount: examList.length,
+                                            itemBuilder: (context, examIndex) {
+                                              final exam = examList[examIndex];
+
+                                              return Card(
+                                                // color: primary,
+                                                child: ListTile(
+                                                  // textColor: Colors.white,
+                                                  title: Text(
+                                                    '${exam['exam']} ${exam['examType']} Examination',
+                                                    style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                  subtitle: Text(
+                                                      'Exam Type: ${exam['examType'] == 'Written' ? 'Multiple Choice' : 'Coding Problem'}'),
+                                                  trailing: SizedBox(
+                                                    width: 450,
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment.end,
+                                                      children: [
+                                                        Text(
+                                                          'Open From: ${DateFormat.yMMMEd().add_jm().format(exam['openTime'].toDate())}\nUntil: ${DateFormat.yMMMEd().add_jm().format(exam['closeTime'].toDate())}',
+                                                          textAlign:
+                                                              TextAlign.end,
+                                                        ),
+                                                        const Gap(25),
+                                                        // Text('Score\n50/50')
+                                                        SizedBox(
+                                                          width: 100,
+                                                          child: TextField(
+                                                            decoration:
+                                                                const InputDecoration(
+                                                              border:
+                                                                  OutlineInputBorder(),
+                                                              label: Text(
+                                                                'Max Score',
+                                                                // style:
+                                                                //     TextStyle(
+                                                                //   color: Colors
+                                                                //       .white,
+                                                                // ),
+                                                              ),
+                                                              floatingLabelAlignment:
+                                                                  FloatingLabelAlignment
+                                                                      .center,
+                                                            ),
+                                                            controller:
+                                                                TextEditingController
+                                                                    .fromValue(
+                                                              TextEditingValue(
+                                                                  text: exam[
+                                                                          'maxScore']
+                                                                      .toString()),
+                                                            ),
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                            // style:
+                                                            //     const TextStyle(
+                                                            //   color:
+                                                            //       Colors.white,
+                                                            // ),
+                                                            readOnly: true,
+                                                          ),
+                                                        )
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
                         // MY GRADES
                         const Placeholder(),
                         // ANNOUNCEMENTS

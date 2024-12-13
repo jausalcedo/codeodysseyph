@@ -1287,8 +1287,853 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     // TO DO
   }
 
+  // EXAM ESSENTIALS
+  String exam = 'Midterm';
+  String examType = 'Written';
+  DateTime? openTime;
+  DateTime? closeTime;
+  int durationMinutes = 30;
+
   void openAddExamModal() {
-    // TO DO
+    showDialog(
+      // ignore: use_build_context_synchronously
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Add an Examination',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            IconButton(
+              onPressed: () {
+                QuickAlert.show(
+                  context: context,
+                  type: QuickAlertType.warning,
+                  title: 'Are you sure?',
+                  text: 'Any unsaved data will be lost.',
+                  confirmBtnText: 'Yes',
+                  onConfirmBtnTap: () {
+                    // CLEAR ALL FIELDS
+                    clearActivityFields();
+                    // CLOSE THE ALERT
+                    Navigator.of(context).pop();
+                    // CLOSE THE ADD ACTIVTIY MODAL
+                    Navigator.of(context).pop();
+                  },
+                  showCancelBtn: true,
+                  cancelBtnText: 'Go Back',
+                  onCancelBtnTap: Navigator.of(context).pop,
+                );
+              },
+              icon: const Icon(Icons.close_rounded),
+              style: const ButtonStyle(
+                foregroundColor: WidgetStatePropertyAll(Colors.red),
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 750,
+          height: 590,
+          child: StatefulBuilder(
+            builder: (BuildContext context, setState) {
+              Future<void> setDate({required bool isOpen}) async {
+                final now = DateTime.now();
+                final pickedDate = await showDatePicker(
+                  context: context,
+                  initialDate: deadline ?? now,
+                  firstDate: now,
+                  lastDate: DateTime(now.year + 1, now.month - 6, now.day),
+                );
+
+                if (pickedDate != null) {
+                  final pickedTime = await showTimePicker(
+                    // ignore: use_build_context_synchronously
+                    context: context,
+                    initialTime: TimeOfDay.now(),
+                  );
+
+                  if (pickedTime != null) {
+                    setState(() {
+                      isOpen == true
+                          ? openTime = DateTime(
+                              pickedDate.year,
+                              pickedDate.month,
+                              pickedDate.day,
+                              pickedTime.hour,
+                              pickedTime.minute,
+                            )
+                          : closeTime = DateTime(
+                              pickedDate.year,
+                              pickedDate.month,
+                              pickedDate.day,
+                              pickedTime.hour,
+                              pickedTime.minute,
+                            );
+                    });
+                  }
+                }
+              }
+
+              return ListView(
+                children: [
+                  Row(
+                    children: [
+                      // TITLE
+                      Expanded(
+                        child: DropdownButtonFormField(
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            label: Text('Exam'),
+                          ),
+                          value: exam,
+                          items: ['Midterm', 'Final']
+                              .map((type) => DropdownMenuItem(
+                                    value: type,
+                                    child: Text(type),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              exam = value!;
+                            });
+                          },
+                        ),
+                      ),
+                      const Gap(10),
+
+                      // EXAM TYPE
+                      Expanded(
+                        child: DropdownButtonFormField(
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            label: Text('Exam Type'),
+                          ),
+                          value: examType,
+                          items: ['Written', 'Laboratory']
+                              .map((type) => DropdownMenuItem(
+                                    value: type,
+                                    child: Text(type),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              examType = value!;
+                            });
+                          },
+                        ),
+                      ),
+                      const Gap(10),
+
+                      // MAX SCORE
+                      Expanded(
+                        child: Form(
+                          key: maxScoreFormKey,
+                          child: TextFormField(
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              label: Text('Max Score'),
+                            ),
+                            controller: maxScoreController,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Set the max score students can get.';
+                              }
+
+                              if (int.tryParse(value) == null) {
+                                return 'Please input a number';
+                              }
+
+                              if (int.parse(value) <= 0) {
+                                return 'Score must be greater than 0';
+                              }
+
+                              return null;
+                            },
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                  const Gap(10),
+                  Row(
+                    children: [
+                      // EXAM OPEN
+                      Expanded(
+                        child: SizedBox(
+                          height: 45,
+                          child: ElevatedButton(
+                            style: const ButtonStyle(
+                              backgroundColor: WidgetStatePropertyAll(primary),
+                              foregroundColor:
+                                  WidgetStatePropertyAll(Colors.white),
+                            ),
+                            onPressed: () => setDate(isOpen: true),
+                            child: Text(openTime != null
+                                ? 'Open Schedule:\n${DateFormat.yMMMEd().add_jm().format(openTime!)}'
+                                : 'Set Open Schedule'),
+                          ),
+                        ),
+                      ),
+                      const Gap(10),
+
+                      // EXAM CLOSE
+                      Expanded(
+                        child: SizedBox(
+                          height: 45,
+                          child: ElevatedButton(
+                            style: ButtonStyle(
+                              backgroundColor:
+                                  WidgetStatePropertyAll(Colors.red[800]),
+                              foregroundColor:
+                                  const WidgetStatePropertyAll(Colors.white),
+                            ),
+                            onPressed: () => setDate(isOpen: false),
+                            child: Text(closeTime != null
+                                ? 'Close Schedule:\n${DateFormat.yMMMEd().add_jm().format(closeTime!)}'
+                                : 'Set Close Schedule'),
+                          ),
+                        ),
+                      ),
+                      const Gap(10),
+
+                      // DURATION
+                      Expanded(
+                        child: DropdownButtonFormField(
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            label: Text('Duration'),
+                          ),
+                          value: durationMinutes,
+                          items: List.generate(7, (index) => 30 + index * 15)
+                              .map((duration) => DropdownMenuItem(
+                                    value: duration,
+                                    child: Text(
+                                        '${duration >= 60 ? '${duration ~/ 60} hour${duration > 60 ? 's' : ''}' : ''} ${duration % 60 > 0 ? '${duration % 60} mins' : ''}'
+                                            .trim()),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              durationMinutes = value!;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Gap(10),
+                  const Divider(),
+                  const Gap(10),
+
+                  // FIELDS FOR EACH EXAM TYPE
+                  examType == 'Written'
+                      ? SizedBox(
+                          width: 750,
+                          height: 365,
+                          child: StatefulBuilder(
+                            builder: (context, setState) {
+                              void addQuestion() {
+                                if (!questionFormKey.currentState!.validate()) {
+                                  return;
+                                }
+
+                                final choices = [
+                                  choiceControllers[0].text,
+                                  choiceControllers[1].text,
+                                  choiceControllers[2].text,
+                                  choiceControllers[3].text,
+                                ];
+
+                                duplicateChoiceIndex =
+                                    areChoicesUnique(choices);
+
+                                if (duplicateChoiceIndex != null) {
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.error,
+                                    title: 'Error',
+                                    text:
+                                        'Duplicate choice value: ${choiceControllers[duplicateChoiceIndex!].text}. Please make sure that all choices are unique.',
+                                  );
+                                  return;
+                                }
+
+                                setState(() {
+                                  questions.add({
+                                    'question': questionController.text,
+                                    'choices': choices,
+                                    'correctAnswer':
+                                        correctAnswerController.text,
+                                  });
+                                  clearMultipleChoiceFields();
+                                });
+                              }
+
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Question List:'),
+                                        questions.isNotEmpty
+                                            ? Expanded(
+                                                child: ListView.builder(
+                                                  itemCount: questions.length,
+                                                  itemBuilder:
+                                                      (context, index) => Card(
+                                                    child: ListTile(
+                                                      title: Tooltip(
+                                                        message:
+                                                            questions[index]
+                                                                ['question'],
+                                                        child: Text(
+                                                          questions[index]
+                                                              ['question'],
+                                                          style:
+                                                              const TextStyle(
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      subtitle: Tooltip(
+                                                        message: questions[
+                                                                index]
+                                                            ['correctAnswer'],
+                                                        child: Text(
+                                                          'Correct Answer: ${questions[index]['correctAnswer']}',
+                                                          style:
+                                                              const TextStyle(
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              )
+                                            : const Text(
+                                                'No questions yet. Add your first question now!'),
+                                      ],
+                                    ),
+                                  ),
+                                  const Gap(10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Form(
+                                          key: questionFormKey,
+                                          child: Expanded(
+                                            child: ListView(
+                                              children: [
+                                                // QUESTION
+                                                TextFormField(
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    label: Text('Question'),
+                                                  ),
+                                                  controller:
+                                                      questionController,
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.trim().isEmpty) {
+                                                      return 'Required. Please provide a question.';
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                                const Gap(10),
+
+                                                // CHOICES
+                                                ...List.generate(
+                                                  choiceControllers.length,
+                                                  (index) => Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            bottom: 5),
+                                                    child: TextFormField(
+                                                      decoration:
+                                                          InputDecoration(
+                                                        border:
+                                                            const OutlineInputBorder(),
+                                                        label: Text(
+                                                            'Choice ${String.fromCharCode(index + 65)}'),
+                                                      ),
+                                                      controller:
+                                                          choiceControllers[
+                                                              index],
+                                                      validator: (value) {
+                                                        if (value == null ||
+                                                            value
+                                                                .trim()
+                                                                .isEmpty) {
+                                                          return 'Required. Choice ${String.fromCharCode(index + 65)} cannot be empty.';
+                                                        }
+
+                                                        return null;
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                                const Gap(5),
+
+                                                // CORRECT ANSWER
+                                                TextFormField(
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    label:
+                                                        Text('Correct Answer'),
+                                                  ),
+                                                  controller:
+                                                      correctAnswerController,
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.trim().isEmpty) {
+                                                      return 'Required. Please provide the correct answer.';
+                                                    }
+
+                                                    if (choiceControllers.every(
+                                                      (controller) =>
+                                                          controller.text !=
+                                                          value,
+                                                    )) {
+                                                      return 'Please input a value from the choices.';
+                                                    }
+
+                                                    return null;
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const Gap(10),
+                                        ElevatedButton.icon(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(primary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white),
+                                          ),
+                                          onPressed: addQuestion,
+                                          label: const Text('Add Question'),
+                                          icon: const Icon(Icons.add_rounded),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        )
+                      : SizedBox(
+                          width: 750,
+                          height: 365,
+                          child: StatefulBuilder(
+                            builder: (context, setState) {
+                              void addToExamples() {
+                                if (!inputOutputFormKey.currentState!
+                                    .validate()) {
+                                  return;
+                                }
+                                setState(() {
+                                  examples.add({
+                                    'input': inputController.text,
+                                    'output': outputController.text,
+                                  });
+                                });
+                                clearInputOutputControllers();
+                              }
+
+                              void addToTestCases() {
+                                if (!inputOutputFormKey.currentState!
+                                    .validate()) {
+                                  return;
+                                }
+                                setState(() {
+                                  testCases.add({
+                                    'input': inputController.text,
+                                    'output': outputController.text,
+                                  });
+                                });
+                                clearInputOutputControllers();
+                              }
+
+                              return Column(
+                                children: [
+                                  SizedBox(
+                                    height: 315,
+                                    child: ListView(
+                                      children: [
+                                        // PROBLEM STATEMENT
+                                        Form(
+                                          key: problemStatementFormKey,
+                                          child: TextFormField(
+                                            decoration: const InputDecoration(
+                                              border: OutlineInputBorder(),
+                                              label: Text('Problem Statement'),
+                                            ),
+                                            minLines: 1,
+                                            maxLines: 2,
+                                            controller:
+                                                problemStatementController,
+                                            validator: (value) {
+                                              if (value == null ||
+                                                  value.trim().isEmpty) {
+                                                return 'Required. Please provide the problem statement.';
+                                              }
+                                              return null;
+                                            },
+                                          ),
+                                        ),
+                                        const Gap(10),
+
+                                        // CONSTRAINTS
+                                        Form(
+                                          key: constraintsFormKey,
+                                          child: TextFormField(
+                                            decoration: const InputDecoration(
+                                              border: OutlineInputBorder(),
+                                              label: Text('Constraints'),
+                                            ),
+                                            minLines: 1,
+                                            maxLines: 2,
+                                            controller: constraintsController,
+                                            validator: (value) {
+                                              if (value == null ||
+                                                  value.trim().isEmpty) {
+                                                return 'Required. Please provide the constraints.';
+                                              }
+                                              return null;
+                                            },
+                                          ),
+                                        ),
+                                        const Gap(10),
+
+                                        // EXAMPLES AND TEST CASES
+                                        SizedBox(
+                                          height: 140,
+                                          child: Row(
+                                            children: [
+                                              // EXAMPLES
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    const Text('Examples:'),
+                                                    examples.isNotEmpty
+                                                        ? Expanded(
+                                                            child: ListView
+                                                                .builder(
+                                                              itemCount:
+                                                                  examples
+                                                                      .length,
+                                                              itemBuilder:
+                                                                  (context,
+                                                                          index) =>
+                                                                      Card(
+                                                                child: ListTile(
+                                                                  title: Text(
+                                                                      'Input: ${examples[index]['input']}'),
+                                                                  subtitle: Text(
+                                                                      'Output: ${examples[index]['output']}'),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          )
+                                                        : const Text(
+                                                            'No examples yet.'),
+                                                  ],
+                                                ),
+                                              ),
+
+                                              // TEST CASES
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    const Text('Test Cases:'),
+                                                    testCases.isNotEmpty
+                                                        ? Expanded(
+                                                            child: ListView
+                                                                .builder(
+                                                              itemCount:
+                                                                  testCases
+                                                                      .length,
+                                                              itemBuilder:
+                                                                  (context,
+                                                                          index) =>
+                                                                      Card(
+                                                                child: ListTile(
+                                                                  title: Text(
+                                                                      'Input: ${testCases[index]['input']}'),
+                                                                  subtitle: Text(
+                                                                      'Output: ${testCases[index]['output']}'),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          )
+                                                        : const Text(
+                                                            'No test cases yet.'),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const Gap(10),
+
+                                        Form(
+                                          key: inputOutputFormKey,
+                                          child: Row(
+                                            children: [
+                                              // INPUT
+                                              Expanded(
+                                                child: TextFormField(
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    label: Text('Input'),
+                                                  ),
+                                                  controller: inputController,
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.trim().isEmpty) {
+                                                      return 'Required. Please provide an input.';
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                              ),
+                                              const Gap(10),
+
+                                              // OUTPUT
+                                              Expanded(
+                                                child: TextFormField(
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    label: Text('Output'),
+                                                  ),
+                                                  controller: outputController,
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.trim().isEmpty) {
+                                                      return 'Required. Please provide an output.';
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                              ),
+                                              const Gap(10),
+                                            ],
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                  const Gap(10),
+                                  MenuAnchor(
+                                    alignmentOffset: const Offset(-100, 0),
+                                    builder: (context, controller, child) {
+                                      return ElevatedButton.icon(
+                                        style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(primary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white)),
+                                        onPressed: () {
+                                          if (controller.isOpen) {
+                                            controller.close();
+                                          } else {
+                                            controller.open();
+                                          }
+                                        },
+                                        label: const Text('Add'),
+                                        icon: const Icon(Icons.add_rounded),
+                                      );
+                                    },
+                                    menuChildren: [
+                                      // TO EXAMPLES
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: TextButton(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(
+                                                    secondary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white),
+                                            shape: WidgetStatePropertyAll(
+                                                ContinuousRectangleBorder()),
+                                          ),
+                                          onPressed: addToExamples,
+                                          child: const Text('to Examples'),
+                                        ),
+                                      ),
+                                      // TO TEST CASES
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: TextButton(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(
+                                                    secondary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white),
+                                            shape: WidgetStatePropertyAll(
+                                                ContinuousRectangleBorder()),
+                                          ),
+                                          onPressed: addToTestCases,
+                                          child: const Text('to Test Cases'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        )
+                ],
+              );
+            },
+          ),
+        ),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              style: ButtonStyle(
+                backgroundColor: WidgetStatePropertyAll(Colors.green[800]),
+                foregroundColor: const WidgetStatePropertyAll(Colors.white),
+              ),
+              onPressed: addExamToClass,
+              child: const Text(
+                'Save',
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> addExamToClass() async {
+    if (!maxScoreFormKey.currentState!.validate()) {
+      return;
+    }
+
+    if (openTime == null || closeTime == null) {
+      return QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Error',
+        text:
+            'Please set the ${openTime == null ? 'Open Time' : 'Close Time'} of the exam.',
+      );
+    }
+
+    dynamic examContent;
+
+    if (examType == 'Written') {
+      if (questions.isEmpty) {
+        return QuickAlert.show(
+          context: context,
+          type: QuickAlertType.error,
+          title: 'Error',
+          text: 'Please add at least one question.',
+        );
+      }
+      examContent = questions;
+    } else {
+      if (examples.isEmpty) {
+        return QuickAlert.show(
+          context: context,
+          type: QuickAlertType.error,
+          title: 'Error',
+          text: 'Please add at least one example.',
+        );
+      }
+      if (testCases.isEmpty) {
+        return QuickAlert.show(
+          context: context,
+          type: QuickAlertType.error,
+          title: 'Error',
+          text: 'Please add at least one test case.',
+        );
+      }
+      examContent = {
+        'problemStatement': problemStatementController.text,
+        'constraints': constraintsController.text,
+        'examples': examples,
+        'testCases': testCases,
+      };
+    }
+
+    final newExam = {
+      'exam': exam,
+      'examType': examType,
+      'openTime': openTime,
+      'closeTime': closeTime,
+      'durationMinutes': durationMinutes,
+      'maxScore': int.parse(maxScoreController.text),
+      'content': examContent,
+    };
+
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.loading,
+    );
+
+    await _firestoreService
+        .addExamToClass(
+      context: context,
+      instructorId: widget.instructorId,
+      classCode: widget.classCode,
+      newExam: newExam,
+    )
+        .then((_) {
+      clearActivityFields();
+    });
+  }
+
+  void clearExamFields() {
+    exam = 'Midterm';
+    examType = 'Written';
+    openTime = null;
+    closeTime = null;
+    maxScoreController.clear();
+
+    clearMultipleChoiceFields();
+    questions = [];
+
+    clearCodingProblemFields();
+    examples = [];
+    testCases = [];
   }
 
   @override
@@ -1761,7 +2606,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                           ),
                         ),
 
-                        // EXAMINATIONS
+                        // ASSESSMENTS
                         Padding(
                           padding: const EdgeInsets.all(10),
                           child: Column(
@@ -1769,16 +2614,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                             children: [
                               // QUIZZES
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  const Text(
-                                    'Quizzes',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
                                   MenuAnchor(
                                     alignmentOffset: const Offset(-100, 0),
                                     builder: (context, controller, child) {
@@ -1802,25 +2639,25 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                     },
                                     menuChildren: [
                                       // ADD QUIZ
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: TextButton.icon(
-                                          style: const ButtonStyle(
-                                            backgroundColor:
-                                                WidgetStatePropertyAll(
-                                                    secondary),
-                                            foregroundColor:
-                                                WidgetStatePropertyAll(
-                                                    Colors.white),
-                                            shape: WidgetStatePropertyAll(
-                                                ContinuousRectangleBorder()),
-                                          ),
-                                          onPressed: openAddQuizModal,
-                                          label: const Text('New Quiz'),
-                                          icon: const Icon(
-                                              Icons.library_books_rounded),
-                                        ),
-                                      ),
+                                      // SizedBox(
+                                      //   width: double.infinity,
+                                      //   child: TextButton.icon(
+                                      //     style: const ButtonStyle(
+                                      //       backgroundColor:
+                                      //           WidgetStatePropertyAll(
+                                      //               secondary),
+                                      //       foregroundColor:
+                                      //           WidgetStatePropertyAll(
+                                      //               Colors.white),
+                                      //       shape: WidgetStatePropertyAll(
+                                      //           ContinuousRectangleBorder()),
+                                      //     ),
+                                      //     onPressed: openAddQuizModal,
+                                      //     label: const Text('New Quiz'),
+                                      //     icon: const Icon(
+                                      //         Icons.library_books_rounded),
+                                      //   ),
+                                      // ),
 
                                       // ADD ACTIVITY
                                       SizedBox(
@@ -1846,65 +2683,66 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                   ),
                                 ],
                               ),
-                              Expanded(
-                                child: ListView(
-                                  children: [
-                                    Card(
-                                      color: primary,
-                                      child: ListTile(
-                                        textColor: Colors.white,
-                                        title: const Text(
-                                          'Midterm Quiz 1',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                        subtitle: const Text(
-                                            'Exam Type: Multiple Choice'),
-                                        trailing: SizedBox(
-                                          width: 350,
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              const Text(
-                                                  'Deadline\nThu, December 12, 2024 11:59 PM'),
-                                              const Gap(25),
-                                              // Text('Score\n50/50')
-                                              SizedBox(
-                                                width: 85,
-                                                child: TextField(
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    border:
-                                                        OutlineInputBorder(),
-                                                    label: Text(
-                                                      'Score',
-                                                      style: TextStyle(
-                                                          color: Colors.white),
-                                                    ),
-                                                    floatingLabelAlignment:
-                                                        FloatingLabelAlignment
-                                                            .center,
-                                                  ),
-                                                  controller:
-                                                      TextEditingController
-                                                          .fromValue(
-                                                    const TextEditingValue(
-                                                        text: '100/100'),
-                                                  ),
-                                                  style: const TextStyle(
-                                                      color: Colors.white),
-                                                  readOnly: true,
-                                                ),
-                                              )
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              // QUIZ LIST
+                              // Expanded(
+                              //   child: ListView(
+                              //     children: [
+                              //       Card(
+                              //         color: primary,
+                              //         child: ListTile(
+                              //           textColor: Colors.white,
+                              //           title: const Text(
+                              //             'Midterm Quiz 1',
+                              //             style: TextStyle(
+                              //                 fontWeight: FontWeight.bold),
+                              //           ),
+                              //           subtitle: const Text(
+                              //               'Exam Type: Multiple Choice'),
+                              //           trailing: SizedBox(
+                              //             width: 350,
+                              //             child: Row(
+                              //               mainAxisAlignment:
+                              //                   MainAxisAlignment.center,
+                              //               children: [
+                              //                 const Text(
+                              //                     'Deadline\nThu, December 12, 2024 11:59 PM'),
+                              //                 const Gap(25),
+                              //                 // Text('Score\n50/50')
+                              //                 SizedBox(
+                              //                   width: 85,
+                              //                   child: TextField(
+                              //                     decoration:
+                              //                         const InputDecoration(
+                              //                       border:
+                              //                           OutlineInputBorder(),
+                              //                       label: Text(
+                              //                         'Score',
+                              //                         style: TextStyle(
+                              //                             color: Colors.white),
+                              //                       ),
+                              //                       floatingLabelAlignment:
+                              //                           FloatingLabelAlignment
+                              //                               .center,
+                              //                     ),
+                              //                     controller:
+                              //                         TextEditingController
+                              //                             .fromValue(
+                              //                       const TextEditingValue(
+                              //                           text: '100/100'),
+                              //                     ),
+                              //                     style: const TextStyle(
+                              //                         color: Colors.white),
+                              //                     readOnly: true,
+                              //                   ),
+                              //                 )
+                              //               ],
+                              //             ),
+                              //           ),
+                              //         ),
+                              //       ),
+                              //     ],
+                              //   ),
+                              // ),
                               const Text(
                                 'Examinations',
                                 style: TextStyle(
@@ -1912,64 +2750,102 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              Expanded(
-                                child: ListView(
-                                  children: [
-                                    Card(
-                                      color: primary,
-                                      child: ListTile(
-                                        textColor: Colors.white,
-                                        title: const Text(
-                                          'Midterm Written Examination',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                        subtitle: const Text(
-                                            'Exam Type: Multiple Choice'),
-                                        trailing: SizedBox(
-                                          width: 350,
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              const Text(
-                                                  'Deadline\nThu, December 12, 2024 11:59 PM'),
-                                              const Gap(25),
-                                              // Text('Score\n50/50')
-                                              SizedBox(
-                                                width: 85,
-                                                child: TextField(
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    border:
-                                                        OutlineInputBorder(),
-                                                    label: Text(
-                                                      'Score',
-                                                      style: TextStyle(
-                                                          color: Colors.white),
+                              StreamBuilder(
+                                stream: _firestoreService
+                                    .getClassDataStream(widget.classCode),
+                                builder: (BuildContext context,
+                                    AsyncSnapshot snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }
+
+                                  final classData = snapshot.data!.data();
+
+                                  final List<dynamic> examList =
+                                      classData['exams'];
+
+                                  return Expanded(
+                                    child: examList.isEmpty
+                                        ? const Column(
+                                            children: [Text('No exams yet.')],
+                                          )
+                                        : ListView.builder(
+                                            itemCount: examList.length,
+                                            itemBuilder: (context, examIndex) {
+                                              final exam = examList[examIndex];
+
+                                              return Card(
+                                                child: ListTile(
+                                                  // textColor: Colors.white,
+                                                  title: Text(
+                                                    '${exam['exam']} ${exam['examType']} Examination',
+                                                    style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                  subtitle: Text(
+                                                      'Exam Type: ${exam['examType'] == 'Written' ? 'Multiple Choice' : 'Coding Problem'}'),
+                                                  trailing: SizedBox(
+                                                    width: 450,
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment.end,
+                                                      children: [
+                                                        Text(
+                                                          'Open From: ${DateFormat.yMMMEd().add_jm().format(exam['openTime'].toDate())}\nUntil: ${DateFormat.yMMMEd().add_jm().format(exam['closeTime'].toDate())}',
+                                                          textAlign:
+                                                              TextAlign.end,
+                                                        ),
+                                                        const Gap(25),
+                                                        // Text('Score\n50/50')
+                                                        SizedBox(
+                                                          width: 100,
+                                                          child: TextField(
+                                                            decoration:
+                                                                const InputDecoration(
+                                                              border:
+                                                                  OutlineInputBorder(),
+                                                              label: Text(
+                                                                'Max Score',
+                                                                // style:
+                                                                //     TextStyle(
+                                                                //   color: Colors
+                                                                //       .white,
+                                                                // ),
+                                                              ),
+                                                              floatingLabelAlignment:
+                                                                  FloatingLabelAlignment
+                                                                      .center,
+                                                            ),
+                                                            controller:
+                                                                TextEditingController
+                                                                    .fromValue(
+                                                              TextEditingValue(
+                                                                  text: exam[
+                                                                          'maxScore']
+                                                                      .toString()),
+                                                            ),
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                            // style:
+                                                            //     const TextStyle(
+                                                            //   color:
+                                                            //       Colors.white,
+                                                            // ),
+                                                            readOnly: true,
+                                                          ),
+                                                        )
+                                                      ],
                                                     ),
-                                                    floatingLabelAlignment:
-                                                        FloatingLabelAlignment
-                                                            .center,
                                                   ),
-                                                  controller:
-                                                      TextEditingController
-                                                          .fromValue(
-                                                    const TextEditingValue(
-                                                        text: '100/100'),
-                                                  ),
-                                                  style: const TextStyle(
-                                                      color: Colors.white),
-                                                  readOnly: true,
                                                 ),
-                                              )
-                                            ],
+                                              );
+                                            },
                                           ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  );
+                                },
                               ),
                             ],
                           ),

@@ -451,7 +451,7 @@ class CloudFirestoreService {
     required Map<String, dynamic> newActivity,
   }) async {
     final classReference = _firestore.collection('classes').doc(classCode);
-    final testBankReference = _firestore.collection('testBank');
+    final activityBankReference = _firestore.collection('activityBank');
 
     await classReference.get().then((classData) async {
       List<dynamic> lessons = classData.data()?['lessons'] ?? [];
@@ -470,7 +470,7 @@ class CloudFirestoreService {
         });
 
         // ADD TO TEST BANK
-        await testBankReference.add(newActivity);
+        await activityBankReference.add(newActivity);
 
         // ENSURE ACTIVITIES ARRAY EXISTS
         List<dynamic> activities = targetLesson['activities'] ?? [];
@@ -490,18 +490,19 @@ class CloudFirestoreService {
 
           // DISPLAY SUCCESS
           QuickAlert.show(
-              // ignore: use_build_context_synchronously
-              context: context,
-              type: QuickAlertType.success,
-              title: 'Success!',
-              text:
-                  'You have added a new activity on Lesson ${lessonIndex + 1}: ${targetLesson['title']}',
-              onConfirmBtnTap: () {
-                // DISMISS SUCCESS
-                Navigator.of(context).pop();
-                // CLOSE ADD ACTIVITY MODAL
-                Navigator.of(context).pop();
-              });
+            // ignore: use_build_context_synchronously
+            context: context,
+            type: QuickAlertType.success,
+            title: 'Success!',
+            text:
+                'You have added a new activity on Lesson ${lessonIndex + 1}: ${targetLesson['title']}',
+            onConfirmBtnTap: () {
+              // DISMISS SUCCESS
+              Navigator.of(context).pop();
+              // CLOSE ADD ACTIVITY MODAL
+              Navigator.of(context).pop();
+            },
+          );
         });
       }
     });
@@ -509,6 +510,49 @@ class CloudFirestoreService {
 
   Future<void> deleteActivityFromLesson() async {
     // TO DO
+  }
+
+  Future<void> addExamToClass({
+    required BuildContext context,
+    required String instructorId,
+    required String classCode,
+    required Map<String, dynamic> newExam,
+  }) async {
+    final examBankReference = _firestore.collection('examBank');
+    // ADD METADATA
+    newExam.addAll({
+      'metaData': {
+        'createdBy': instructorId,
+        'dateCreated': DateTime.now(),
+      },
+    });
+
+    // ADD TO FIRESTORE
+    await _firestore.collection('classes').doc(classCode).update({
+      'exams': FieldValue.arrayUnion([newExam]),
+    }).then((_) async {
+      // ADD TO TEST BANK
+      await examBankReference.add(newExam);
+
+      // POP THE LOADING
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+
+      // DISPLAY SUCCESS
+      QuickAlert.show(
+        // ignore: use_build_context_synchronously
+        context: context,
+        type: QuickAlertType.success,
+        title: 'Success!',
+        text: 'You have added a new exam to the class!',
+        onConfirmBtnTap: () {
+          // DISMISS SUCCESS
+          Navigator.of(context).pop();
+          // CLOSE ADD EXAM MODAL
+          Navigator.of(context).pop();
+        },
+      );
+    });
   }
 
   // --- STUDENT FUNCTIONS ---
