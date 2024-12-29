@@ -2100,7 +2100,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       'openTime': openTime,
       'closeTime': closeTime,
       'durationMinutes': durationMinutes,
-      'maxScore': int.parse(maxScoreController.text),
+      'maxScore': double.parse(maxScoreController.text),
       'content': examContent,
     };
 

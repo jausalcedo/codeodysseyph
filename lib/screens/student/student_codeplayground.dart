@@ -83,6 +83,8 @@ public class Main {
       // ignore: use_build_context_synchronously
       Navigator.of(context).pop();
 
+      _terminal.eraseDisplay();
+
       final result = jsonDecode(response.body);
       String output = result['output'];
       final outputList = output.split('\n');

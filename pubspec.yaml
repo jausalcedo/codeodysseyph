@@ -40,7 +40,9 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_code_editor: ^0.3.2
+  flutter_fgbg: ^0.6.0
   flutter_highlight: ^0.7.0
+  flutter_timer_countdown: ^1.0.7
   gap: ^3.0.1
   google_fonts: ^6.2.1
   google_generative_ai: ^0.4.6

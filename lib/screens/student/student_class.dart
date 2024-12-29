@@ -1,7 +1,7 @@
 import 'package:codeodysseyph/components/student/student_appbar.dart';
-import 'package:codeodysseyph/components/student/student_drawer.dart';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/screens/student/student_activity_multiple_choice.dart';
+import 'package:codeodysseyph/screens/student/student_exam_laboratory.dart';
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:disclosure/disclosure.dart';
@@ -62,6 +62,21 @@ class _StudentClassScreenState extends State<StudentClassScreen>
     }
   }
 
+  void goToStudentWrittenExamScreen() {
+    // to do
+  }
+
+  void goToStudentLaboratoryExamScreen(dynamic exam) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => StudentLaboratoryExamScreen(
+          exam: exam,
+          startTime: DateTime.now(),
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -75,7 +90,6 @@ class _StudentClassScreenState extends State<StudentClassScreen>
         preferredSize: Size(double.infinity, 75),
         child: StudentAppbar(),
       ),
-      drawer: StudentDrawer(studentId: widget.studentId),
       body: Center(
         child: SizedBox(
           width: 1080,
@@ -520,9 +534,20 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                               final exam = examList[examIndex];
 
                                               return Card(
-                                                // color: primary,
                                                 child: ListTile(
-                                                  // textColor: Colors.white,
+                                                  enabled: (DateTime.now()
+                                                          .isBefore(
+                                                              exam['closeTime']
+                                                                  .toDate()) &&
+                                                      DateTime.now().isAfter(
+                                                          exam['openTime']
+                                                              .toDate())),
+                                                  onTap: exam['examType'] ==
+                                                          'Written'
+                                                      ? goToStudentWrittenExamScreen
+                                                      : () =>
+                                                          goToStudentLaboratoryExamScreen(
+                                                              exam),
                                                   title: Text(
                                                     '${exam['exam']} ${exam['examType']} Examination',
                                                     style: const TextStyle(
@@ -543,7 +568,6 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                               TextAlign.end,
                                                         ),
                                                         const Gap(25),
-                                                        // Text('Score\n50/50')
                                                         SizedBox(
                                                           width: 100,
                                                           child: TextField(
@@ -552,13 +576,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                               border:
                                                                   OutlineInputBorder(),
                                                               label: Text(
-                                                                'Max Score',
-                                                                // style:
-                                                                //     TextStyle(
-                                                                //   color: Colors
-                                                                //       .white,
-                                                                // ),
-                                                              ),
+                                                                  'Max Score'),
                                                               floatingLabelAlignment:
                                                                   FloatingLabelAlignment
                                                                       .center,

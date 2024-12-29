@@ -9,7 +9,9 @@ import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 
 class StudentAppbar extends StatefulWidget {
-  const StudentAppbar({super.key});
+  const StudentAppbar({super.key, this.backButton = true});
+
+  final bool? backButton;
 
   @override
   State<StudentAppbar> createState() => _StudentAppbarState();
@@ -61,6 +63,7 @@ class _StudentAppbarState extends State<StudentAppbar> {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      automaticallyImplyLeading: widget.backButton!,
       toolbarHeight: 75,
       backgroundColor: Colors.white,
       shape: const Border.symmetric(
