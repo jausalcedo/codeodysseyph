@@ -1,5 +1,6 @@
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/screens/student/student_codeplayground.dart';
+import 'package:codeodysseyph/screens/student/student_daily_challenge.dart';
 import 'package:codeodysseyph/screens/student/student_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
@@ -32,7 +33,11 @@ class _StudentDrawerState extends State<StudentDrawer> {
   }
 
   void openDailyChallengeScreen() {
-    // TO DO
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => StudentDailyChallenge(),
+      ),
+    );
   }
 
   @override
