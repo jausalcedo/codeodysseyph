@@ -200,7 +200,6 @@ class CloudFirestoreService {
     String? collection,
     String? documentId,
     String? lessonTitle,
-    // String? lessonDescription,
     String? fileName,
     Uint8List? fileBytes,
     int? insertAtIndex,

@@ -2799,7 +2799,6 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                               TextAlign.end,
                                                         ),
                                                         const Gap(25),
-                                                        // Text('Score\n50/50')
                                                         SizedBox(
                                                           width: 100,
                                                           child: TextField(
@@ -2809,11 +2808,6 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                   OutlineInputBorder(),
                                                               label: Text(
                                                                 'Max Score',
-                                                                // style:
-                                                                //     TextStyle(
-                                                                //   color: Colors
-                                                                //       .white,
-                                                                // ),
                                                               ),
                                                               floatingLabelAlignment:
                                                                   FloatingLabelAlignment
@@ -2829,11 +2823,6 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                             ),
                                                             textAlign: TextAlign
                                                                 .center,
-                                                            // style:
-                                                            //     const TextStyle(
-                                                            //   color:
-                                                            //       Colors.white,
-                                                            // ),
                                                             readOnly: true,
                                                           ),
                                                         )
