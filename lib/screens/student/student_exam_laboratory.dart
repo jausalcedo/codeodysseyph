@@ -205,6 +205,9 @@ public class Main {
 
   @override
   Widget build(BuildContext context) {
+    int hours = widget.exam['duration']['hours'] * 60;
+    int totalMinutes = widget.exam['duration']['minutes'] + hours;
+
     return Scaffold(
       appBar: const PreferredSize(
         preferredSize: Size(double.infinity, 75),
@@ -266,7 +269,7 @@ public class Main {
                             // INPUT
                             const Text('Input:'),
                             Text(
-                              '${widget.exam['content']['examples'][0]['input'].substring(1, widget.exam['content']['examples'][0]['input'].length - 1).replaceAll(', ', '\n')}',
+                              '${widget.exam['content']['examples'][0]['input'].replaceAll(', ', '\n')}',
                               style: const TextStyle(fontSize: 16),
                             ),
                             const Gap(5),
@@ -373,11 +376,11 @@ public class Main {
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
                           ),
-                          format: widget.exam['durationMinutes'] > 60
+                          format: totalMinutes > 60
                               ? CountDownTimerFormat.hoursMinutesSeconds
                               : CountDownTimerFormat.minutesSeconds,
                           endTime: widget.startTime.add(
-                            Duration(minutes: widget.exam['durationMinutes']),
+                            Duration(minutes: totalMinutes),
                           ),
                         ),
                       ),

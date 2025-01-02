@@ -179,26 +179,6 @@ class _InstructorCourseLessonManagementState
                           ),
                           const Gap(10),
 
-                          // // DESCRIPTION
-                          // const Text(
-                          //   'Description:',
-                          //   style: TextStyle(fontSize: 20),
-                          // ),
-                          // TextFormField(
-                          //   controller: lessonDescriptionController,
-                          //   decoration: const InputDecoration(
-                          //     border: OutlineInputBorder(),
-                          //     hintText: 'Enter a short lesson description',
-                          //   ),
-                          //   validator: (value) {
-                          //     if (value == null || value == '') {
-                          //       return 'Required. Please enter a short description.';
-                          //     }
-                          //     return null;
-                          //   },
-                          // ),
-                          // const Gap(10),
-
                           // LEARNING MATERIAL
                           const Text(
                             'Learning Material:',
@@ -283,11 +263,11 @@ class _InstructorCourseLessonManagementState
     await _firestoreService
         .addLesson(
       context: context,
+      collection: 'courses',
       documentId: widget.courseId,
       fileName: fileName!,
       fileBytes: fileBytes!,
       lessonTitle: lessonTitleController.text,
-      // lessonDescription: lessonDescriptionController.text,
       insertAtIndex: addWhere == 'Add Before'
           ? int.parse(addBeforeIndexController.text) - 1
           : null,
@@ -365,11 +345,6 @@ class _InstructorCourseLessonManagementState
 
           final course = courseList
               .firstWhere((course) => course.code == courseData!['courseCode']);
-
-          // final String rawSyllabusName =
-          //     courseData!['syllabus'].split('/').last;
-
-          // final syllabusName = extractSyllabusName(rawSyllabusName);
 
           final lessonList = courseData!['lessons'];
           numberOfLessons = lessonList.length;
