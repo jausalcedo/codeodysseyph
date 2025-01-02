@@ -1196,6 +1196,12 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     });
   }
 
+  int? currentlyOpenLesson;
+
+  Future<void> deleteActivity() async {
+    // TO DO
+  }
+
   void clearActivityFields() {
     activityTitleController.clear();
     activityType = 'Multiple Choice';
@@ -1292,7 +1298,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   String examType = 'Written';
   DateTime? openTime;
   DateTime? closeTime;
-  int durationMinutes = 30;
+  final hoursController = TextEditingController();
+  final minutesController = TextEditingController();
 
   void openAddExamModal() {
     showDialog(
@@ -1463,7 +1470,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                       // EXAM OPEN
                       Expanded(
                         child: SizedBox(
-                          height: 45,
+                          height: 65,
                           child: ElevatedButton(
                             style: const ButtonStyle(
                               backgroundColor: WidgetStatePropertyAll(primary),
@@ -1482,7 +1489,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                       // EXAM CLOSE
                       Expanded(
                         child: SizedBox(
-                          height: 45,
+                          height: 65,
                           child: ElevatedButton(
                             style: ButtonStyle(
                               backgroundColor:
@@ -1501,27 +1508,53 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
 
                       // DURATION
                       Expanded(
-                        child: DropdownButtonFormField(
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            label: Text('Duration'),
-                          ),
-                          value: durationMinutes,
-                          items: List.generate(7, (index) => 30 + index * 15)
-                              .map((duration) => DropdownMenuItem(
-                                    value: duration,
-                                    child: Text(
-                                        '${duration >= 60 ? '${duration ~/ 60} hour${duration > 60 ? 's' : ''}' : ''} ${duration % 60 > 0 ? '${duration % 60} mins' : ''}'
-                                            .trim()),
-                                  ))
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              durationMinutes = value!;
-                            });
-                          },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Duration'),
+                            Row(
+                              children: [
+                                // HOURS
+                                Expanded(
+                                  child: TextFormField(
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      label: Text('Hours'),
+                                    ),
+                                    controller: hoursController,
+                                    validator: (value) {
+                                      if (int.tryParse(value!) == null) {
+                                        return 'Please input a number';
+                                      }
+
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                                const Gap(10),
+
+                                // MINUTES
+                                Expanded(
+                                  child: TextFormField(
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      label: Text('Minutes'),
+                                    ),
+                                    controller: minutesController,
+                                    validator: (value) {
+                                      if (int.tryParse(value!) == null) {
+                                        return 'Please input a number';
+                                      }
+
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ),
+                      )
                     ],
                   ),
                   const Gap(10),
@@ -2043,10 +2076,12 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   }
 
   Future<void> addExamToClass() async {
+    // VALIDATE SCORE
     if (!maxScoreFormKey.currentState!.validate()) {
       return;
     }
 
+    // VALIDATE OPEN AND CLOSE TIME
     if (openTime == null || closeTime == null) {
       return QuickAlert.show(
         context: context,
@@ -2054,6 +2089,16 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
         title: 'Error',
         text:
             'Please set the ${openTime == null ? 'Open Time' : 'Close Time'} of the exam.',
+      );
+    }
+
+    // VALIDATE DURATION
+    if (hoursController.text.isEmpty && minutesController.text.isEmpty) {
+      return QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Error',
+        text: 'Please set the duration of the exam.',
       );
     }
 
@@ -2099,7 +2144,13 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       'examType': examType,
       'openTime': openTime,
       'closeTime': closeTime,
-      'durationMinutes': durationMinutes,
+      'duration': {
+        'hours':
+            hoursController.text.isEmpty ? 0 : int.parse(hoursController.text),
+        'minutes': minutesController.text.isEmpty
+            ? 0
+            : int.parse(minutesController.text),
+      },
       'maxScore': double.parse(maxScoreController.text),
       'content': examContent,
     };
@@ -2134,6 +2185,34 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     clearCodingProblemFields();
     examples = [];
     testCases = [];
+  }
+
+  void deleteExam(dynamic exam, int examIndex) {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.warning,
+      title: 'Confirm Delete ${exam['exam']} ${exam['examType']} Exam?',
+      text: 'This will also delete all student scores.',
+      confirmBtnText: 'Delete',
+      onConfirmBtnTap: () async {
+        // DISMISS CONFIRMATION
+        Navigator.of(context).pop();
+
+        // SHOW LOADING
+        QuickAlert.show(
+          context: context,
+          type: QuickAlertType.loading,
+        );
+
+        await _firestoreService.deleteExamFromClass(
+          context: context,
+          classCode: widget.classCode,
+          exam: exam,
+          examIndex: examIndex,
+        );
+      },
+      showCancelBtn: true,
+    );
   }
 
   @override
@@ -2432,6 +2511,15 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                 ),
                                                 divider:
                                                     const Divider(height: 1),
+                                                onToggle: (value) {
+                                                  if (value == false) {
+                                                    currentlyOpenLesson =
+                                                        lessonIndex;
+                                                    print(currentlyOpenLesson);
+                                                  } else {
+                                                    currentlyOpenLesson = null;
+                                                  }
+                                                },
                                                 child: Container(
                                                   color: Colors.white,
                                                   width: double.infinity,
@@ -2824,6 +2912,17 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                             textAlign: TextAlign
                                                                 .center,
                                                             readOnly: true,
+                                                          ),
+                                                        ),
+                                                        const Gap(25),
+                                                        IconButton(
+                                                          onPressed: () =>
+                                                              deleteExam(exam,
+                                                                  examIndex),
+                                                          icon: const Icon(
+                                                            Icons
+                                                                .delete_rounded,
+                                                            color: Colors.red,
                                                           ),
                                                         )
                                                       ],

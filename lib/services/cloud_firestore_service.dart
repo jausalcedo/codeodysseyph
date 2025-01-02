@@ -57,34 +57,6 @@ class CloudFirestoreService {
         '${tempSelectedCourse.code} - ${tempSelectedCourse.title} Course Outline Successfully Added!',
       );
     });
-
-    // await _storageService
-    //     .uploadFile(
-    //   'courses/files/',
-    //   fileName,
-    //   fileBytes,
-    // )
-    //     .then((fullPath) async {
-    //   await _firestore.collection('courses').add({
-    //     'syllabus': fullPath,
-    //     'courseCode': selectedCourse,
-    //     'instructorId': userId,
-    //     'version': newVersion,
-    //     'lessons': [],
-    //     'lastUpdated': FieldValue.serverTimestamp(),
-    //     'timeStamp': FieldValue.serverTimestamp(),
-    //     'files': [fullPath]
-    //   }).then((_) {
-    //     final tempSelectedCourse =
-    //         courseList.firstWhere((element) => element.code == selectedCourse);
-
-    //     _errorService.showBanner(
-    //       // ignore: use_build_context_synchronously
-    //       context,
-    //       '${tempSelectedCourse.code} - ${tempSelectedCourse.title} Course Outline Successfully Added!',
-    //     );
-    //   });
-    // });
   }
 
   Future<void> createCourseOutlineFromTemplate(
@@ -552,6 +524,44 @@ class CloudFirestoreService {
         },
       );
     });
+  }
+
+  Future<void> deleteExamFromClass({
+    required BuildContext context,
+    required String classCode,
+    required dynamic exam,
+    required int examIndex,
+  }) async {
+    try {
+      final classSnapshot =
+          await _firestore.collection('classes').doc(classCode).get();
+
+      final List exams = classSnapshot['exams'];
+
+      exams.removeAt(examIndex);
+
+      await _firestore.collection('classes').doc(classCode).update({
+        'exams': exams,
+      }).then((_) {
+        // DISMISS LOADING
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
+
+        QuickAlert.show(
+          // ignore: use_build_context_synchronously
+          context: context,
+          type: QuickAlertType.success,
+          title:
+              '${exam['exam']} ${exam['examType']} Exam Deleted Successfully!',
+        );
+      });
+    } on FirebaseException catch (ex) {
+      _errorService.showBanner(
+        // ignore: use_build_context_synchronously
+        context,
+        'Unable to delete exam due to error: $ex',
+      );
+    }
   }
 
   // --- STUDENT FUNCTIONS ---
