@@ -31,9 +31,10 @@ class StudentClassScreen extends StatefulWidget {
 }
 
 class _StudentClassScreenState extends State<StudentClassScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   // TAB ESSENTIALS
   late TabController tabController;
+  late TabController performanceTabController;
 
   // SERVICES
   final _firestoreService = CloudFirestoreService();
@@ -80,7 +81,10 @@ class _StudentClassScreenState extends State<StudentClassScreen>
   @override
   void initState() {
     super.initState();
-    tabController = TabController(length: 4, vsync: this); // 4 tabs
+    tabController = TabController(length: 4, vsync: this);
+    // 4 tabs - Course Work / Assessments / My Grades / Announcements
+    performanceTabController = TabController(length: 2, vsync: this);
+    // 2 tabs - Course Work / Assessments
   }
 
   @override
@@ -591,11 +595,6 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                             ),
                                                             textAlign: TextAlign
                                                                 .center,
-                                                            // style:
-                                                            //     const TextStyle(
-                                                            //   color:
-                                                            //       Colors.white,
-                                                            // ),
                                                             readOnly: true,
                                                           ),
                                                         )
@@ -613,7 +612,158 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                           ),
                         ),
                         // MY GRADES
-                        const Placeholder(),
+                        Column(
+                          children: [
+                            TabBar(
+                              controller: performanceTabController,
+                              tabs: const [
+                                Tab(text: 'Course Work'),
+                                Tab(text: 'Assessments'),
+                              ],
+                            ),
+                            StreamBuilder(
+                              stream: _firestoreService
+                                  .getClassDataStream(widget.classCode),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const Center(
+                                      child: CircularProgressIndicator());
+                                }
+
+                                final classData = snapshot.data!.data();
+                                final List lessons = classData!['lessons'];
+
+                                final List exams = classData['exams'];
+
+                                return Expanded(
+                                  child: TabBarView(
+                                    controller: performanceTabController,
+                                    children: [
+                                      // COURSE WORK
+                                      Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Column(
+                                          children: [
+                                            Expanded(
+                                              child: ListView.builder(
+                                                itemCount: lessons.length,
+                                                itemBuilder:
+                                                    (context, lessonIndex) {
+                                                  final lesson =
+                                                      lessons[lessonIndex];
+                                                  final List activities =
+                                                      lesson['activities'] ??
+                                                          [];
+
+                                                  return ListView.builder(
+                                                    shrinkWrap: true,
+                                                    physics:
+                                                        const NeverScrollableScrollPhysics(),
+                                                    itemCount:
+                                                        activities.length,
+                                                    itemBuilder: (context,
+                                                        activityIndex) {
+                                                      final activity =
+                                                          activities[
+                                                              activityIndex];
+
+                                                      String? score;
+
+                                                      final Map<String, dynamic>
+                                                          submissions =
+                                                          activity[
+                                                                  'submissions'] ??
+                                                              {};
+                                                      if (submissions
+                                                          .containsKey(widget
+                                                              .studentId)) {
+                                                        score = activity[
+                                                                        'submissions']
+                                                                    [widget
+                                                                        .studentId]
+                                                                ['score']
+                                                            .toString();
+                                                      }
+
+                                                      return Card(
+                                                        child: ListTile(
+                                                          title: Text(
+                                                              'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}'),
+                                                          trailing: Text(
+                                                            score == null
+                                                                ? 'Not yet taken.'
+                                                                : "Score: $score/${activity['maxScore']}",
+                                                            style:
+                                                                const TextStyle(
+                                                              fontSize: 18,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      // EXAMS
+                                      Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Column(
+                                          children: [
+                                            Expanded(
+                                              child: ListView.builder(
+                                                itemCount: exams.length,
+                                                itemBuilder:
+                                                    (BuildContext context,
+                                                        int examIndex) {
+                                                  final exam = exams[examIndex];
+
+                                                  String? score;
+
+                                                  final Map<String, dynamic>
+                                                      submissions =
+                                                      exam['submissions'] ?? {};
+
+                                                  if (submissions.containsKey(
+                                                      widget.studentId)) {
+                                                    score = exam['submissions'][
+                                                                widget
+                                                                    .studentId]
+                                                            ['score']
+                                                        .toString();
+                                                  }
+                                                  return Card(
+                                                    child: ListTile(
+                                                      title: Text(
+                                                          '${exam['exam']} ${exam['examType']} Exam'),
+                                                      trailing: Text(
+                                                        score == null
+                                                            ? 'Not yet taken.'
+                                                            : "Score: $score/${exam['maxScore']}",
+                                                        style: const TextStyle(
+                                                          fontSize: 18,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                         // ANNOUNCEMENTS
                         const Placeholder(),
                       ],

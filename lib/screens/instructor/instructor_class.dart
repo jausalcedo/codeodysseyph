@@ -1198,8 +1198,33 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
 
   int? currentlyOpenLesson;
 
-  Future<void> deleteActivity() async {
-    // TO DO
+  Future<void> deleteActivity(int activityIndex) async {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.warning,
+      title:
+          'Confirm Delete Lesson ${currentlyOpenLesson! + 1} - Activity ${activityIndex + 1}?',
+      text: 'This will also delete all student scores for the activity.',
+      confirmBtnText: 'Delete',
+      onConfirmBtnTap: () async {
+        // DISMISS CONFIRMATION
+        Navigator.of(context).pop();
+
+        // SHOW LOADING
+        QuickAlert.show(
+          context: context,
+          type: QuickAlertType.loading,
+        );
+
+        await _firestoreService.deleteActivityFromLesson(
+          context: context,
+          classCode: widget.classCode,
+          lessonIndex: currentlyOpenLesson!,
+          activityIndex: activityIndex,
+        );
+      },
+      showCancelBtn: true,
+    );
   }
 
   void clearActivityFields() {
@@ -2215,6 +2240,107 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     );
   }
 
+  // ANNOUNCEMENT ESSENTIALS
+  final announcementTitleController = TextEditingController();
+  final announcementMessageController = TextEditingController();
+  final announcementFormKey = GlobalKey<FormState>();
+
+  void openAddAnnouncementModal() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Add a New Announcement',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            IconButton(
+              onPressed: () {
+                // CLOSE THE ADD NEW ANNOUNCEMENT MODAL
+                Navigator.of(context).pop();
+              },
+              icon: const Icon(Icons.close_rounded),
+              style: const ButtonStyle(
+                foregroundColor: WidgetStatePropertyAll(Colors.red),
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 750,
+          child: Form(
+            key: announcementFormKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // TITLE
+                TextFormField(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    label: Text('Title (Optional)'),
+                  ),
+                  controller: announcementTitleController,
+                ),
+                const Gap(10),
+
+                // MESSAGE
+                TextFormField(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    label: Text('Message'),
+                  ),
+                  minLines: 5,
+                  maxLines: 10,
+                  controller: announcementMessageController,
+                  validator: (value) {
+                    if (value!.isEmpty || value.trim() == '') {
+                      return 'Required. Please type a message.';
+                    }
+
+                    return null;
+                  },
+                ),
+                const Gap(25),
+
+                // SEND BUTTON
+                SizedBox(
+                  width: 150,
+                  height: 35,
+                  child: TextButton.icon(
+                    style: const ButtonStyle(
+                      backgroundColor: WidgetStatePropertyAll(primary),
+                      foregroundColor: WidgetStatePropertyAll(Colors.white),
+                    ),
+                    onPressed: sendAnnouncement,
+                    label: const Text('Send'),
+                    icon: const Icon(Icons.send_rounded),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> sendAnnouncement() async {
+    if (!announcementFormKey.currentState!.validate()) {
+      return;
+    }
+
+    await _firestoreService.addAnnouncement(
+      classCode: widget.classCode,
+      title: announcementTitleController.text,
+      message: announcementMessageController.text,
+    );
+
+    // ignore: use_build_context_synchronously
+    Navigator.of(context).pop();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -2515,7 +2641,6 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                   if (value == false) {
                                                     currentlyOpenLesson =
                                                         lessonIndex;
-                                                    print(currentlyOpenLesson);
                                                   } else {
                                                     currentlyOpenLesson = null;
                                                   }
@@ -2595,19 +2720,23 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                           .length,
                                                                   itemBuilder:
                                                                       (context,
-                                                                          index) {
+                                                                          activityIndex) {
                                                                     final DateTime
                                                                         deadline =
-                                                                        activities[index]['deadline']
+                                                                        activities[activityIndex]['deadline']
                                                                             .toDate();
+
+                                                                    final activity =
+                                                                        activities[
+                                                                            activityIndex];
 
                                                                     return Card(
                                                                       child:
                                                                           ListTile(
                                                                         title: Text(
-                                                                            'Activity ${index + 1} ${activities[index]['title'] != '' ? ':${activities[index]['title']}' : ''} (${activities[index]['maxScore']} points)'),
+                                                                            'Activity ${activityIndex + 1} ${activity['title'] != '' ? ':${activity['title']}' : ''} (${activity['maxScore']} points)'),
                                                                         subtitle:
-                                                                            Text('Type: ${activities[index]['activityType']}'),
+                                                                            Text('Type: ${activity['activityType']}'),
                                                                         trailing:
                                                                             SizedBox(
                                                                           width:
@@ -2621,9 +2750,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                                 'Deadline:\n${DateFormat.yMMMEd().add_jm().format(deadline)}',
                                                                                 style: const TextStyle(fontSize: 14),
                                                                               ),
-                                                                              const IconButton(
-                                                                                onPressed: null,
-                                                                                icon: Icon(Icons.delete_rounded),
+                                                                              IconButton(
+                                                                                onPressed: () => deleteActivity(activityIndex),
+                                                                                icon: const Icon(Icons.delete_rounded),
                                                                               )
                                                                             ],
                                                                           ),
@@ -2633,9 +2762,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                           widget
                                                                               .instructorId,
                                                                           activities[
-                                                                              index],
-                                                                          'Lesson ${lessonIndex + 1}: ${lessonList[index]['title']}',
-                                                                          index +
+                                                                              activityIndex],
+                                                                          'Lesson ${lessonIndex + 1}: ${lessonList[activityIndex]['title']}',
+                                                                          activityIndex +
                                                                               1,
                                                                         ),
                                                                       ),
@@ -2941,7 +3070,117 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                         // STUDENT PERFORMANCE
                         const Placeholder(),
                         // ANNOUNCEMENTS
-                        const Placeholder(),
+                        Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              TextButton.icon(
+                                style: const ButtonStyle(
+                                  backgroundColor:
+                                      WidgetStatePropertyAll(primary),
+                                  foregroundColor:
+                                      WidgetStatePropertyAll(Colors.white),
+                                ),
+                                onPressed: openAddAnnouncementModal,
+                                label: const Text('New Announcement'),
+                                icon: const Icon(Icons.add_rounded),
+                              ),
+                              StreamBuilder(
+                                stream: _firestoreService.getAnnouncements(
+                                    classCode: widget.classCode),
+                                builder: (BuildContext context,
+                                    AsyncSnapshot snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }
+
+                                  if (!snapshot.hasData ||
+                                      snapshot.data!.docs.isEmpty) {
+                                    return const Center(
+                                      child: Text(
+                                        'No announcements as of now...',
+                                        style: TextStyle(fontSize: 20),
+                                      ),
+                                    );
+                                  }
+
+                                  return Expanded(
+                                    child: ListView(
+                                      children: snapshot.data!.docs
+                                          .map<Widget>((doc) {
+                                        Map<String, dynamic> data =
+                                            doc.data() as Map<String, dynamic>;
+
+                                        DateTime dateTime =
+                                            data['timestamp'].toDate();
+
+                                        return Container(
+                                          margin: const EdgeInsets.symmetric(
+                                              vertical: 5),
+                                          alignment: Alignment.centerRight,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Container(
+                                                constraints:
+                                                    data['message'].length > 30
+                                                        ? const BoxConstraints
+                                                            .tightFor(
+                                                            width: 350 - 150,
+                                                          )
+                                                        : BoxConstraints.loose(
+                                                            const Size(
+                                                              350,
+                                                              double.infinity,
+                                                            ),
+                                                          ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey[300],
+                                                  borderRadius:
+                                                      BorderRadius.circular(5),
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  vertical: 10,
+                                                  horizontal: 20,
+                                                ),
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.end,
+                                                  children: [
+                                                    Text(
+                                                      data['message'],
+                                                      style: const TextStyle(
+                                                        fontSize: 16,
+                                                        color: Colors.black,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      DateFormat.EEEE()
+                                                          .add_jm()
+                                                          .format(dateTime),
+                                                      style: TextStyle(
+                                                        fontSize: 8,
+                                                        color: Colors.grey[600],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              )
+                                            ],
+                                          ),
+                                        );
+                                      }).toList(), // Convert to a List<Widget>
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),

@@ -194,6 +194,7 @@ class CloudFirestoreService {
               'learningMaterial': learningMaterialPath,
               'additionalResources': [],
               'activities': [],
+              'nextLesson': FieldValue.increment(1),
             }
           ]),
           'lastUpdated': FieldValue.serverTimestamp(),
@@ -223,7 +224,8 @@ class CloudFirestoreService {
               // 'description': lessonDescription,
               'learningMaterial': learningMaterialPath,
               'additionalResources': [],
-              'activities': []
+              'activities': [],
+              'nextLesson': 1,
             },
           );
 
@@ -433,6 +435,7 @@ class CloudFirestoreService {
 
         // ADD LESSON TAG AND METADATA
         newActivity.addAll({
+          'submissions': {},
           'lessonTag': targetLesson['title'],
           'metaData': {
             'createdBy': instructorId,
@@ -479,8 +482,45 @@ class CloudFirestoreService {
     });
   }
 
-  Future<void> deleteActivityFromLesson() async {
-    // TO DO
+  Future<void> deleteActivityFromLesson({
+    required BuildContext context,
+    required String classCode,
+    required int lessonIndex,
+    required int activityIndex,
+  }) async {
+    try {
+      final classSnapshot =
+          await _firestore.collection('classes').doc(classCode).get();
+
+      final List lessons = classSnapshot['lessons'];
+      final List activities = lessons[lessonIndex]['activities'];
+
+      activities.removeAt(activityIndex);
+
+      lessons[lessonIndex]['activities'] = activities;
+
+      await _firestore.collection('classes').doc(classCode).update({
+        'lessons': lessons,
+      }).then((_) {
+        // DISMISS LOADING
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
+
+        QuickAlert.show(
+          // ignore: use_build_context_synchronously
+          context: context,
+          type: QuickAlertType.success,
+          title:
+              'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1} Deleted Successfully!',
+        );
+      });
+    } on FirebaseException catch (ex) {
+      _errorService.showBanner(
+        // ignore: use_build_context_synchronously
+        context,
+        'Unable to delete activity due to error: $ex',
+      );
+    }
   }
 
   Future<void> addExamToClass({
@@ -492,6 +532,7 @@ class CloudFirestoreService {
     final examBankReference = _firestore.collection('examBank');
     // ADD METADATA
     newExam.addAll({
+      'submissions': {},
       'metaData': {
         'createdBy': instructorId,
         'dateCreated': DateTime.now(),
@@ -562,6 +603,32 @@ class CloudFirestoreService {
         'Unable to delete exam due to error: $ex',
       );
     }
+  }
+
+  Future<void> addAnnouncement(
+      {required String classCode,
+      String? title,
+      required String message}) async {
+    final Timestamp timestamp = Timestamp.now();
+
+    await _firestore
+        .collection('announcements')
+        .doc(classCode)
+        .collection('messages')
+        .add({
+      'title': title ?? '! Announcement !',
+      'message': message,
+      'timestamp': timestamp,
+    });
+  }
+
+  Stream<QuerySnapshot> getAnnouncements({required String classCode}) {
+    return _firestore
+        .collection('announcements')
+        .doc(classCode)
+        .collection('messages')
+        .orderBy('timestamp', descending: false)
+        .snapshots();
   }
 
   // --- STUDENT FUNCTIONS ---

@@ -4,11 +4,8 @@ import 'package:codeodysseyph/components/student/student_appbar.dart';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/screens/auth/auth_checker.dart';
 import 'package:flutter/material.dart';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html';
 import 'package:flutter_code_editor/flutter_code_editor.dart';
 import 'package:flutter_highlight/themes/vs.dart';
-import 'package:flutter_timer_countdown/flutter_timer_countdown.dart';
 import 'package:gap/gap.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:highlight/languages/java.dart';
@@ -17,8 +14,6 @@ import 'package:quickalert/quickalert.dart';
 class StudentDailyChallenge extends StatefulWidget {
   StudentDailyChallenge({super.key});
   final Map<String, dynamic> exam = {
-    'exam': 'Coding Problem',
-    'examType': '',
     'content': {
       'problemStatement': 'Given an integer n, find the sum of its digits.',
       'constraints': '1 < n < 10^9',
@@ -52,10 +47,6 @@ class StudentDailyChallenge extends StatefulWidget {
 
 class _StudentDailyChallengeState extends State<StudentDailyChallenge>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  // void goToFullScreen() {
-  //   document.documentElement!.requestFullscreen();
-  // }
-
   // TAB ESSENTIALS
   late TabController tabController;
 
