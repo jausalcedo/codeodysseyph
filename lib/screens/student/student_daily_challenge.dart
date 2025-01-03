@@ -98,9 +98,9 @@ public class Main {
     }
   }
 
-  void main() async {
-    await checkAndCreateDocument();
-  }
+  // void main() async {
+  //   await checkAndCreateDocument();
+  // }
 
   Future<Map<String, dynamic>> generateJavaProblem() async {
     Map<String, dynamic> explanation = {};
@@ -291,10 +291,10 @@ public class Main {
   void initState() {
     super.initState();
 
-    checkAndCreateDocument();
-
-    // Fetch data and initialize correctTestCases
-    _fetchData();
+    checkAndCreateDocument().then((_) {
+      // Fetch data and initialize correctTestCases
+      _fetchData();
+    });
 
     // Initialize other components
     tabController = TabController(length: 1, vsync: this);
