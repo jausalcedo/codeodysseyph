@@ -31,7 +31,7 @@ class InstructorClassScreen extends StatefulWidget {
 }
 
 class _InstructorClassScreenState extends State<InstructorClassScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   // TAB ESSENTIALS
   late TabController tabController;
 
@@ -2244,6 +2244,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   final announcementTitleController = TextEditingController();
   final announcementMessageController = TextEditingController();
   final announcementFormKey = GlobalKey<FormState>();
+  final announcementsScrollController = ScrollController();
 
   void openAddAnnouncementModal() {
     showDialog(
@@ -2331,20 +2332,80 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       return;
     }
 
-    await _firestoreService.addAnnouncement(
-      classCode: widget.classCode,
-      title: announcementTitleController.text,
-      message: announcementMessageController.text,
-    );
+    QuickAlert.show(context: context, type: QuickAlertType.loading);
+
+    await _firestoreService
+        .getUserData(userId: widget.instructorId)
+        .then((fetchedData) async {
+      final instructorData = fetchedData.data();
+
+      await _firestoreService
+          .addAnnouncement(
+              classCode: widget.classCode,
+              title: announcementTitleController.text,
+              message: announcementMessageController.text,
+              instructorName:
+                  '${instructorData!['firstName']} ${instructorData['lastName']}')
+          .then((_) {
+        _scrollToBottom();
+      });
+    });
+
+    // ignore: use_build_context_synchronously
+    Navigator.of(context).pop();
 
     // ignore: use_build_context_synchronously
     Navigator.of(context).pop();
   }
 
+  Future<void> deleteAnnouncement(
+      String classCode, String announcementId) async {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.confirm,
+      title: 'Are you sure you want to delete this announcement?',
+      onConfirmBtnTap: () async {
+        Navigator.of(context).pop();
+
+        QuickAlert.show(context: context, type: QuickAlertType.loading);
+
+        await _firestoreService.deleteAnnouncement(
+          context: context,
+          classCode: classCode,
+          announcementId: announcementId,
+        );
+      },
+      showCancelBtn: true,
+    );
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (announcementsScrollController.hasClients) {
+        announcementsScrollController.animateTo(
+          announcementsScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
     tabController = TabController(length: 4, vsync: this); // 4 tabs
+
+    tabController.addListener(() {
+      if (tabController.index == tabController.previousIndex) return;
+
+      if (tabController.index == 3) {
+        _scrollToBottom();
+      }
+    });
   }
 
   @override
@@ -2355,6 +2416,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size(double.infinity, 75),
@@ -2825,7 +2887,11 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
 
                         // ASSESSMENTS
                         Padding(
-                          padding: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.only(
+                            right: 10,
+                            bottom: 10,
+                            left: 10,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -2981,12 +3047,20 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                   final classData = snapshot.data!.data();
 
                                   final List<dynamic> examList =
-                                      classData['exams'];
+                                      classData['exams'] ?? [];
 
                                   return Expanded(
                                     child: examList.isEmpty
                                         ? const Column(
-                                            children: [Text('No exams yet.')],
+                                            children: [
+                                              Center(
+                                                child: Text(
+                                                  'No exams yet.',
+                                                  style:
+                                                      TextStyle(fontSize: 20),
+                                                ),
+                                              ),
+                                            ],
                                           )
                                         : ListView.builder(
                                             itemCount: examList.length,
@@ -3067,8 +3141,10 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                             ],
                           ),
                         ),
+
                         // STUDENT PERFORMANCE
                         const Placeholder(),
+
                         // ANNOUNCEMENTS
                         Padding(
                           padding: const EdgeInsets.all(10),
@@ -3107,8 +3183,12 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                     );
                                   }
 
+                                  WidgetsBinding.instance.addPostFrameCallback(
+                                      (_) => _scrollToBottom());
+
                                   return Expanded(
                                     child: ListView(
+                                      controller: announcementsScrollController,
                                       children: snapshot.data!.docs
                                           .map<Widget>((doc) {
                                         Map<String, dynamic> data =
@@ -3120,57 +3200,71 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                         return Container(
                                           margin: const EdgeInsets.symmetric(
                                               vertical: 5),
-                                          alignment: Alignment.centerRight,
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Container(
-                                                constraints:
-                                                    data['message'].length > 30
-                                                        ? const BoxConstraints
-                                                            .tightFor(
-                                                            width: 350 - 150,
-                                                          )
-                                                        : BoxConstraints.loose(
-                                                            const Size(
-                                                              350,
-                                                              double.infinity,
-                                                            ),
-                                                          ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.grey[300],
-                                                  borderRadius:
-                                                      BorderRadius.circular(5),
-                                                ),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  vertical: 10,
-                                                  horizontal: 20,
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.end,
+                                          alignment: Alignment.centerLeft,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[300],
+                                              borderRadius:
+                                                  BorderRadius.circular(5),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 10,
+                                              horizontal: 20,
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
                                                   children: [
+                                                    // ANNOUNCEMENT TITLE
                                                     Text(
-                                                      data['message'],
+                                                      data['title'] != ''
+                                                          ? data['title']
+                                                          : 'Announcement',
                                                       style: const TextStyle(
-                                                        fontSize: 16,
+                                                        fontSize: 18,
                                                         color: Colors.black,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
-                                                    Text(
-                                                      DateFormat.EEEE()
-                                                          .add_jm()
-                                                          .format(dateTime),
-                                                      style: TextStyle(
-                                                        fontSize: 8,
-                                                        color: Colors.grey[600],
+
+                                                    // DELETE BUTTON
+                                                    IconButton(
+                                                      onPressed: () =>
+                                                          deleteAnnouncement(
+                                                        widget.classCode,
+                                                        doc.id,
                                                       ),
+                                                      icon: const Icon(
+                                                          Icons.delete),
+                                                      color: Colors.red,
                                                     ),
                                                   ],
                                                 ),
-                                              )
-                                            ],
+                                                // MESSAGE
+                                                Text(
+                                                  data['message'],
+                                                  style: const TextStyle(
+                                                    fontSize: 18,
+                                                    color: Colors.black,
+                                                  ),
+                                                ),
+                                                const Gap(10),
+                                                // INSTRUCTOR NAME AND DATE TIME SENT
+                                                Text(
+                                                  'by ${data['instructorName']}\n${DateFormat.yMMMMEEEEd().add_jm().format(dateTime)}',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         );
                                       }).toList(), // Convert to a List<Widget>

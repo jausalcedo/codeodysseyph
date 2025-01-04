@@ -31,7 +31,7 @@ class StudentClassScreen extends StatefulWidget {
 }
 
 class _StudentClassScreenState extends State<StudentClassScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   // TAB ESSENTIALS
   late TabController tabController;
   late TabController performanceTabController;
@@ -78,6 +78,24 @@ class _StudentClassScreenState extends State<StudentClassScreen>
     );
   }
 
+  // ANNOUNCEMENT ESSENTIALS
+  final announcementsScrollController = ScrollController();
+
+  void scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (announcementsScrollController.hasClients) {
+        announcementsScrollController.animateTo(
+          announcementsScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
@@ -85,10 +103,19 @@ class _StudentClassScreenState extends State<StudentClassScreen>
     // 4 tabs - Course Work / Assessments / My Grades / Announcements
     performanceTabController = TabController(length: 2, vsync: this);
     // 2 tabs - Course Work / Assessments
+
+    tabController.addListener(() {
+      if (tabController.index == tabController.previousIndex) return;
+
+      if (tabController.index == 3) {
+        scrollToBottom();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: const PreferredSize(
         preferredSize: Size(double.infinity, 75),
@@ -765,7 +792,90 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                           ],
                         ),
                         // ANNOUNCEMENTS
-                        const Placeholder(),
+                        StreamBuilder(
+                          stream: _firestoreService.getAnnouncements(
+                              classCode: widget.classCode),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                  child: CircularProgressIndicator());
+                            }
+
+                            if (!snapshot.hasData ||
+                                snapshot.data!.docs.isEmpty) {
+                              return const Center(
+                                child: Text(
+                                  'No announcements as of now...',
+                                  style: TextStyle(fontSize: 20),
+                                ),
+                              );
+                            }
+
+                            WidgetsBinding.instance
+                                .addPostFrameCallback((_) => scrollToBottom());
+
+                            return Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: ListView(
+                                controller: announcementsScrollController,
+                                children:
+                                    snapshot.data!.docs.map<Widget>((doc) {
+                                  Map<String, dynamic> data =
+                                      doc.data() as Map<String, dynamic>;
+
+                                  DateTime dateTime =
+                                      data['timestamp'].toDate();
+
+                                  return Container(
+                                    margin:
+                                        const EdgeInsets.symmetric(vertical: 5),
+                                    alignment: Alignment.centerLeft,
+                                    child: Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              data['title'] != ''
+                                                  ? data['title']
+                                                      .toString()
+                                                      .toUpperCase()
+                                                  : 'ANNOUNCEMENT',
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                color: Colors.black,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const Divider(),
+                                            Text(
+                                              data['message'],
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                            const Gap(10),
+                                            Text(
+                                              'by ${data['instructorName']}\n${DateFormat.yMMMMEEEEd().add_jm().format(dateTime)}',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(), // Convert to a List<Widget>
+                              ),
+                            );
+                          },
+                        )
                       ],
                     ),
                   ),

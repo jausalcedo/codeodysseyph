@@ -35,7 +35,9 @@ class _StudentDrawerState extends State<StudentDrawer> {
   void openDailyChallengeScreen() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => StudentDailyChallenge(),
+        builder: (context) => StudentDailyChallenge(
+          userId: widget.studentId,
+        ),
       ),
     );
   }
