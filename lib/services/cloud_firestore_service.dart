@@ -661,6 +661,13 @@ class CloudFirestoreService {
     });
   }
 
+  Future<void> removeStudent(
+      {required String classCode, required String studentId}) async {
+    await _firestore.collection('classes').doc(classCode).update({
+      'students': FieldValue.arrayRemove([studentId])
+    });
+  }
+
   // --- STUDENT FUNCTIONS ---
 
   Future<void> joinClass(

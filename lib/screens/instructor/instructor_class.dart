@@ -344,6 +344,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   int? duplicateChoiceIndex;
 
   // CODING PROBLEM CONTROLLERS
+  List<Map<String, dynamic>> codingProblems = [];
   final problemStatementController = TextEditingController();
   final constraintsController = TextEditingController();
   List<Map<String, dynamic>> examples = [];
@@ -2210,6 +2211,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     clearCodingProblemFields();
     examples = [];
     testCases = [];
+    codingProblems = [];
   }
 
   void deleteExam(dynamic exam, int examIndex) {
@@ -2238,6 +2240,75 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       },
       showCancelBtn: true,
     );
+  }
+
+  // STUDENT PERFORMANCE ESSENTIALS
+  late Future<List<Map<String, dynamic>>> studentsList;
+
+  void loadStudents() {
+    setState(() {
+      studentsList = getSortedStudents();
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getSortedStudents() async {
+    final classData = await _firestoreService.getCourseClassDataFuture(
+        'classes', widget.classCode);
+
+    if (!classData.exists) return [];
+
+    List<dynamic> studentIds = classData.data()?['students'] ?? [];
+
+    if (studentIds.isEmpty) return [];
+
+    List<Map<String, dynamic>> students = [];
+
+    for (String studentId in studentIds) {
+      final userDoc = await _firestoreService.getUserData(userId: studentId);
+
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+
+        students.add({
+          'studentId': userDoc.id,
+          'firstName': userData!['firstName'],
+          'lastName': userData['lastName'],
+        });
+      }
+    }
+
+    students.sort((a, b) {
+      return a['lastName']
+          .toString()
+          .toLowerCase()
+          .compareTo(b['lastName'].toString().toLowerCase());
+    });
+
+    return students;
+  }
+
+  void openConfirmRemoveStudent(String studentId, String studentName) {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.confirm,
+      title: 'Remove $studentName from class?',
+      onConfirmBtnTap: () => removeStudent(studentId),
+    );
+  }
+
+  Future<void> removeStudent(String studentId) async {
+    QuickAlert.show(context: context, type: QuickAlertType.loading);
+
+    await _firestoreService
+        .removeStudent(classCode: widget.classCode, studentId: studentId)
+        .then((_) {
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+
+      loadStudents();
+    });
   }
 
   // ANNOUNCEMENT ESSENTIALS
@@ -2406,6 +2477,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
         _scrollToBottom();
       }
     });
+
+    loadStudents();
   }
 
   @override
@@ -2887,15 +2960,11 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
 
                         // ASSESSMENTS
                         Padding(
-                          padding: const EdgeInsets.only(
-                            right: 10,
-                            bottom: 10,
-                            left: 10,
-                          ),
+                          padding: const EdgeInsets.all(10),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // QUIZZES
+                              // ADD BUTTON
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
@@ -3026,6 +3095,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                               //     ],
                               //   ),
                               // ),
+                              // EXAM LIST
                               const Text(
                                 'Examinations',
                                 style: TextStyle(
@@ -3069,7 +3139,6 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
 
                                               return Card(
                                                 child: ListTile(
-                                                  // textColor: Colors.white,
                                                   title: Text(
                                                     '${exam['exam']} ${exam['examType']} Examination',
                                                     style: const TextStyle(
@@ -3143,7 +3212,80 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                         ),
 
                         // STUDENT PERFORMANCE
-                        const Placeholder(),
+                        Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Students',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: loadStudents,
+                                    icon: const Icon(Icons.refresh_rounded),
+                                  ),
+                                ],
+                              ),
+                              FutureBuilder(
+                                future: getSortedStudents(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }
+
+                                  if (snapshot.hasError) {
+                                    return Center(
+                                        child:
+                                            Text('Error: ${snapshot.error}'));
+                                  }
+
+                                  if (!snapshot.hasData ||
+                                      snapshot.data!.isEmpty) {
+                                    return const Center(
+                                        child: Text('No students found.'));
+                                  }
+
+                                  final students = snapshot.data!;
+
+                                  return Expanded(
+                                    child: ListView.builder(
+                                      itemCount: students.length,
+                                      itemBuilder: (context, index) {
+                                        final student = students[index];
+                                        return Card(
+                                          child: ListTile(
+                                            title: Text(
+                                              '${student['lastName']}, ${student['firstName']}',
+                                            ),
+                                            subtitle: Text(
+                                                'Account ID: ${student['studentId']}'),
+                                            trailing: IconButton(
+                                              onPressed: () =>
+                                                  openConfirmRemoveStudent(
+                                                      student['studentId'],
+                                                      '${student['firstName']} ${student['lastName']}'),
+                                              icon: const Icon(Icons.delete),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
 
                         // ANNOUNCEMENTS
                         Padding(
