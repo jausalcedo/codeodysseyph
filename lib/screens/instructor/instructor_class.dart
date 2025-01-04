@@ -2601,7 +2601,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
-                                    'Lessons:',
+                                    'Lessons',
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -3275,6 +3275,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                       student['studentId'],
                                                       '${student['firstName']} ${student['lastName']}'),
                                               icon: const Icon(Icons.delete),
+                                              color: Colors.red,
                                             ),
                                           ),
                                         );
@@ -3304,6 +3305,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                 label: const Text('New Announcement'),
                                 icon: const Icon(Icons.add_rounded),
                               ),
+                              const Gap(10),
                               StreamBuilder(
                                 stream: _firestoreService.getAnnouncements(
                                     classCode: widget.classCode),
@@ -3340,72 +3342,71 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                             data['timestamp'].toDate();
 
                                         return Container(
-                                          margin: const EdgeInsets.symmetric(
-                                              vertical: 5),
+                                          margin:
+                                              const EdgeInsets.only(bottom: 5),
                                           alignment: Alignment.centerLeft,
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey[300],
-                                              borderRadius:
-                                                  BorderRadius.circular(5),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 10,
-                                              horizontal: 20,
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    // ANNOUNCEMENT TITLE
-                                                    Text(
-                                                      data['title'] != ''
-                                                          ? data['title']
-                                                          : 'Announcement',
-                                                      style: const TextStyle(
-                                                        fontSize: 18,
-                                                        color: Colors.black,
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                          child: Card(
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                vertical: 10,
+                                                horizontal: 20,
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      // ANNOUNCEMENT TITLE
+                                                      Text(
+                                                        data['title'] != ''
+                                                            ? data['title']
+                                                            : 'Announcement',
+                                                        style: const TextStyle(
+                                                          fontSize: 18,
+                                                          color: Colors.black,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
                                                       ),
-                                                    ),
 
-                                                    // DELETE BUTTON
-                                                    IconButton(
-                                                      onPressed: () =>
-                                                          deleteAnnouncement(
-                                                        widget.classCode,
-                                                        doc.id,
+                                                      // DELETE BUTTON
+                                                      IconButton(
+                                                        onPressed: () =>
+                                                            deleteAnnouncement(
+                                                          widget.classCode,
+                                                          doc.id,
+                                                        ),
+                                                        icon: const Icon(
+                                                            Icons.delete),
+                                                        color: Colors.red,
                                                       ),
-                                                      icon: const Icon(
-                                                          Icons.delete),
-                                                      color: Colors.red,
+                                                    ],
+                                                  ),
+                                                  const Divider(),
+                                                  // MESSAGE
+                                                  Text(
+                                                    data['message'],
+                                                    style: const TextStyle(
+                                                      fontSize: 18,
+                                                      color: Colors.black,
                                                     ),
-                                                  ],
-                                                ),
-                                                // MESSAGE
-                                                Text(
-                                                  data['message'],
-                                                  style: const TextStyle(
-                                                    fontSize: 18,
-                                                    color: Colors.black,
                                                   ),
-                                                ),
-                                                const Gap(10),
-                                                // INSTRUCTOR NAME AND DATE TIME SENT
-                                                Text(
-                                                  'by ${data['instructorName']}\n${DateFormat.yMMMMEEEEd().add_jm().format(dateTime)}',
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.grey[600],
+                                                  const Gap(5),
+                                                  // INSTRUCTOR NAME AND DATE TIME SENT
+                                                  Text(
+                                                    'by ${data['instructorName']}\n${DateFormat.yMMMMEEEEd().add_jm().format(dateTime)}',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.grey[600],
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         );

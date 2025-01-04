@@ -791,6 +791,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                             ),
                           ],
                         ),
+
                         // ANNOUNCEMENTS
                         StreamBuilder(
                           stream: _firestoreService.getAnnouncements(
@@ -833,7 +834,10 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                     alignment: Alignment.centerLeft,
                                     child: Card(
                                       child: Padding(
-                                        padding: const EdgeInsets.all(10),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 10,
+                                          horizontal: 20,
+                                        ),
                                         child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
