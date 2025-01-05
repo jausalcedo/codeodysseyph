@@ -1,18 +1,17 @@
 import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:codeodysseyph/components/student/student_appbar.dart';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/screens/auth/auth_checker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-// ignore: avoid_web_libraries_in_flutter
 import 'package:flutter_code_editor/flutter_code_editor.dart';
 import 'package:flutter_highlight/themes/vs.dart';
 import 'package:gap/gap.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:highlight/languages/java.dart';
 import 'package:quickalert/quickalert.dart';
-import 'package:intl/intl.dart'; // For date formatting
+import 'package:intl/intl.dart';
 
 class StudentDailyChallenge extends StatefulWidget {
   const StudentDailyChallenge({super.key});
@@ -26,26 +25,7 @@ class _StudentDailyChallengeState extends State<StudentDailyChallenge>
   // TAB ESSENTIALS
   late TabController tabController;
   Map<String, dynamic>? challengeData;
-
-  // Future<void> _fetchData() async {
-  //   try {
-  //     final String documentId = DateFormat('dd-MM-yyyy').format(DateTime.now());
-  //     // Fetch data from Firestore
-  //     FirebaseFirestore firestore = FirebaseFirestore.instance;
-  //     DocumentSnapshot doc =
-  //         await firestore.collection('dailyChallenge').doc(documentId).get();
-
-  //     if (doc.exists) {
-  //       setState(() {
-  //         challengeData = doc.data() as Map<String, dynamic>;
-  //       });
-  //     } else {
-  //       print('No document found for the given date.');
-  //     }
-  //   } catch (e) {
-  //     print('Error fetching data: $e');
-  //   }
-  // }
+  bool finishedUser = true;
 
   // CODE EDITOR ESSENTIALS
   final _codeEditorController = CodeController(
@@ -75,32 +55,79 @@ public class Main {
   }();
 
   Future<void> checkAndCreateDocument() async {
-    // Get the current date in "dd-MM-yyyy" format
     final String documentId = DateFormat('dd-MM-yyyy').format(DateTime.now());
-
-    // Reference to Firestore collection
     final docRef =
         FirebaseFirestore.instance.collection('dailyChallenge').doc(documentId);
 
-    // Check if the document exists
     final snapshot = await docRef.get();
     if (snapshot.exists) {
       print('Document already exists: $documentId');
     } else {
       print('Creating new document: $documentId');
 
-      // Define the document fields
       Map<String, dynamic> data = await generateJavaProblem();
-
-      // Create the document
       await docRef.set(data);
       print('New document created.');
     }
   }
 
-  // void main() async {
-  //   await checkAndCreateDocument();
-  // }
+  Future<void> insertFinishedStudent() async {
+    try {
+      // Initialize Firebase instances
+      final firestore = FirebaseFirestore.instance;
+      final auth = FirebaseAuth.instance;
+
+      // Get current user ID
+      final user = auth.currentUser;
+      if (user == null) {
+        throw Exception("User not logged in");
+      }
+      final userId = user.uid;
+
+      final dateNow = DateFormat('dd-MM-yyyy').format(DateTime.now());
+
+      final docRef = firestore.collection('dailyChallenge').doc(dateNow);
+
+      await docRef.set({
+        'finished': FieldValue.arrayUnion([userId]), // Add user ID to the array
+      }, SetOptions(merge: true));
+
+      print("Value inserted successfully!");
+    } catch (e) {
+      print("Error inserting value: $e");
+    }
+  }
+
+  Future<void> checkUserInFinished() async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final auth = FirebaseAuth.instance;
+
+      final user = auth.currentUser;
+      if (user == null) {
+        throw Exception("User not logged in");
+      }
+
+      final dateNow = DateFormat('dd-MM-yyyy').format(DateTime.now());
+
+      final docRef = firestore.collection('dailyChallenge').doc(dateNow);
+
+      final docSnapshot = await docRef.get();
+
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data();
+        if (data != null && data['finished'] is List) {
+          final finishedList = List.from(data['finished']);
+          if (finishedList.contains(user.uid)) {
+            finishedUser = false;
+            print("find");
+          }
+        }
+      }
+    } catch (e) {
+      print("Error in checkUserInFinished: $e");
+    }
+  }
 
   Future<Map<String, dynamic>> generateJavaProblem() async {
     Map<String, dynamic> explanation = {};
@@ -185,6 +212,7 @@ public class Main {
   Future<String> checkSolution(List<dynamic> testCases) async {
     String? explanation;
     print(testCases);
+
     final schema = Schema.object(properties: {
       'testCaseResults': Schema.array(
         items: Schema.boolean(
@@ -209,7 +237,7 @@ public class Main {
     );
 
     final prompt =
-        'Check if the Java solution satisfies the results of the test cases when it is compiled, run, and inputted into the program. If the solution does not satisfy the test cases, return false, otherwise true. Java solution: ${_codeEditorController.fullText}\n Test Cases: ${testCases.toString()}';
+        'Check if the Java solution satisfies the results of the test cases when it is compiled, run, and inputted into the program. If the solution does not satisfy the test cases, return false, otherwise true. Java solution: ${_codeEditorController.fullText}\n Test Cases: ${testCases.toString()}.';
 
     try {
       QuickAlert.show(
@@ -259,19 +287,36 @@ public class Main {
       }
       if (initialScore < 0) initialScore = 0;
       print(initialScore);
-      QuickAlert.show(
-        // ignore: use_build_context_synchronously
-        context: context,
-        type: QuickAlertType.success,
-        title: 'You got: $initialScore',
-        text: explanation,
-        onConfirmBtnTap: () {
-          Navigator.of(context).pop();
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => const AuthChecker(),
-          ));
-        },
-      );
+      if (initialScore == challengeData!['maxScore']) {
+        insertFinishedStudent();
+        QuickAlert.show(
+          // ignore: use_build_context_synchronously
+          context: context,
+          type: QuickAlertType.success,
+          title: 'Congratulation! You passed the daily challenge.',
+          text: explanation,
+          onConfirmBtnTap: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => const AuthChecker(),
+            ));
+          },
+        );
+      } else {
+        QuickAlert.show(
+          // ignore: use_build_context_synchronously
+          context: context,
+          type: QuickAlertType.warning,
+          title:
+              'Oops! Something went wrong in your code, Please check your input or try again.',
+          onConfirmBtnTap: () {
+            Navigator.pop(context);
+            // Navigator.of(context).push(MaterialPageRoute(
+            //   builder: (context) => const AuthChecker(),
+            // ));
+          },
+        );
+      }
     });
   }
 
@@ -290,10 +335,26 @@ public class Main {
   @override
   void initState() {
     super.initState();
-
+    checkUserInFinished();
     checkAndCreateDocument().then((_) {
       // Fetch data and initialize correctTestCases
-      _fetchData();
+      print(finishedUser);
+      if (finishedUser) {
+        _fetchData();
+      } else {
+        QuickAlert.show(
+          // ignore: use_build_context_synchronously
+          context: context,
+          type: QuickAlertType.success,
+          title: 'Your already done in daily challenge, Try again tommorrow.',
+          onConfirmBtnTap: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => const AuthChecker(),
+            ));
+          },
+        );
+      }
     });
 
     // Initialize other components
@@ -485,9 +546,11 @@ public class Main {
                                                 WidgetStatePropertyAll(
                                                     Colors.white),
                                           ),
-                                          onPressed: () => checkSolution(
-                                              challengeData!['content']
-                                                  ['testCases']),
+                                          onPressed: () => {
+                                            checkSolution(
+                                                challengeData!['content']
+                                                    ['testCases']),
+                                          },
                                           label: const Text('Check Solution'),
                                           icon: const Icon(
                                               Icons.play_arrow_rounded),
