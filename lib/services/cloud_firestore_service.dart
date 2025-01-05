@@ -201,7 +201,6 @@ class CloudFirestoreService {
               'learningMaterial': learningMaterialPath,
               'additionalResources': [],
               'activities': [],
-              'nextLesson': FieldValue.increment(1),
             }
           ]),
           'lastUpdated': FieldValue.serverTimestamp(),
@@ -232,7 +231,6 @@ class CloudFirestoreService {
               'learningMaterial': learningMaterialPath,
               'additionalResources': [],
               'activities': [],
-              'nextLesson': 1,
             },
           );
 
@@ -383,6 +381,10 @@ class CloudFirestoreService {
                 'semester': semester,
                 'timeStamp': FieldValue.serverTimestamp(),
                 'students': [],
+                'violations': {
+                  'copyPaste': 10,
+                  'changeView': 2.5,
+                }
               }).then(
                 (_) {
                   // POP THE LOADING
@@ -397,8 +399,6 @@ class CloudFirestoreService {
                     onConfirmBtnTap: () {
                       // POP THE SUCCESS
                       Navigator.of(context).pop();
-                      // POP THE MODAL
-                      Navigator.of(context).pop();
                     },
                   );
                 },
@@ -408,6 +408,10 @@ class CloudFirestoreService {
         }
       },
     );
+  }
+
+  Future<void> deleteClass({required String classCode}) async {
+    await _firestore.collection('classes').doc(classCode).delete();
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getInstructorClassesStream(

@@ -4,6 +4,7 @@ import 'package:codeodysseyph/constants/courses.dart';
 import 'package:codeodysseyph/screens/instructor/instructor_class.dart';
 import 'package:codeodysseyph/components/instructor/instructor_drawer.dart';
 import 'package:codeodysseyph/constants/colors.dart';
+import 'package:codeodysseyph/services/alert_service.dart';
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
@@ -30,6 +31,7 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
 
   // SERVICES
   final _firestoreService = CloudFirestoreService();
+  final _alertService = AlertService();
 
   // FORM KEYS
   final addClassFormKey = GlobalKey<FormState>();
@@ -433,6 +435,33 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
     selectedSemester = 'First Semester';
   }
 
+  void openConfirmDeleteClass(String classCode, String className) {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.warning,
+      title: 'Confirm Delete $className?',
+      onConfirmBtnTap: () => deleteClass(classCode, className),
+      showCancelBtn: true,
+    );
+  }
+
+  Future<void> deleteClass(String classCode, String className) async {
+    QuickAlert.show(context: context, type: QuickAlertType.loading);
+
+    _firestoreService.deleteClass(classCode: classCode).then((_) {
+      // DISMISS LOADING
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+
+      // DISMISS CONFIRM
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+
+      // ignore: use_build_context_synchronously
+      _alertService.showBanner(context, '$className Successfully Deleted');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -566,26 +595,48 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           // COURSE CODE + PROGRAM-YEAR-BLOCK
-                                          Container(
-                                            width: 225,
-                                            height: 50,
-                                            decoration: const BoxDecoration(
-                                              color: primary,
-                                              borderRadius: BorderRadius.only(
-                                                bottomRight:
-                                                    Radius.circular(15),
-                                              ),
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                '$courseCode - IT $year$block',
-                                                style: const TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: Colors.white,
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Container(
+                                                width: 225,
+                                                height: 50,
+                                                decoration: const BoxDecoration(
+                                                  color: primary,
+                                                  borderRadius:
+                                                      BorderRadius.only(
+                                                    bottomRight:
+                                                        Radius.circular(15),
+                                                  ),
+                                                ),
+                                                child: Center(
+                                                  child: Text(
+                                                    '$courseCode - IT $year$block',
+                                                    style: const TextStyle(
+                                                      fontSize: 20,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    right: 5),
+                                                child: IconButton(
+                                                  onPressed: () =>
+                                                      openConfirmDeleteClass(
+                                                          classes[index].id,
+                                                          '$courseCode IT-$year$block'),
+                                                  icon: const Icon(
+                                                    Icons.delete_rounded,
+                                                    color: Colors.red,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
 
                                           // COURSE TITLE + JAVA ICON

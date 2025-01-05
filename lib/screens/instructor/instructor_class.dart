@@ -59,6 +59,75 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     }
   }
 
+  // CLASS SETTINGS
+  TextEditingController changeViewController = TextEditingController();
+  TextEditingController copyPasteController = TextEditingController();
+
+  void openClassSettings(String classCode) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Class Settings',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            IconButton(
+              onPressed: Navigator.of(context).pop,
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 320,
+          child: FutureBuilder(
+            future: _firestoreService.getCourseClassDataFuture(
+                'classes', classCode),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final classData = snapshot.data!.data();
+
+              final changeView = classData!['violations']['changeView'];
+              final copyPaste = classData['violations']['copyPaste'];
+
+              changeViewController.text = changeView.toString();
+              copyPasteController.text = copyPaste.toString();
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      label: Text('Change View Violation'),
+                      suffix: Text('points'),
+                    ),
+                    controller: changeViewController,
+                  ),
+                  const Gap(10),
+                  TextField(
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      label: Text('Copy Paste Violation'),
+                      suffix: Text('points'),
+                    ),
+                    controller: copyPasteController,
+                  ),
+                  const Gap(25),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   // LESSON CONTROLLERS
   final lessonTitleController = TextEditingController();
   final addBeforeIndexController = TextEditingController();
@@ -324,7 +393,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   final activityTitleController = TextEditingController();
   String activityType = 'Multiple Choice';
   int? lessonIndexToBindActivity;
-  DateTime? deadline;
+  DateTime? activityOpen;
+  DateTime? activityClose;
   final maxScoreController = TextEditingController();
 
   // ADD ACTIVITY FORM KEYS
@@ -344,7 +414,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   int? duplicateChoiceIndex;
 
   // CODING PROBLEM CONTROLLERS
-  List<Map<String, dynamic>> codingProblems = [];
+  // List<Map<String, dynamic>> codingProblems = [];
   final problemStatementController = TextEditingController();
   final constraintsController = TextEditingController();
   List<Map<String, dynamic>> examples = [];
@@ -406,11 +476,11 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
             height: 590,
             child: StatefulBuilder(
               builder: (BuildContext context, setState) {
-                Future<void> setDeadline() async {
+                Future<void> setDeadline({required bool isOpen}) async {
                   final now = DateTime.now();
                   final pickedDate = await showDatePicker(
                     context: context,
-                    initialDate: deadline ?? now,
+                    initialDate: activityClose ?? now,
                     firstDate: now,
                     lastDate: DateTime(now.year + 1, now.month - 6, now.day),
                   );
@@ -424,13 +494,21 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
 
                     if (pickedTime != null) {
                       setState(() {
-                        deadline = DateTime(
-                          pickedDate.year,
-                          pickedDate.month,
-                          pickedDate.day,
-                          pickedTime.hour,
-                          pickedTime.minute,
-                        );
+                        isOpen
+                            ? activityOpen = DateTime(
+                                pickedDate.year,
+                                pickedDate.month,
+                                pickedDate.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              )
+                            : activityClose = DateTime(
+                                pickedDate.year,
+                                pickedDate.month,
+                                pickedDate.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
                       });
                     }
                   }
@@ -469,18 +547,6 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                     const Gap(10),
                     Row(
                       children: [
-                        // TITLE
-                        Expanded(
-                          child: TextFormField(
-                            controller: activityTitleController,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              label: Text('Title (Optional)'),
-                            ),
-                          ),
-                        ),
-                        const Gap(10),
-
                         // ACTIVITY TYPE
                         Expanded(
                           child: DropdownButtonFormField(
@@ -500,31 +566,6 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                 activityType = value!;
                               });
                             },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Gap(10),
-                    Row(
-                      children: [
-                        // DEADLINE
-                        Expanded(
-                          child: SizedBox(
-                            height: 45,
-                            child: ElevatedButton(
-                              style: const ButtonStyle(
-                                backgroundColor:
-                                    WidgetStatePropertyAll(primary),
-                                foregroundColor:
-                                    WidgetStatePropertyAll(Colors.white),
-                              ),
-                              onPressed: setDeadline,
-                              child: Text(deadline != null
-                                  ? DateFormat.yMMMEd()
-                                      .add_jm()
-                                      .format(deadline!)
-                                  : 'Set Deadline'),
-                            ),
                           ),
                         ),
                         const Gap(10),
@@ -556,7 +597,54 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                               },
                             ),
                           ),
-                        )
+                        ),
+                      ],
+                    ),
+                    const Gap(10),
+                    Row(
+                      children: [
+                        // OPEN SCHEDULE
+                        Expanded(
+                          child: SizedBox(
+                            height: 45,
+                            child: ElevatedButton(
+                              style: const ButtonStyle(
+                                backgroundColor:
+                                    WidgetStatePropertyAll(primary),
+                                foregroundColor:
+                                    WidgetStatePropertyAll(Colors.white),
+                              ),
+                              onPressed: () => setDeadline(isOpen: true),
+                              child: Text(activityOpen != null
+                                  ? DateFormat.yMMMEd()
+                                      .add_jm()
+                                      .format(activityOpen!)
+                                  : 'Set Open Schedule'),
+                            ),
+                          ),
+                        ),
+                        const Gap(10),
+
+                        // CLOSE SCHEDULE
+                        Expanded(
+                          child: SizedBox(
+                            height: 45,
+                            child: ElevatedButton(
+                              style: ButtonStyle(
+                                backgroundColor:
+                                    WidgetStatePropertyAll(Colors.red[800]),
+                                foregroundColor:
+                                    const WidgetStatePropertyAll(Colors.white),
+                              ),
+                              onPressed: () => setDeadline(isOpen: false),
+                              child: Text(activityClose != null
+                                  ? DateFormat.yMMMEd()
+                                      .add_jm()
+                                      .format(activityClose!)
+                                  : 'Set Close Schedule'),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const Gap(10),
@@ -1125,12 +1213,13 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       return;
     }
 
-    if (deadline == null) {
+    if (activityOpen == null || activityClose == null) {
       return QuickAlert.show(
         context: context,
         type: QuickAlertType.error,
         title: 'Error',
-        text: 'Please set a deadline for the activity.',
+        text:
+            'Please set a ${activityOpen == null ? 'Open Schedule' : 'Close Schedule'} for the activity.',
       );
     }
 
@@ -1174,7 +1263,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     final newActivity = {
       'title': lessonTitleController.text,
       'activityType': activityType,
-      'deadline': deadline,
+      'openSchedule': activityOpen,
+      'closeSchedule': activityClose,
       'maxScore': int.parse(maxScoreController.text),
       'content': activityContent,
     };
@@ -1232,7 +1322,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     activityTitleController.clear();
     activityType = 'Multiple Choice';
     lessonIndexToBindActivity = null;
-    deadline = null;
+    activityOpen = null;
+    activityClose = null;
     maxScoreController.clear();
 
     clearMultipleChoiceFields();
@@ -1376,7 +1467,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                 final now = DateTime.now();
                 final pickedDate = await showDatePicker(
                   context: context,
-                  initialDate: deadline ?? now,
+                  initialDate: activityClose ?? now,
                   firstDate: now,
                   lastDate: DateTime(now.year + 1, now.month - 6, now.day),
                 );
@@ -2114,7 +2205,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
         type: QuickAlertType.error,
         title: 'Error',
         text:
-            'Please set the ${openTime == null ? 'Open Time' : 'Close Time'} of the exam.',
+            'Please set the ${openTime == null ? 'Open Schedule' : 'Close Schedule'} of the exam.',
       );
     }
 
@@ -2168,8 +2259,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     final newExam = {
       'exam': exam,
       'examType': examType,
-      'openTime': openTime,
-      'closeTime': closeTime,
+      'openSchedule': openTime,
+      'closeSchedule': closeTime,
       'duration': {
         'hours':
             hoursController.text.isEmpty ? 0 : int.parse(hoursController.text),
@@ -2211,7 +2302,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     clearCodingProblemFields();
     examples = [];
     testCases = [];
-    codingProblems = [];
+    // codingProblems = [];
   }
 
   void deleteExam(dynamic exam, int examIndex) {
@@ -2709,25 +2800,35 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                       ),
                       // CLASS CODE
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        padding: const EdgeInsets.symmetric(horizontal: 15),
+                        child: Row(
                           children: [
-                            Text(
-                              widget.classCode,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: primary,
-                              ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  widget.classCode,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: primary,
+                                  ),
+                                ),
+                                const Text(
+                                  'Class Code',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black,
+                                  ),
+                                )
+                              ],
                             ),
-                            const Text(
-                              'Class Code',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.black,
-                              ),
+                            const Gap(25),
+                            IconButton(
+                              onPressed: () =>
+                                  openClassSettings(widget.classCode),
+                              icon: const Icon(Icons.settings_rounded),
                             )
                           ],
                         ),
@@ -3014,8 +3115,13 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                       (context,
                                                                           activityIndex) {
                                                                     final DateTime
-                                                                        deadline =
-                                                                        activities[activityIndex]['deadline']
+                                                                        openSchedule =
+                                                                        activities[activityIndex]['openSchedule']
+                                                                            .toDate();
+
+                                                                    final DateTime
+                                                                        closeSchedule =
+                                                                        activities[activityIndex]['closeSchedule']
                                                                             .toDate();
 
                                                                     final activity =
@@ -3032,16 +3138,17 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                         trailing:
                                                                             SizedBox(
                                                                           width:
-                                                                              250,
+                                                                              450,
                                                                           child:
                                                                               Row(
                                                                             mainAxisAlignment:
-                                                                                MainAxisAlignment.spaceBetween,
+                                                                                MainAxisAlignment.end,
                                                                             children: [
                                                                               Text(
-                                                                                'Deadline:\n${DateFormat.yMMMEd().add_jm().format(deadline)}',
-                                                                                style: const TextStyle(fontSize: 14),
+                                                                                'Open From: ${DateFormat.yMMMEd().add_jm().format(openSchedule)}\nUntil: ${DateFormat.yMMMEd().add_jm().format(closeSchedule)}',
+                                                                                textAlign: TextAlign.end,
                                                                               ),
+                                                                              const Gap(25),
                                                                               IconButton(
                                                                                 onPressed: () => deleteActivity(activityIndex),
                                                                                 icon: const Icon(Icons.delete_rounded),
@@ -3311,7 +3418,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                           MainAxisAlignment.end,
                                                       children: [
                                                         Text(
-                                                          'Open From: ${DateFormat.yMMMEd().add_jm().format(exam['openTime'].toDate())}\nUntil: ${DateFormat.yMMMEd().add_jm().format(exam['closeTime'].toDate())}',
+                                                          'Open From: ${DateFormat.yMMMEd().add_jm().format(exam['openSchedule'].toDate())}\nUntil: ${DateFormat.yMMMEd().add_jm().format(exam['closeSchedule'].toDate())}',
                                                           textAlign:
                                                               TextAlign.end,
                                                         ),
@@ -3381,7 +3488,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                   const Text(
                                     'Students',
                                     style: TextStyle(
-                                      fontSize: 18,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -3409,7 +3516,10 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                   if (!snapshot.hasData ||
                                       snapshot.data!.isEmpty) {
                                     return const Center(
-                                        child: Text('No students found.'));
+                                        child: Text(
+                                      'No students found.',
+                                      style: TextStyle(fontSize: 18),
+                                    ));
                                   }
 
                                   final students = snapshot.data!;
