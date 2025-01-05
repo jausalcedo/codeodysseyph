@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/screens/instructor/instructor_activity.dart';
+import 'package:codeodysseyph/services/alert_service.dart';
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:disclosure/disclosure.dart';
@@ -38,6 +39,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   // SERVICES
   final _firestoreService = CloudFirestoreService();
   final _storageService = FirebaseStorageService();
+  final _alertService = AlertService();
 
   // OPERATIONS
   Future<void> downloadLearningMaterial(String learningMaterialPath) async {
@@ -119,6 +121,21 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                     controller: copyPasteController,
                   ),
                   const Gap(25),
+                  TextButton(
+                    style: const ButtonStyle(
+                      backgroundColor: WidgetStatePropertyAll(primary),
+                      foregroundColor: WidgetStatePropertyAll(Colors.white),
+                    ),
+                    onPressed: () {
+                      if (changeViewController.text == changeView.toString() &&
+                          copyPasteController.text == copyPaste.toString()) {
+                        Navigator.of(context).pop();
+                      } else {
+                        saveViolations(classCode);
+                      }
+                    },
+                    child: const Text('Save'),
+                  ),
                 ],
               );
             },
@@ -126,6 +143,26 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
         ),
       ),
     );
+  }
+
+  Future<void> saveViolations(String classCode) async {
+    await _firestoreService
+        .saveViolations(
+      classCode: classCode,
+      changeView: double.parse(changeViewController.text),
+      copyPaste: double.parse(copyPasteController.text),
+    )
+        .then((_) {
+      // POP MODAL
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+
+      _alertService.showBanner(
+        // ignore: use_build_context_synchronously
+        context,
+        'Violation changes are saved successfully.',
+      );
+    });
   }
 
   // LESSON CONTROLLERS
@@ -1467,7 +1504,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                 final now = DateTime.now();
                 final pickedDate = await showDatePicker(
                   context: context,
-                  initialDate: activityClose ?? now,
+                  initialDate: isOpen ? openTime ?? now : closeTime ?? now,
                   firstDate: now,
                   lastDate: DateTime(now.year + 1, now.month - 6, now.day),
                 );
@@ -2331,6 +2368,219 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       },
       showCancelBtn: true,
     );
+  }
+
+  void showEditExamModal(int examIndex, Map<String, dynamic> exam) {
+    final maxScore = TextEditingController();
+    final durationHours = TextEditingController();
+    final durationMinutes = TextEditingController();
+
+    maxScore.text = exam['maxScore'].toString();
+    durationHours.text = exam['duration']['hours'].toString();
+    durationMinutes.text = exam['duration']['minutes'].toString();
+
+    DateTime examOpen = exam['openSchedule'].toDate();
+    DateTime examClose = exam['closeSchedule'].toDate();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Edit ${exam['exam']} ${exam['examType']} Exam Details'),
+            IconButton(
+              onPressed: Navigator.of(context).pop,
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 750,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  // MAX SCORE
+                  Expanded(
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        label: Text('Max Score'),
+                      ),
+                      controller: maxScore,
+                    ),
+                  ),
+                  const Gap(10),
+
+                  // HOURS
+                  Expanded(
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        label: Text('Duration (Hours)'),
+                      ),
+                      controller: durationHours,
+                    ),
+                  ),
+                  const Gap(10),
+
+                  // MINUTES
+                  Expanded(
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        label: Text('Duration(Minutes)'),
+                      ),
+                      controller: durationMinutes,
+                    ),
+                  ),
+                ],
+              ),
+              const Gap(10),
+
+              // OPEN AND CLOSE
+              StatefulBuilder(
+                builder: (context, setState) {
+                  Future<void> setDate({required bool isOpen}) async {
+                    final pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: isOpen ? examOpen : examClose,
+                      firstDate: isOpen ? examOpen : examClose,
+                      lastDate: DateTime(
+                        isOpen ? examOpen.year + 1 : examClose.year + 1,
+                        isOpen ? examOpen.month - 6 : examClose.month - 6,
+                        isOpen ? examOpen.day : examClose.day,
+                      ),
+                    );
+
+                    if (pickedDate != null) {
+                      final pickedTime = await showTimePicker(
+                        // ignore: use_build_context_synchronously
+                        context: context,
+                        initialTime: TimeOfDay.now(),
+                      );
+
+                      if (pickedTime != null) {
+                        setState(() {
+                          isOpen == true
+                              ? examOpen = DateTime(
+                                  pickedDate.year,
+                                  pickedDate.month,
+                                  pickedDate.day,
+                                  pickedTime.hour,
+                                  pickedTime.minute,
+                                )
+                              : examClose = DateTime(
+                                  pickedDate.year,
+                                  pickedDate.month,
+                                  pickedDate.day,
+                                  pickedTime.hour,
+                                  pickedTime.minute,
+                                );
+                        });
+                      }
+                    }
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: TextButton(
+                              style: const ButtonStyle(
+                                backgroundColor:
+                                    WidgetStatePropertyAll(primary),
+                                foregroundColor:
+                                    WidgetStatePropertyAll(Colors.white),
+                              ),
+                              onPressed: () => setDate(isOpen: true),
+                              child: Text(
+                                  'Open Schedule:\n${DateFormat.yMMMEd().add_jm().format(examOpen)}')),
+                        ),
+                      ),
+                      const Gap(10),
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: TextButton(
+                              style: ButtonStyle(
+                                backgroundColor:
+                                    WidgetStatePropertyAll(Colors.red[800]),
+                                foregroundColor:
+                                    const WidgetStatePropertyAll(Colors.white),
+                              ),
+                              onPressed: () => setDate(isOpen: false),
+                              child: Text(
+                                  'Close Schedule:\n${DateFormat.yMMMEd().add_jm().format(examClose)}')),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const Gap(25),
+
+              // SAVE CHANGES
+              TextButton(
+                style: const ButtonStyle(
+                  backgroundColor: WidgetStatePropertyAll(primary),
+                  foregroundColor: WidgetStatePropertyAll(Colors.white),
+                ),
+                onPressed: () {
+                  if (maxScore.text == exam['maxScore'].toString() &&
+                      durationHours.text ==
+                          exam['duration']['hours'].toString() &&
+                      durationMinutes.text ==
+                          exam['duration']['minutes'].toString() &&
+                      examOpen == exam['openSchedule'].toDate() &&
+                      examClose == exam['closeSchedule'].toDate()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    exam['maxScore'] =
+                        maxScore.text != '' ? maxScore.text : exam['maxScore'];
+                    exam['duration']['hours'] = durationHours.text != ''
+                        ? int.parse(durationHours.text)
+                        : exam['duration']['hours'];
+                    exam['duration']['minutes'] = durationMinutes.text != ''
+                        ? int.parse(durationMinutes.text)
+                        : exam['duration']['minutes'];
+                    exam['openSchedule'] = examOpen;
+                    exam['closeSchedule'] = examClose;
+                    saveExamEdits(examIndex, exam);
+                  }
+                },
+                child: const Text('Save Changes'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> saveExamEdits(int examIndex, dynamic exam) async {
+    QuickAlert.show(context: context, type: QuickAlertType.loading);
+
+    await _firestoreService
+        .editExamDetails(
+      classCode: widget.classCode,
+      examIndex: examIndex,
+      exam: exam,
+    )
+        .then((_) {
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+
+      // ignore: use_build_context_synchronously
+      _alertService.showBanner(context,
+          '${exam['exam']} ${exam['examType']} Exam Details Successfully Edited');
+    });
   }
 
   // STUDENT PERFORMANCE ESSENTIALS
@@ -3463,6 +3713,11 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                         )
                                                       ],
                                                     ),
+                                                  ),
+                                                  onTap: () =>
+                                                      showEditExamModal(
+                                                    examIndex,
+                                                    exam,
                                                   ),
                                                 ),
                                               );

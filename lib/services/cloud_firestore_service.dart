@@ -578,6 +578,24 @@ class CloudFirestoreService {
     });
   }
 
+  Future<void> editExamDetails({
+    required String classCode,
+    required int examIndex,
+    required dynamic exam,
+  }) async {
+    final classSnapshot =
+        await _firestore.collection('classes').doc(classCode).get();
+    final classData = classSnapshot.data();
+
+    final List exams = classData!['exams'];
+    exams[examIndex] = exam;
+
+    await _firestore
+        .collection('classes')
+        .doc(classCode)
+        .update({'exams': exams});
+  }
+
   Future<void> deleteExamFromClass({
     required BuildContext context,
     required String classCode,
@@ -669,6 +687,19 @@ class CloudFirestoreService {
       {required String classCode, required String studentId}) async {
     await _firestore.collection('classes').doc(classCode).update({
       'students': FieldValue.arrayRemove([studentId])
+    });
+  }
+
+  Future<void> saveViolations({
+    required String classCode,
+    required double changeView,
+    required double copyPaste,
+  }) async {
+    _firestore.collection('classes').doc(classCode).update({
+      'violations': {
+        'changeView': changeView,
+        'copyPaste': copyPaste,
+      },
     });
   }
 

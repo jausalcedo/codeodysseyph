@@ -63,7 +63,10 @@ class _StudentClassScreenState extends State<StudentClassScreen>
     }
   }
 
-  void goToStudentWrittenExamScreen() {
+  void goToStudentWrittenExamScreen({
+    required int examIndex,
+    required dynamic exam,
+  }) {
     // to do
   }
 
@@ -382,19 +385,16 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                                         activities[
                                                                             activityIndex];
 
-                                                                    final DateTime
-                                                                        deadline =
-                                                                        activity['deadline']
-                                                                            .toDate();
-
                                                                     return Card(
                                                                       child: ListTile(
                                                                           title: Text('Activity ${activityIndex + 1} ${activity['title'] != '' ? ':${activity['title']}' : ''} (${activity['maxScore']} points)'),
                                                                           subtitle: Text('Type: ${activity['activityType']}'),
                                                                           trailing: Text(
-                                                                            'Deadline:\n${DateFormat.yMMMEd().add_jm().format(deadline)}',
+                                                                            'Open From: ${DateFormat.yMMMEd().add_jm().format(activity['openSchedule'].toDate())}\nUntil: ${DateFormat.yMMMEd().add_jm().format(activity['closeSchedule'].toDate())}',
                                                                             style:
                                                                                 const TextStyle(fontSize: 14),
+                                                                            textAlign:
+                                                                                TextAlign.end,
                                                                           ),
                                                                           onTap: () {
                                                                             if (activity['activityType'] ==
@@ -567,15 +567,20 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                               return Card(
                                                 child: ListTile(
                                                   enabled: (DateTime.now()
-                                                          .isBefore(
-                                                              exam['closeTime']
-                                                                  .toDate()) &&
+                                                          .isBefore(exam[
+                                                                  'closeSchedule']
+                                                              .toDate()) &&
                                                       DateTime.now().isAfter(
-                                                          exam['openTime']
+                                                          exam['openSchedule']
                                                               .toDate())),
                                                   onTap: exam['examType'] ==
                                                           'Written'
-                                                      ? goToStudentWrittenExamScreen
+                                                      ? () =>
+                                                          goToStudentWrittenExamScreen(
+                                                            examIndex:
+                                                                examIndex,
+                                                            exam: exam,
+                                                          )
                                                       : () =>
                                                           goToStudentLaboratoryExamScreen(
                                                               exam),
@@ -594,7 +599,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                           MainAxisAlignment.end,
                                                       children: [
                                                         Text(
-                                                          'Open From: ${DateFormat.yMMMEd().add_jm().format(exam['openTime'].toDate())}\nUntil: ${DateFormat.yMMMEd().add_jm().format(exam['closeTime'].toDate())}',
+                                                          'Open From: ${DateFormat.yMMMEd().add_jm().format(exam['openSchedule'].toDate())}\nUntil: ${DateFormat.yMMMEd().add_jm().format(exam['closeSchedule'].toDate())}',
                                                           textAlign:
                                                               TextAlign.end,
                                                         ),
@@ -638,6 +643,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                             ],
                           ),
                         ),
+
                         // MY GRADES
                         Column(
                           children: [
@@ -764,6 +770,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                             ['score']
                                                         .toString();
                                                   }
+
                                                   return Card(
                                                     child: ListTile(
                                                       title: Text(
