@@ -31,7 +31,7 @@ class InstructorClassScreen extends StatefulWidget {
 }
 
 class _InstructorClassScreenState extends State<InstructorClassScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   // TAB ESSENTIALS
   late TabController tabController;
 
@@ -344,6 +344,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   int? duplicateChoiceIndex;
 
   // CODING PROBLEM CONTROLLERS
+  List<Map<String, dynamic>> codingProblems = [];
   final problemStatementController = TextEditingController();
   final constraintsController = TextEditingController();
   List<Map<String, dynamic>> examples = [];
@@ -2210,6 +2211,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     clearCodingProblemFields();
     examples = [];
     testCases = [];
+    codingProblems = [];
   }
 
   void deleteExam(dynamic exam, int examIndex) {
@@ -2240,10 +2242,233 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     );
   }
 
+  // STUDENT PERFORMANCE ESSENTIALS
+  late Future<List<Map<String, dynamic>>> studentsList;
+
+  void loadStudents() {
+    setState(() {
+      studentsList = getSortedStudents();
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getSortedStudents() async {
+    final classData = await _firestoreService.getCourseClassDataFuture(
+        'classes', widget.classCode);
+
+    if (!classData.exists) return [];
+
+    List<dynamic> studentIds = classData.data()?['students'] ?? [];
+
+    if (studentIds.isEmpty) return [];
+
+    List<Map<String, dynamic>> students = [];
+
+    for (String studentId in studentIds) {
+      final userDoc = await _firestoreService.getUserData(userId: studentId);
+
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+
+        students.add({
+          'studentId': userDoc.id,
+          'firstName': userData!['firstName'],
+          'lastName': userData['lastName'],
+        });
+      }
+    }
+
+    students.sort((a, b) {
+      return a['lastName']
+          .toString()
+          .toLowerCase()
+          .compareTo(b['lastName'].toString().toLowerCase());
+    });
+
+    return students;
+  }
+
+  void openConfirmRemoveStudent(String studentId, String studentName) {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.confirm,
+      title: 'Remove $studentName from class?',
+      onConfirmBtnTap: () => removeStudent(studentId),
+    );
+  }
+
+  Future<void> removeStudent(String studentId) async {
+    QuickAlert.show(context: context, type: QuickAlertType.loading);
+
+    await _firestoreService
+        .removeStudent(classCode: widget.classCode, studentId: studentId)
+        .then((_) {
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+
+      loadStudents();
+    });
+  }
+
+  late TabController studentPerformanceTabController;
+
+  void openIndividualPerformance(Map<String, dynamic> student) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: SizedBox(
+          width: 1080,
+          child: FutureBuilder(
+            future: _firestoreService.getCourseClassDataFuture(
+                'classes', widget.classCode),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                    child:
+                        Text('Error fetching student data: ${snapshot.error}'));
+              }
+
+              final classData = snapshot.data!.data();
+
+              final List lessons = classData?['lessons'] ?? [];
+
+              final List exams = classData?['exams'] ?? [];
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${student['lastName']}, ${student['firstName']}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: Navigator.of(context).pop,
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                  TabBar(
+                    controller: studentPerformanceTabController,
+                    tabs: const [
+                      Tab(text: 'Course Work'),
+                      Tab(text: 'Assessments'),
+                    ],
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      controller: studentPerformanceTabController,
+                      children: [
+                        // COURSE WORK
+                        ListView.builder(
+                          itemCount: lessons.length,
+                          itemBuilder: (context, lessonIndex) {
+                            final lesson = lessons[lessonIndex];
+
+                            final List activities = lesson?['activities'] ?? [];
+
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: activities.length,
+                              itemBuilder: (context, activityIndex) {
+                                final activity = activities[activityIndex];
+
+                                String? score;
+
+                                final Map<String, dynamic> submissions =
+                                    activity['submissions'] ?? {};
+                                if (submissions
+                                    .containsKey(student['studentId'])) {
+                                  score = activity['submissions']
+                                          [student['studentId']]['score']
+                                      .toString();
+                                }
+
+                                return Card(
+                                  child: ListTile(
+                                    title: Text(
+                                        'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}'),
+                                    trailing: Text(
+                                      score == null
+                                          ? 'Not yet taken.'
+                                          : "Score: $score/${activity['maxScore']}",
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+
+                        // ASSESSMENTS
+                        ListView.builder(
+                          itemCount: exams.length,
+                          itemBuilder: (context, examIndex) {
+                            final exam = exams[examIndex];
+
+                            String? score;
+
+                            final Map<String, dynamic> submissions =
+                                exam['submissions'] ?? {};
+
+                            if (submissions.containsKey(student['studentId'])) {
+                              score = exam['submissions'][student['studentId']]
+                                      ['score']
+                                  .toString();
+                            }
+
+                            return Card(
+                              child: ListTile(
+                                title: Text(
+                                    '${exam['exam']} ${exam['examType']} Exam'),
+                                trailing: Text(
+                                  score == null
+                                      ? 'Not yet taken.'
+                                      : "Score: $score/${exam['maxScore']}",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   // ANNOUNCEMENT ESSENTIALS
   final announcementTitleController = TextEditingController();
   final announcementMessageController = TextEditingController();
   final announcementFormKey = GlobalKey<FormState>();
+  final announcementsScrollController = ScrollController();
 
   void openAddAnnouncementModal() {
     showDialog(
@@ -2331,20 +2556,86 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       return;
     }
 
-    await _firestoreService.addAnnouncement(
-      classCode: widget.classCode,
-      title: announcementTitleController.text,
-      message: announcementMessageController.text,
-    );
+    QuickAlert.show(context: context, type: QuickAlertType.loading);
+
+    await _firestoreService
+        .getUserData(userId: widget.instructorId)
+        .then((fetchedData) async {
+      final instructorData = fetchedData.data();
+
+      await _firestoreService
+          .addAnnouncement(
+              classCode: widget.classCode,
+              title: announcementTitleController.text,
+              message: announcementMessageController.text,
+              instructorName:
+                  '${instructorData!['firstName']} ${instructorData['lastName']}')
+          .then((_) {
+        _scrollToBottom();
+      });
+    });
+
+    // ignore: use_build_context_synchronously
+    Navigator.of(context).pop();
 
     // ignore: use_build_context_synchronously
     Navigator.of(context).pop();
   }
 
+  Future<void> deleteAnnouncement(
+      String classCode, String announcementId) async {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.confirm,
+      title: 'Are you sure you want to delete this announcement?',
+      onConfirmBtnTap: () async {
+        Navigator.of(context).pop();
+
+        QuickAlert.show(context: context, type: QuickAlertType.loading);
+
+        await _firestoreService.deleteAnnouncement(
+          context: context,
+          classCode: classCode,
+          announcementId: announcementId,
+        );
+      },
+      showCancelBtn: true,
+    );
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (announcementsScrollController.hasClients) {
+        announcementsScrollController.animateTo(
+          announcementsScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
-    tabController = TabController(length: 4, vsync: this); // 4 tabs
+    tabController = TabController(length: 4, vsync: this);
+    // 4 tabs - Course Work, Assessments, Student Performance, Announcements
+
+    studentPerformanceTabController = TabController(length: 2, vsync: this);
+    // 2 tabs - Course Work, Assessments
+
+    tabController.addListener(() {
+      if (tabController.index == tabController.previousIndex) return;
+
+      if (tabController.index == 3) {
+        _scrollToBottom();
+      }
+    });
+
+    loadStudents();
   }
 
   @override
@@ -2355,6 +2646,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size(double.infinity, 75),
@@ -2466,7 +2758,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
-                                    'Lessons:',
+                                    'Lessons',
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -2829,7 +3121,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // QUIZZES
+                              // ADD BUTTON
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
@@ -2960,6 +3252,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                               //     ],
                               //   ),
                               // ),
+                              // EXAM LIST
                               const Text(
                                 'Examinations',
                                 style: TextStyle(
@@ -2981,12 +3274,20 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                   final classData = snapshot.data!.data();
 
                                   final List<dynamic> examList =
-                                      classData['exams'];
+                                      classData['exams'] ?? [];
 
                                   return Expanded(
                                     child: examList.isEmpty
                                         ? const Column(
-                                            children: [Text('No exams yet.')],
+                                            children: [
+                                              Center(
+                                                child: Text(
+                                                  'No exams yet.',
+                                                  style:
+                                                      TextStyle(fontSize: 20),
+                                                ),
+                                              ),
+                                            ],
                                           )
                                         : ListView.builder(
                                             itemCount: examList.length,
@@ -2995,7 +3296,6 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
 
                                               return Card(
                                                 child: ListTile(
-                                                  // textColor: Colors.white,
                                                   title: Text(
                                                     '${exam['exam']} ${exam['examType']} Examination',
                                                     style: const TextStyle(
@@ -3067,8 +3367,87 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                             ],
                           ),
                         ),
+
                         // STUDENT PERFORMANCE
-                        const Placeholder(),
+                        Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Students',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: loadStudents,
+                                    icon: const Icon(Icons.refresh_rounded),
+                                  ),
+                                ],
+                              ),
+                              FutureBuilder(
+                                future: getSortedStudents(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }
+
+                                  if (snapshot.hasError) {
+                                    return Center(
+                                        child:
+                                            Text('Error: ${snapshot.error}'));
+                                  }
+
+                                  if (!snapshot.hasData ||
+                                      snapshot.data!.isEmpty) {
+                                    return const Center(
+                                        child: Text('No students found.'));
+                                  }
+
+                                  final students = snapshot.data!;
+
+                                  return Expanded(
+                                    child: ListView.builder(
+                                      itemCount: students.length,
+                                      itemBuilder: (context, index) {
+                                        final student = students[index];
+                                        return Card(
+                                          child: ListTile(
+                                            onTap: () =>
+                                                openIndividualPerformance(
+                                                    student),
+                                            title: Text(
+                                              '${student['lastName']}, ${student['firstName']}',
+                                            ),
+                                            subtitle: Text(
+                                                'Account ID: ${student['studentId']}'),
+                                            trailing: IconButton(
+                                              onPressed: () =>
+                                                  openConfirmRemoveStudent(
+                                                      student['studentId'],
+                                                      '${student['firstName']} ${student['lastName']}'),
+                                              icon: const Icon(Icons.delete),
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+
                         // ANNOUNCEMENTS
                         Padding(
                           padding: const EdgeInsets.all(10),
@@ -3086,6 +3465,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                 label: const Text('New Announcement'),
                                 icon: const Icon(Icons.add_rounded),
                               ),
+                              const Gap(10),
                               StreamBuilder(
                                 stream: _firestoreService.getAnnouncements(
                                     classCode: widget.classCode),
@@ -3107,8 +3487,12 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                     );
                                   }
 
+                                  WidgetsBinding.instance.addPostFrameCallback(
+                                      (_) => _scrollToBottom());
+
                                   return Expanded(
                                     child: ListView(
+                                      controller: announcementsScrollController,
                                       children: snapshot.data!.docs
                                           .map<Widget>((doc) {
                                         Map<String, dynamic> data =
@@ -3118,59 +3502,72 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                             data['timestamp'].toDate();
 
                                         return Container(
-                                          margin: const EdgeInsets.symmetric(
-                                              vertical: 5),
-                                          alignment: Alignment.centerRight,
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Container(
-                                                constraints:
-                                                    data['message'].length > 30
-                                                        ? const BoxConstraints
-                                                            .tightFor(
-                                                            width: 350 - 150,
-                                                          )
-                                                        : BoxConstraints.loose(
-                                                            const Size(
-                                                              350,
-                                                              double.infinity,
-                                                            ),
-                                                          ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.grey[300],
-                                                  borderRadius:
-                                                      BorderRadius.circular(5),
-                                                ),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  vertical: 10,
-                                                  horizontal: 20,
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.end,
-                                                  children: [
-                                                    Text(
-                                                      data['message'],
-                                                      style: const TextStyle(
-                                                        fontSize: 16,
-                                                        color: Colors.black,
+                                          margin:
+                                              const EdgeInsets.only(bottom: 5),
+                                          alignment: Alignment.centerLeft,
+                                          child: Card(
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                vertical: 10,
+                                                horizontal: 20,
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      // ANNOUNCEMENT TITLE
+                                                      Text(
+                                                        data['title'] != ''
+                                                            ? data['title']
+                                                            : 'Announcement',
+                                                        style: const TextStyle(
+                                                          fontSize: 18,
+                                                          color: Colors.black,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
                                                       ),
-                                                    ),
-                                                    Text(
-                                                      DateFormat.EEEE()
-                                                          .add_jm()
-                                                          .format(dateTime),
-                                                      style: TextStyle(
-                                                        fontSize: 8,
-                                                        color: Colors.grey[600],
+
+                                                      // DELETE BUTTON
+                                                      IconButton(
+                                                        onPressed: () =>
+                                                            deleteAnnouncement(
+                                                          widget.classCode,
+                                                          doc.id,
+                                                        ),
+                                                        icon: const Icon(
+                                                            Icons.delete),
+                                                        color: Colors.red,
                                                       ),
+                                                    ],
+                                                  ),
+                                                  const Divider(),
+                                                  // MESSAGE
+                                                  Text(
+                                                    data['message'],
+                                                    style: const TextStyle(
+                                                      fontSize: 18,
+                                                      color: Colors.black,
                                                     ),
-                                                  ],
-                                                ),
-                                              )
-                                            ],
+                                                  ),
+                                                  const Gap(5),
+                                                  // INSTRUCTOR NAME AND DATE TIME SENT
+                                                  Text(
+                                                    'by ${data['instructorName']}\n${DateFormat.yMMMMEEEEd().add_jm().format(dateTime)}',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.grey[600],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                           ),
                                         );
                                       }).toList(), // Convert to a List<Widget>

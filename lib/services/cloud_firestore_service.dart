@@ -12,7 +12,14 @@ class CloudFirestoreService {
 
   // SERVICES
   final _storageService = FirebaseStorageService();
-  final _errorService = AlertService();
+  final _alertService = AlertService();
+
+  // --- GENERAL USER FUNCTIONS ---
+  Future<DocumentSnapshot<Map<String, dynamic>>> getUserData({
+    required String userId,
+  }) async {
+    return await _firestore.collection('users').doc(userId).get();
+  }
 
   // --- INSTRUCTOR FUNCTIONS ---
 
@@ -51,7 +58,7 @@ class CloudFirestoreService {
       final tempSelectedCourse =
           courseList.firstWhere((element) => element.code == selectedCourse);
 
-      _errorService.showBanner(
+      _alertService.showBanner(
         // ignore: use_build_context_synchronously
         context,
         '${tempSelectedCourse.code} - ${tempSelectedCourse.title} Course Outline Successfully Added!',
@@ -103,7 +110,7 @@ class CloudFirestoreService {
         final tempSelectedCourse =
             courseList.firstWhere((element) => element.code == selectedCourse);
 
-        _errorService.showBanner(
+        _alertService.showBanner(
           // ignore: use_build_context_synchronously
           context,
           '${tempSelectedCourse.code} - ${tempSelectedCourse.title} Course Outline Successfully Added!',
@@ -126,14 +133,14 @@ class CloudFirestoreService {
   ) async {
     try {
       await _firestore.collection('courses').doc(courseId).delete().then((_) {
-        _errorService.showBanner(
+        _alertService.showBanner(
           // ignore: use_build_context_synchronously
           context,
           '$courseTitle Successfully Deleted.',
         );
       });
     } on FirebaseException catch (e) {
-      _errorService.showBanner(
+      _alertService.showBanner(
         // ignore: use_build_context_synchronously
         context,
         'There was an error deleting $courseTitle in Firestore: $e.',
@@ -199,7 +206,7 @@ class CloudFirestoreService {
           ]),
           'lastUpdated': FieldValue.serverTimestamp(),
         }).then((_) {
-          _errorService.showBanner(
+          _alertService.showBanner(
             // ignore: use_build_context_synchronously
             context!,
             '$lessonTitle Successfully Added.',
@@ -235,7 +242,7 @@ class CloudFirestoreService {
             'lastUpdated': FieldValue.serverTimestamp(),
           });
         }).then((_) {
-          _errorService.showBanner(
+          _alertService.showBanner(
             // ignore: use_build_context_synchronously
             context!,
             '$lessonTitle Successfully Added before Lesson ${insertAtIndex + 1}',
@@ -243,7 +250,7 @@ class CloudFirestoreService {
         });
       }
     } on FirebaseException catch (e) {
-      _errorService.showBanner(
+      _alertService.showBanner(
         // ignore: use_build_context_synchronously
         context!,
         'There was an error adding $lessonTitle in Firestore: $e.',
@@ -270,7 +277,7 @@ class CloudFirestoreService {
             'lessons': FieldValue.arrayRemove([lesson]),
             'lastUpdated': FieldValue.serverTimestamp(),
           }).then((_) {
-            _errorService.showBanner(
+            _alertService.showBanner(
               // ignore: use_build_context_synchronously
               context,
               '${lesson['title']} has been successfully deleted.',
@@ -279,7 +286,7 @@ class CloudFirestoreService {
         });
       });
     } on FirebaseException catch (ex) {
-      _errorService.showBanner(
+      _alertService.showBanner(
         // ignore: use_build_context_synchronously
         context,
         'An error occured while trying to delete ${lesson['title']}: $ex',
@@ -515,7 +522,7 @@ class CloudFirestoreService {
         );
       });
     } on FirebaseException catch (ex) {
-      _errorService.showBanner(
+      _alertService.showBanner(
         // ignore: use_build_context_synchronously
         context,
         'Unable to delete activity due to error: $ex',
@@ -597,7 +604,7 @@ class CloudFirestoreService {
         );
       });
     } on FirebaseException catch (ex) {
-      _errorService.showBanner(
+      _alertService.showBanner(
         // ignore: use_build_context_synchronously
         context,
         'Unable to delete exam due to error: $ex',
@@ -605,10 +612,12 @@ class CloudFirestoreService {
     }
   }
 
-  Future<void> addAnnouncement(
-      {required String classCode,
-      String? title,
-      required String message}) async {
+  Future<void> addAnnouncement({
+    required String classCode,
+    String? title,
+    required String message,
+    required String instructorName,
+  }) async {
     final Timestamp timestamp = Timestamp.now();
 
     await _firestore
@@ -619,6 +628,7 @@ class CloudFirestoreService {
       'title': title ?? '! Announcement !',
       'message': message,
       'timestamp': timestamp,
+      'instructorName': instructorName,
     });
   }
 
@@ -629,6 +639,33 @@ class CloudFirestoreService {
         .collection('messages')
         .orderBy('timestamp', descending: false)
         .snapshots();
+  }
+
+  Future<void> deleteAnnouncement({
+    required BuildContext context,
+    required String classCode,
+    required String announcementId,
+  }) async {
+    await _firestore
+        .collection('announcements')
+        .doc(classCode)
+        .collection('messages')
+        .doc(announcementId)
+        .delete()
+        .then((_) {
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+
+      // ignore: use_build_context_synchronously
+      _alertService.showBanner(context, 'Announcement Successfully Deleted.');
+    });
+  }
+
+  Future<void> removeStudent(
+      {required String classCode, required String studentId}) async {
+    await _firestore.collection('classes').doc(classCode).update({
+      'students': FieldValue.arrayRemove([studentId])
+    });
   }
 
   // --- STUDENT FUNCTIONS ---
@@ -686,7 +723,7 @@ class CloudFirestoreService {
         );
       }
     } on FirebaseException catch (ex) {
-      _errorService.showBanner(
+      _alertService.showBanner(
         // ignore: use_build_context_synchronously
         context,
         'Unable to join class due to error: $ex',

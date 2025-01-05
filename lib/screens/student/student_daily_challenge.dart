@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:codeodysseyph/components/student/student_appbar.dart';
+import 'package:codeodysseyph/components/student/student_drawer.dart';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/screens/auth/auth_checker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,7 +15,9 @@ import 'package:quickalert/quickalert.dart';
 import 'package:intl/intl.dart';
 
 class StudentDailyChallenge extends StatefulWidget {
-  const StudentDailyChallenge({super.key});
+  const StudentDailyChallenge({super.key, required this.userId});
+
+  final String userId;
 
   @override
   State<StudentDailyChallenge> createState() => _StudentDailyChallengeState();
@@ -404,6 +407,7 @@ public class Main {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: StudentDrawer(studentId: widget.userId),
       appBar: const PreferredSize(
         preferredSize: Size(double.infinity, 75),
         child: StudentAppbar(backButton: false),
