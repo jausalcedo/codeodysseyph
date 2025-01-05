@@ -723,7 +723,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                                 : "Score: $score/${activity['maxScore']}",
                                                             style:
                                                                 const TextStyle(
-                                                              fontSize: 18,
+                                                              fontSize: 16,
                                                             ),
                                                           ),
                                                         ),

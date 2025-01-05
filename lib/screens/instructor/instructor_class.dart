@@ -31,7 +31,7 @@ class InstructorClassScreen extends StatefulWidget {
 }
 
 class _InstructorClassScreenState extends State<InstructorClassScreen>
-    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   // TAB ESSENTIALS
   late TabController tabController;
 
@@ -2311,6 +2311,159 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     });
   }
 
+  late TabController studentPerformanceTabController;
+
+  void openIndividualPerformance(Map<String, dynamic> student) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: SizedBox(
+          width: 1080,
+          child: FutureBuilder(
+            future: _firestoreService.getCourseClassDataFuture(
+                'classes', widget.classCode),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                    child:
+                        Text('Error fetching student data: ${snapshot.error}'));
+              }
+
+              final classData = snapshot.data!.data();
+
+              final List lessons = classData?['lessons'] ?? [];
+
+              final List exams = classData?['exams'] ?? [];
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${student['lastName']}, ${student['firstName']}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: Navigator.of(context).pop,
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                  TabBar(
+                    controller: studentPerformanceTabController,
+                    tabs: const [
+                      Tab(text: 'Course Work'),
+                      Tab(text: 'Assessments'),
+                    ],
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      controller: studentPerformanceTabController,
+                      children: [
+                        // COURSE WORK
+                        ListView.builder(
+                          itemCount: lessons.length,
+                          itemBuilder: (context, lessonIndex) {
+                            final lesson = lessons[lessonIndex];
+
+                            final List activities = lesson?['activities'] ?? [];
+
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: activities.length,
+                              itemBuilder: (context, activityIndex) {
+                                final activity = activities[activityIndex];
+
+                                String? score;
+
+                                final Map<String, dynamic> submissions =
+                                    activity['submissions'] ?? {};
+                                if (submissions
+                                    .containsKey(student['studentId'])) {
+                                  score = activity['submissions']
+                                          [student['studentId']]['score']
+                                      .toString();
+                                }
+
+                                return Card(
+                                  child: ListTile(
+                                    title: Text(
+                                        'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}'),
+                                    trailing: Text(
+                                      score == null
+                                          ? 'Not yet taken.'
+                                          : "Score: $score/${activity['maxScore']}",
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+
+                        // ASSESSMENTS
+                        ListView.builder(
+                          itemCount: exams.length,
+                          itemBuilder: (context, examIndex) {
+                            final exam = exams[examIndex];
+
+                            String? score;
+
+                            final Map<String, dynamic> submissions =
+                                exam['submissions'] ?? {};
+
+                            if (submissions.containsKey(student['studentId'])) {
+                              score = exam['submissions'][student['studentId']]
+                                      ['score']
+                                  .toString();
+                            }
+
+                            return Card(
+                              child: ListTile(
+                                title: Text(
+                                    '${exam['exam']} ${exam['examType']} Exam'),
+                                trailing: Text(
+                                  score == null
+                                      ? 'Not yet taken.'
+                                      : "Score: $score/${exam['maxScore']}",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   // ANNOUNCEMENT ESSENTIALS
   final announcementTitleController = TextEditingController();
   final announcementMessageController = TextEditingController();
@@ -2468,7 +2621,11 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   @override
   void initState() {
     super.initState();
-    tabController = TabController(length: 4, vsync: this); // 4 tabs
+    tabController = TabController(length: 4, vsync: this);
+    // 4 tabs - Course Work, Assessments, Student Performance, Announcements
+
+    studentPerformanceTabController = TabController(length: 2, vsync: this);
+    // 2 tabs - Course Work, Assessments
 
     tabController.addListener(() {
       if (tabController.index == tabController.previousIndex) return;
@@ -3264,6 +3421,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                         final student = students[index];
                                         return Card(
                                           child: ListTile(
+                                            onTap: () =>
+                                                openIndividualPerformance(
+                                                    student),
                                             title: Text(
                                               '${student['lastName']}, ${student['firstName']}',
                                             ),
