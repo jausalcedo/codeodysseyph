@@ -6,12 +6,15 @@ import 'package:codeodysseyph/services/alert_service.dart';
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:disclosure/disclosure.dart';
+import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:url_launcher/url_launcher.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 
 class InstructorClassScreen extends StatefulWidget {
   const InstructorClassScreen({
@@ -2805,6 +2808,170 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     );
   }
 
+  Future<Map<String, dynamic>> fetchStudentScoresWithDynamicHeaders(
+      List<Map<String, dynamic>> students) async {
+    try {
+      final classSnapshot = await _firestoreService.getCourseClassDataFuture(
+          'classes', widget.classCode);
+
+      if (!classSnapshot.exists) {
+        throw Exception('Class with code ${widget.classCode} does not exist.');
+      }
+
+      Map<String, dynamic> classData =
+          classSnapshot.data() as Map<String, dynamic>;
+
+      List lessons = classData['lessons'] ?? [];
+      List exams = classData['exams'] ?? [];
+
+      // HEADERS
+      List<String> activityHeaders = [];
+      List<String> examHeaders = [];
+      Map<String, String> activityHeaderMapping = {};
+      Map<String, int> examHeaderMapping = {};
+
+      // GENERATE ACTIVITY HEADERS
+      for (int lessonIndex = 0; lessonIndex < lessons.length; lessonIndex++) {
+        List activities = lessons[lessonIndex]['activities'] ?? [];
+
+        for (int activityIndex = 0;
+            activityIndex < activities.length;
+            activityIndex++) {
+          String header = 'L${lessonIndex + 1}A${activityIndex + 1}';
+          activityHeaders.add(header);
+          activityHeaderMapping[header] = '$lessonIndex-$activityIndex';
+        }
+      }
+
+      // GENERATE EXAM HEADERS
+      for (int examIndex = 0; examIndex < exams.length; examIndex++) {
+        String header = 'E${examIndex + 1}';
+        examHeaders.add(header);
+        examHeaderMapping[header] = examIndex;
+      }
+
+      // PREPARE SCORES
+      List<Map<String, dynamic>> studentScores = students.map((student) {
+        String studentId = student['studentId'];
+        String firstName = student['firstName'];
+        String lastName = student['lastName'];
+
+        // INITIALIZE ROW DATA FOR STUDENTS
+        Map<String, dynamic> scores = {
+          'studentId': studentId,
+          'firstName': firstName,
+          'lastName': lastName,
+        };
+
+        // FETCH ACTIVITY SCORES
+        activityHeaderMapping.forEach((header, mapping) {
+          List<String> indices = mapping.split('-');
+          int lessonIndex = int.parse(indices[0]);
+          int activityIndex = int.parse(indices[1]);
+          var activity = lessons[lessonIndex]['activities'][activityIndex];
+          var submissions = activity['submissions'] ?? {};
+          scores[header] =
+              submissions[studentId]?['score']?.toString() ?? 'N/A';
+        });
+
+        // FETCH EXAM SCORES
+        examHeaderMapping.forEach((header, index) {
+          var exam = exams[index];
+          var submissions = exam['submissions'] ?? {};
+          scores[header] =
+              submissions[studentId]?['score']?.toString() ?? 'N/A';
+        });
+
+        return scores;
+      }).toList();
+
+      return {
+        'headers': ['lastName', 'firstName'] + activityHeaders + examHeaders,
+        'data': studentScores,
+      };
+    } catch (e) {
+      print('Error fetching student scores: $e');
+      rethrow;
+    }
+  }
+
+  Future<Excel> createDynamicExcel(
+    List<String> headers,
+    List<Map<String, dynamic>> studentScores,
+  ) async {
+    var excel = Excel.createExcel();
+    Sheet sheet = excel['Sheet1'];
+
+    // WRITE HEADERS
+    for (int i = 0; i < headers.length; i++) {
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+          .value = TextCellValue(headers[i].toUpperCase());
+    }
+
+    // WRITE SCORES FOR EACH STUDENT
+    for (int rowIndex = 0; rowIndex < studentScores.length; rowIndex++) {
+      Map<String, dynamic> student = studentScores[rowIndex];
+
+      for (int colIndex = 0; colIndex < headers.length; colIndex++) {
+        String header = headers[colIndex];
+        sheet
+                .cell(CellIndex.indexByColumnRow(
+                    columnIndex: colIndex, rowIndex: rowIndex + 1))
+                .value =
+            TextCellValue(
+                student[header] != null ? student[header].toString() : 'N/A');
+      }
+    }
+
+    return excel;
+  }
+
+  void downloadExcelFile({
+    Excel? excel,
+    String? fileName,
+  }) {
+    final List<int>? bytes = excel!.encode();
+    if (bytes == null) return;
+
+    final Uint8List uint8list = Uint8List.fromList(bytes);
+    final blob = html.Blob([uint8list]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+
+    // ignore: unused_local_variable
+    final anchor = html.AnchorElement(href: url)
+      ..target = 'blank'
+      ..download = fileName
+      ..click();
+
+    html.Url.revokeObjectUrl(url);
+  }
+
+  void exportDynamicScoresToExcel(List<Map<String, dynamic>> students) async {
+    try {
+      // FETCH STUDENT SCORES AND HEADERS
+      Map<String, dynamic> scoresData =
+          await fetchStudentScoresWithDynamicHeaders(students);
+
+      List<String> headers = scoresData['headers'];
+      List<Map<String, dynamic>> studentScores = scoresData['data'];
+
+      // CREATE EXCEL FILE
+      Excel excel = await createDynamicExcel(headers, studentScores);
+
+      String className = widget.courseCodeYearBlock.replaceAll('-', '');
+      className = className.replaceAll(' ', '');
+
+      // DOWNLOAD EXCEL FILE
+      downloadExcelFile(
+        excel: excel,
+        fileName: 'StudentScores_$className.xlsx',
+      );
+    } catch (e) {
+      print('Error exporting scores: $e');
+    }
+  }
+
   // ANNOUNCEMENT ESSENTIALS
   final announcementTitleController = TextEditingController();
   final announcementMessageController = TextEditingController();
@@ -3733,53 +3900,72 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                         // STUDENT PERFORMANCE
                         Padding(
                           padding: const EdgeInsets.all(10),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                          child: FutureBuilder(
+                            future: getSortedStudents(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Center(
+                                    child: CircularProgressIndicator());
+                              }
+
+                              if (snapshot.hasError) {
+                                return Center(
+                                    child: Text('Error: ${snapshot.error}'));
+                              }
+
+                              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                                return const Center(
+                                    child: Text(
+                                  'No students found.',
+                                  style: TextStyle(fontSize: 18),
+                                ));
+                              }
+
+                              final students = snapshot.data!;
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Students',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Students',
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          TextButton.icon(
+                                            style: ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      Colors.green[800]),
+                                              foregroundColor:
+                                                  const WidgetStatePropertyAll(
+                                                      Colors.white),
+                                            ),
+                                            onPressed: () =>
+                                                exportDynamicScoresToExcel(
+                                                    students),
+                                            label: const Text('Export Scores'),
+                                            icon: const Icon(
+                                                Icons.save_alt_rounded),
+                                          ),
+                                          IconButton(
+                                            onPressed: loadStudents,
+                                            icon: const Icon(
+                                                Icons.refresh_rounded),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
-                                  IconButton(
-                                    onPressed: loadStudents,
-                                    icon: const Icon(Icons.refresh_rounded),
-                                  ),
-                                ],
-                              ),
-                              FutureBuilder(
-                                future: getSortedStudents(),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState ==
-                                      ConnectionState.waiting) {
-                                    return const Center(
-                                        child: CircularProgressIndicator());
-                                  }
-
-                                  if (snapshot.hasError) {
-                                    return Center(
-                                        child:
-                                            Text('Error: ${snapshot.error}'));
-                                  }
-
-                                  if (!snapshot.hasData ||
-                                      snapshot.data!.isEmpty) {
-                                    return const Center(
-                                        child: Text(
-                                      'No students found.',
-                                      style: TextStyle(fontSize: 18),
-                                    ));
-                                  }
-
-                                  final students = snapshot.data!;
-
-                                  return Expanded(
+                                  Expanded(
                                     child: ListView.builder(
                                       itemCount: students.length,
                                       itemBuilder: (context, index) {
@@ -3792,8 +3978,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                             title: Text(
                                               '${student['lastName']}, ${student['firstName']}',
                                             ),
-                                            subtitle: Text(
-                                                'Account ID: ${student['studentId']}'),
+                                            // subtitle: Text(
+                                            //     'Account ID: ${student['studentId']}'),
                                             trailing: IconButton(
                                               onPressed: () =>
                                                   openConfirmRemoveStudent(
@@ -3806,10 +3992,10 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                         );
                                       },
                                     ),
-                                  );
-                                },
-                              ),
-                            ],
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
 
