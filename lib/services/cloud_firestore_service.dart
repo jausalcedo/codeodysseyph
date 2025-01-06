@@ -510,9 +510,10 @@ class CloudFirestoreService {
     activities[activityIndex] = activity;
     lessons[lessonIndex]['activities'] = activities;
 
-    await _firestore.collection('classes').doc(classCode).update({
-      'lessons': lessons,
-    });
+    await _firestore
+        .collection('classes')
+        .doc(classCode)
+        .update({'lessons': lessons});
   }
 
   Future<void> deleteActivityFromLesson({
@@ -796,6 +797,47 @@ class CloudFirestoreService {
         .snapshots();
   }
 
+  Future<void> submitActivityAnswer({
+    required String classCode,
+    required bool isCodingProblem,
+    required int lessonIndex,
+    required int activityIndex,
+    required String studentId,
+    required double score,
+    String? codingProblemAnswer,
+    List<String?>? multipleChoiceAnswer,
+  }) async {
+    final classSnapshot =
+        await _firestore.collection('classes').doc(classCode).get();
+    final classData = classSnapshot.data();
+
+    final lessons = classData!['lessons'];
+
+    final activities = lessons[lessonIndex]['activities'];
+
+    final activity = activities[activityIndex];
+
+    Map<String, dynamic> submissions = activity['submissions'];
+
+    Map<String, dynamic> submissionContent = {
+      'score': score,
+      'answer': isCodingProblem ? codingProblemAnswer : multipleChoiceAnswer,
+    };
+
+    submissions.addAll({
+      studentId: submissionContent,
+    });
+
+    activity['submissions'] = submissions;
+    activities[activityIndex] = activity;
+    lessons[lessonIndex]['activities'] = activities;
+
+    await _firestore
+        .collection('classes')
+        .doc(classCode)
+        .update({'lessons': lessons});
+  }
+
   Future<void> submitExamAnswer({
     required String classCode,
     required bool isLab,
@@ -803,7 +845,7 @@ class CloudFirestoreService {
     required String studentId,
     required double score,
     String? laboratoryAnswer,
-    List<String>? writtenAnswer,
+    List<String?>? writtenAnswer,
     int? copyPasteViolations,
     required int changeViewViolations,
   }) async {

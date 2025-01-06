@@ -65,7 +65,7 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
 
     // Loop through the student's answers and compare with correct answers
     for (int i = 0; i < multipleChoiceList!.length; i++) {
-      final correctAnswer = multipleChoiceList![i]['correctAnswer'];
+      final correctAnswer = multipleChoiceList![i]['correctAnswer'].toString();
       final studentAnswer = studentAnswers[i];
 
       if (studentAnswer == correctAnswer) {
@@ -75,8 +75,7 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
 
     // Calculate the score or percentage
     int totalQuestions = multipleChoiceList!.length;
-    double score =
-        (correctCount / totalQuestions) * int.parse(widget.exam['maxScore']);
+    double score = (correctCount / totalQuestions) * widget.exam['maxScore'];
 
     // Show the result using a dialog or navigation
     Navigator.of(context).pop(); // Close the confirmation dialog
@@ -90,11 +89,12 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
       onConfirmBtnTap: () {
         _firestoreService.submitExamAnswer(
           classCode: widget.classCode,
-          isLab: true,
+          isLab: false,
           examIndex: widget.examIndex,
           studentId: widget.studentId,
           score: score,
           changeViewViolations: changeViewViolations,
+          writtenAnswer: studentAnswers,
         );
 
         Navigator.of(context).pop();

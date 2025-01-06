@@ -44,6 +44,8 @@ class _StudentClassScreenState extends State<StudentClassScreen>
   // LESSONS
   int? numberOfLessons;
 
+  int? currentlyOpenLesson;
+
   // ACTIVITIES
 
   // OPERATIONS
@@ -236,7 +238,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                     tabs: const [
                       Tab(text: 'Course Work'),
                       Tab(text: 'Assessments'),
-                      Tab(text: 'My Grades'),
+                      Tab(text: 'My Scores'),
                       Tab(text: 'Announcements'),
                     ],
                   ),
@@ -332,6 +334,14 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                 ),
                                                 divider:
                                                     const Divider(height: 1),
+                                                onToggle: (value) {
+                                                  if (value == false) {
+                                                    currentlyOpenLesson =
+                                                        lessonIndex;
+                                                  } else {
+                                                    currentlyOpenLesson = null;
+                                                  }
+                                                },
                                                 child: Container(
                                                   color: Colors.white,
                                                   width: double.infinity,
@@ -410,30 +420,54 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                                         activities[
                                                                             activityIndex];
 
+                                                                    final Map<
+                                                                            String,
+                                                                            dynamic>
+                                                                        submissions =
+                                                                        activity['submissions'] ??
+                                                                            {};
+
+                                                                    bool
+                                                                        alreadyAnswered =
+                                                                        submissions
+                                                                            .containsKey(widget.studentId);
+
                                                                     return Card(
-                                                                      child: ListTile(
-                                                                          title: Text('Activity ${activityIndex + 1} ${activity['title'] != '' ? ':${activity['title']}' : ''} (${activity['maxScore']} points)'),
-                                                                          subtitle: Text('Type: ${activity['activityType']}'),
-                                                                          trailing: Text(
-                                                                            'Open From: ${DateFormat.yMMMEd().add_jm().format(activity['openSchedule'].toDate())}\nUntil: ${DateFormat.yMMMEd().add_jm().format(activity['closeSchedule'].toDate())}',
-                                                                            style:
-                                                                                const TextStyle(fontSize: 14),
-                                                                            textAlign:
-                                                                                TextAlign.end,
-                                                                          ),
-                                                                          onTap: () {
-                                                                            if (activity['activityType'] ==
-                                                                                'Multiple Choice') {
-                                                                              Navigator.of(context).push(MaterialPageRoute(
-                                                                                builder: (context) => StudentMultipleChoiceActivityScreen(
-                                                                                  studentId: widget.studentId,
-                                                                                  activity: activity,
-                                                                                  lessonTitle: lesson['title'],
-                                                                                  activityNumber: activityIndex + 1,
-                                                                                ),
-                                                                              ));
-                                                                            }
-                                                                          }),
+                                                                      child:
+                                                                          ListTile(
+                                                                        title: Text(
+                                                                            'Activity ${activityIndex + 1} ${activity['title'] != '' ? ':${activity['title']}' : ''} (${activity['maxScore']} points)'),
+                                                                        subtitle:
+                                                                            Text('Type: ${activity['activityType']}'),
+                                                                        trailing:
+                                                                            Text(
+                                                                          'Open From: ${DateFormat.yMMMEd().add_jm().format(activity['openSchedule'].toDate())}\nUntil: ${DateFormat.yMMMEd().add_jm().format(activity['closeSchedule'].toDate())}',
+                                                                          style:
+                                                                              const TextStyle(fontSize: 14),
+                                                                          textAlign:
+                                                                              TextAlign.end,
+                                                                        ),
+                                                                        onTap: alreadyAnswered
+                                                                            ? () => QuickAlert.show(
+                                                                                  context: context,
+                                                                                  type: QuickAlertType.error,
+                                                                                  title: 'You have already answered this activity.',
+                                                                                )
+                                                                            : activity['activityType'] == 'Multiple Choice'
+                                                                                ? () => Navigator.of(context).push(MaterialPageRoute(
+                                                                                      builder: (context) => StudentMultipleChoiceActivityScreen(
+                                                                                        classCode: widget.classCode,
+                                                                                        studentId: widget.studentId,
+                                                                                        activity: activity,
+                                                                                        lessonIndex: currentlyOpenLesson!,
+                                                                                        lessonTitle: lesson['title'],
+                                                                                        activityIndex: activityIndex,
+                                                                                      ),
+                                                                                    ))
+                                                                                : () => () {
+                                                                                      print('ETO YUNG SA CODING PROBLEM ACTIVITY');
+                                                                                    },
+                                                                      ),
                                                                     );
                                                                   },
                                                                 ),

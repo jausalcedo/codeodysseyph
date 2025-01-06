@@ -1,4 +1,5 @@
 import 'package:codeodysseyph/components/student/student_appbar.dart';
+import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
@@ -8,16 +9,20 @@ import 'package:quickalert/widgets/quickalert_dialog.dart';
 class StudentMultipleChoiceActivityScreen extends StatefulWidget {
   const StudentMultipleChoiceActivityScreen({
     super.key,
+    required this.classCode,
     required this.studentId,
     required this.activity,
+    required this.lessonIndex,
     required this.lessonTitle,
-    required this.activityNumber,
+    required this.activityIndex,
   });
 
+  final String classCode;
   final String studentId;
   final Map<String, dynamic> activity;
+  final int lessonIndex;
   final String lessonTitle;
-  final int activityNumber;
+  final int activityIndex;
 
   @override
   State<StudentMultipleChoiceActivityScreen> createState() =>
@@ -26,6 +31,9 @@ class StudentMultipleChoiceActivityScreen extends StatefulWidget {
 
 class _StudentMultipleChoiceActivityScreenState
     extends State<StudentMultipleChoiceActivityScreen> {
+  // SERVICES
+  final _firestoreService = CloudFirestoreService();
+
   // STUDENT'S ANSWERS
   late List<String?> studentAnswers;
 
@@ -41,12 +49,55 @@ class _StudentMultipleChoiceActivityScreenState
       confirmBtnText: 'Yes',
       confirmBtnColor: Colors.green[800]!,
       onConfirmBtnTap: () {
-        Navigator.of(context).pop();
-        Navigator.of(context).pop();
+        checkAnswers();
       },
       showCancelBtn: true,
       cancelBtnText: 'Not yet',
       onCancelBtnTap: Navigator.of(context).pop,
+    );
+  }
+
+  void checkAnswers() {
+    int correctCount = 0;
+
+    // LOOP THROUGH THE STUDENT'S ANSWERS AND COMPARE WITH CORRECT ANSWERS
+    for (int i = 0; i < multipleChoiceList!.length; i++) {
+      final correctAnswer = multipleChoiceList![i]['correctAnswer'].toString();
+      final studentAnswer = studentAnswers[i];
+
+      if (studentAnswer == correctAnswer) {
+        correctCount++;
+      }
+    }
+
+    // CALCULATE SCORE
+    int totalQuestions = multipleChoiceList!.length;
+    double score =
+        (correctCount / totalQuestions) * widget.activity['maxScore'];
+
+    // SHOW THE RESULT
+    Navigator.of(context).pop();
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.success,
+      title: 'Submission Complete',
+      text:
+          'You answered $correctCount/$totalQuestions correctly (${score.toStringAsFixed(1)}%).',
+      confirmBtnText: 'Okay',
+      onConfirmBtnTap: () {
+        _firestoreService.submitActivityAnswer(
+          classCode: widget.classCode,
+          isCodingProblem: false,
+          lessonIndex: widget.lessonIndex,
+          activityIndex: widget.activityIndex,
+          studentId: widget.studentId,
+          score: score,
+          multipleChoiceAnswer: studentAnswers,
+        );
+
+        Navigator.of(context).pop();
+        Navigator.of(context).pop();
+      },
     );
   }
 
@@ -93,14 +144,20 @@ class _StudentMultipleChoiceActivityScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // LESSON TITLE
-                          Text(
-                            widget.lessonTitle,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          SizedBox(
+                            width: 500,
+                            child: Text(
+                              'Lesson ${widget.lessonIndex + 1}: ${widget.lessonTitle}',
+                              maxLines: null,
+                              overflow: TextOverflow.visible,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
 
                           // ACTIVITY TITLE
                           Text(
-                            'Activity ${widget.activityNumber} ${widget.activity['title'] != '' ? ':${widget.activity['title']}' : ''}',
+                            'Activity ${widget.activityIndex} ${widget.activity['title'] != '' ? ':${widget.activity['title']}' : ''}',
                             style: const TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 20),
                           ),
@@ -160,7 +217,8 @@ class _StudentMultipleChoiceActivityScreenState
                                     return ListTile(
                                       title: Text(item['choices'][index]),
                                       leading: Radio<String>(
-                                        value: item['choices'][index],
+                                        value:
+                                            item['choices'][index].toString(),
                                         groupValue: studentAnswers[itemIndex],
                                         onChanged: (String? value) {
                                           setState(() {

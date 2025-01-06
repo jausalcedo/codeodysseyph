@@ -2729,8 +2729,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                       examClose == exam['closeSchedule'].toDate()) {
                     Navigator.of(context).pop();
                   } else {
-                    exam['maxScore'] =
-                        maxScore.text != '' ? maxScore.text : exam['maxScore'];
+                    exam['maxScore'] = maxScore.text != ''
+                        ? int.parse(maxScore.text)
+                        : exam['maxScore'];
                     exam['duration']['hours'] = durationHours.text != ''
                         ? int.parse(durationHours.text)
                         : exam['duration']['hours'];
