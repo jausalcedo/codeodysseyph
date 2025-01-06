@@ -1393,6 +1393,192 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     outputController.clear();
   }
 
+  void openEditActivityDetailsModal(
+    int activityIndex,
+    Map<String, dynamic> activity,
+  ) {
+    final activityMaxScoreController = TextEditingController();
+    activityMaxScoreController.text = activity['maxScore'].toString();
+
+    DateTime activityOpenSchedule = activity['openSchedule'].toDate();
+    DateTime activityCloseSchedule = activity['closeSchedule'].toDate();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Edit Lesson ${currentlyOpenLesson! + 1} - Activity ${activityIndex + 1} Details',
+            ),
+            IconButton(
+              onPressed: Navigator.of(context).pop,
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 750,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              StatefulBuilder(
+                builder: (BuildContext context, setState) {
+                  Future<void> setDate({required bool isOpen}) async {
+                    final pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate:
+                          isOpen ? activityOpenSchedule : activityCloseSchedule,
+                      firstDate:
+                          isOpen ? activityOpenSchedule : activityCloseSchedule,
+                      lastDate: DateTime(
+                        isOpen
+                            ? activityOpenSchedule.year + 1
+                            : activityCloseSchedule.year + 1,
+                        isOpen
+                            ? activityOpenSchedule.month - 6
+                            : activityCloseSchedule.month - 6,
+                        isOpen
+                            ? activityOpenSchedule.day
+                            : activityCloseSchedule.day,
+                      ),
+                    );
+
+                    if (pickedDate != null) {
+                      final pickedTime = await showTimePicker(
+                        // ignore: use_build_context_synchronously
+                        context: context,
+                        initialTime: TimeOfDay.now(),
+                      );
+
+                      if (pickedTime != null) {
+                        setState(() {
+                          isOpen == true
+                              ? activityOpenSchedule = DateTime(
+                                  pickedDate.year,
+                                  pickedDate.month,
+                                  pickedDate.day,
+                                  pickedTime.hour,
+                                  pickedTime.minute,
+                                )
+                              : activityCloseSchedule = DateTime(
+                                  pickedDate.year,
+                                  pickedDate.month,
+                                  pickedDate.day,
+                                  pickedTime.hour,
+                                  pickedTime.minute,
+                                );
+                        });
+                      }
+                    }
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            label: Text('Max Score'),
+                          ),
+                          controller: activityMaxScoreController,
+                        ),
+                      ),
+                      const Gap(10),
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: TextButton(
+                            style: const ButtonStyle(
+                              backgroundColor: WidgetStatePropertyAll(primary),
+                              foregroundColor:
+                                  WidgetStatePropertyAll(Colors.white),
+                            ),
+                            onPressed: () => setDate(isOpen: true),
+                            child: Text(
+                                'Open Schedule:\n${DateFormat.yMMMEd().add_jm().format(activityOpenSchedule)}'),
+                          ),
+                        ),
+                      ),
+                      const Gap(10),
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: TextButton(
+                            style: ButtonStyle(
+                              backgroundColor:
+                                  WidgetStatePropertyAll(Colors.red[800]),
+                              foregroundColor:
+                                  const WidgetStatePropertyAll(Colors.white),
+                            ),
+                            onPressed: () => setDate(isOpen: false),
+                            child: Text(
+                                'Open Schedule:\n${DateFormat.yMMMEd().add_jm().format(activityCloseSchedule)}'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const Gap(25),
+              TextButton(
+                style: const ButtonStyle(
+                  backgroundColor: WidgetStatePropertyAll(primary),
+                  foregroundColor: WidgetStatePropertyAll(Colors.white),
+                ),
+                onPressed: () {
+                  if (activityMaxScoreController.text ==
+                          activity['maxScore'].toString() &&
+                      activityOpenSchedule ==
+                          activity['openSchedule'].toDate() &&
+                      activityCloseSchedule ==
+                          activity['closeSchedule'].toDate()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    activity['maxScore'] =
+                        int.parse(activityMaxScoreController.text);
+                    activity['openSchedule'] = activityOpenSchedule;
+                    activity['closeSchedule'] = activityCloseSchedule;
+                    saveActivityDetails(activityIndex, activity);
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> saveActivityDetails(
+    int activityIndex,
+    dynamic activity,
+  ) async {
+    QuickAlert.show(context: context, type: QuickAlertType.loading);
+
+    await _firestoreService
+        .editActivityDetails(
+      classCode: widget.classCode,
+      lessonIndex: currentlyOpenLesson!,
+      activityIndex: activityIndex,
+      activity: activity,
+    )
+        .then((_) {
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+
+      // ignore: use_build_context_synchronously
+      _alertService.showBanner(context,
+          'Successfully edited Lesson ${currentlyOpenLesson! + 1} - Activity ${activityIndex + 1}');
+    });
+  }
+
   void openAddAdditionalResourceModal() {
     // TO DO
   }
@@ -2493,15 +2679,15 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                         child: SizedBox(
                           height: 50,
                           child: TextButton(
-                              style: const ButtonStyle(
-                                backgroundColor:
-                                    WidgetStatePropertyAll(primary),
-                                foregroundColor:
-                                    WidgetStatePropertyAll(Colors.white),
-                              ),
-                              onPressed: () => setDate(isOpen: true),
-                              child: Text(
-                                  'Open Schedule:\n${DateFormat.yMMMEd().add_jm().format(examOpen)}')),
+                            style: const ButtonStyle(
+                              backgroundColor: WidgetStatePropertyAll(primary),
+                              foregroundColor:
+                                  WidgetStatePropertyAll(Colors.white),
+                            ),
+                            onPressed: () => setDate(isOpen: true),
+                            child: Text(
+                                'Open Schedule:\n${DateFormat.yMMMEd().add_jm().format(examOpen)}'),
+                          ),
                         ),
                       ),
                       const Gap(10),
@@ -2509,15 +2695,16 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                         child: SizedBox(
                           height: 50,
                           child: TextButton(
-                              style: ButtonStyle(
-                                backgroundColor:
-                                    WidgetStatePropertyAll(Colors.red[800]),
-                                foregroundColor:
-                                    const WidgetStatePropertyAll(Colors.white),
-                              ),
-                              onPressed: () => setDate(isOpen: false),
-                              child: Text(
-                                  'Close Schedule:\n${DateFormat.yMMMEd().add_jm().format(examClose)}')),
+                            style: ButtonStyle(
+                              backgroundColor:
+                                  WidgetStatePropertyAll(Colors.red[800]),
+                              foregroundColor:
+                                  const WidgetStatePropertyAll(Colors.white),
+                            ),
+                            onPressed: () => setDate(isOpen: false),
+                            child: Text(
+                                'Close Schedule:\n${DateFormat.yMMMEd().add_jm().format(examClose)}'),
+                          ),
                         ),
                       ),
                     ],
@@ -3574,14 +3761,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                           ),
                                                                         ),
                                                                         onTap: () =>
-                                                                            openInstructorActivityScreen(
-                                                                          widget
-                                                                              .instructorId,
-                                                                          activities[
-                                                                              activityIndex],
-                                                                          'Lesson ${lessonIndex + 1}: ${lessonList[activityIndex]['title']}',
-                                                                          activityIndex +
-                                                                              1,
+                                                                            openEditActivityDetailsModal(
+                                                                          activityIndex,
+                                                                          activity,
                                                                         ),
                                                                       ),
                                                                     );

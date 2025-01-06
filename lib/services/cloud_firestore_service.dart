@@ -493,6 +493,28 @@ class CloudFirestoreService {
     });
   }
 
+  Future<void> editActivityDetails({
+    required String classCode,
+    required int lessonIndex,
+    required int activityIndex,
+    dynamic activity,
+  }) async {
+    // TO DO
+    final classSnapshot =
+        await _firestore.collection('classes').doc(classCode).get();
+    final classData = classSnapshot.data();
+
+    final List lessons = classData!['lessons'];
+    final List activities = lessons[lessonIndex]['activities'];
+
+    activities[activityIndex] = activity;
+    lessons[lessonIndex]['activities'] = activities;
+
+    await _firestore.collection('classes').doc(classCode).update({
+      'lessons': lessons,
+    });
+  }
+
   Future<void> deleteActivityFromLesson({
     required BuildContext context,
     required String classCode,

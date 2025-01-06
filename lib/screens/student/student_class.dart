@@ -44,6 +44,8 @@ class _StudentClassScreenState extends State<StudentClassScreen>
   // LESSONS
   int? numberOfLessons;
 
+  // ACTIVITIES
+
   // OPERATIONS
   Future<void> downloadLearningMaterial(String learningMaterialPath) async {
     final downloadUrl = await _storageService.storageRef
@@ -63,6 +65,8 @@ class _StudentClassScreenState extends State<StudentClassScreen>
       );
     }
   }
+
+  // ASSESSMENTS
 
   void goToStudentWrittenExamScreen({
     required int examIndex,
