@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:codeodysseyph/components/student/student_appbar.dart';
 import 'package:codeodysseyph/constants/colors.dart';
-import 'package:codeodysseyph/screens/auth/auth_checker.dart';
+import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:flutter/material.dart';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html';
@@ -15,11 +15,22 @@ import 'package:highlight/languages/java.dart';
 import 'package:quickalert/quickalert.dart';
 
 class StudentLaboratoryExamScreen extends StatefulWidget {
-  const StudentLaboratoryExamScreen(
-      {super.key, required this.exam, required this.startTime});
+  const StudentLaboratoryExamScreen({
+    super.key,
+    required this.classCode,
+    required this.exam,
+    required this.startTime,
+    required this.examIndex,
+    required this.violations,
+    required this.studentId,
+  });
 
+  final String classCode;
   final dynamic exam;
   final DateTime startTime;
+  final int examIndex;
+  final dynamic violations;
+  final String studentId;
 
   @override
   State<StudentLaboratoryExamScreen> createState() =>
@@ -28,7 +39,10 @@ class StudentLaboratoryExamScreen extends StatefulWidget {
 
 class _StudentLaboratoryExamScreenState
     extends State<StudentLaboratoryExamScreen>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with
+        SingleTickerProviderStateMixin,
+        WidgetsBindingObserver,
+        AutomaticKeepAliveClientMixin {
   void goToFullScreen() {
     document.documentElement!.requestFullscreen();
   }
@@ -46,9 +60,12 @@ class _StudentLaboratoryExamScreenState
   late TabController tabController;
 
   // CODE EDITOR ESSENTIALS
-  final _codeEditorController = CodeController(
+  final codeEditorController = CodeController(
     language: java,
   );
+
+  // SERVICES
+  final _firestoreService = CloudFirestoreService();
 
   String script = """
 public class Main {
@@ -58,8 +75,17 @@ public class Main {
 }
 """;
 
+  String previousCode = """
+public class Main {
+  public static void main(String[] args) {
+    // TYPE YOUR SOLUTION HERE
+  }
+}
+""";
+
   // ANTI CHEAT
-  List<double> violations = [];
+  int copyPasteViolations = 0;
+  int changeViewViolations = 0;
 
   late List<dynamic> correctTestCases;
 
@@ -99,7 +125,7 @@ public class Main {
     );
 
     final prompt =
-        'Check if the Java solution satisfies the results of the test cases when it is compiled, run, and inputted into the program. If the solution does not satisfy the test cases, return false, otherwise true. Java solution: ${_codeEditorController.fullText}\n Test Cases: ${testCases.toString()}';
+        'Check if the Java solution satisfies the results of the test cases when it is compiled, run, and inputted into the program. If the solution does not satisfy the test cases, return false, otherwise true. Java solution: ${codeEditorController.fullText}\n Test Cases: ${testCases.toString()}';
 
     try {
       QuickAlert.show(
@@ -115,8 +141,6 @@ public class Main {
         setState(() {
           correctTestCases = parsedResponse['testCaseResults'];
         });
-
-        print(parsedResponse['explanation']);
 
         // POP THE LOADING
         // ignore: use_build_context_synchronously
@@ -138,29 +162,39 @@ public class Main {
 
   void submitSolution(List<dynamic> testCases) {
     checkSolution(testCases).then((explanation) {
-      print(violations);
-      double initialScore = widget.exam['maxScore'] *
+      double score = widget.exam['maxScore'] *
           (correctTestCases.where((value) => value == true).length /
               widget.exam['content']['testCases'].length);
-      for (int i = 0; i < violations.length; i++) {
-        initialScore -= violations[i];
-      }
-      if (initialScore < 0) initialScore = 0;
+      score -= copyPasteViolations * widget.violations['copyPaste'];
+      score -= changeViewViolations * widget.violations['changeView'];
+      if (score < 0) score = 0;
       QuickAlert.show(
         // ignore: use_build_context_synchronously
         context: context,
         type: QuickAlertType.success,
-        title: 'You got: $initialScore',
-        text: explanation,
+        title: 'You got: $score',
+        text:
+            '$explanation${copyPasteViolations > 0 ? '\nYou copied and pasted text $copyPasteViolations times.' : ''}${changeViewViolations > 0 ? '\nYou left the exam view $changeViewViolations times.' : ''}',
         onConfirmBtnTap: () {
+          _firestoreService.submitExamAnswer(
+            classCode: widget.classCode,
+            isLab: true,
+            examIndex: widget.examIndex,
+            studentId: widget.studentId,
+            score: score,
+            copyPasteViolations: copyPasteViolations,
+            changeViewViolations: changeViewViolations,
+            laboratoryAnswer: codeEditorController.fullText,
+          );
           Navigator.of(context).pop();
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => const AuthChecker(),
-          ));
+          goBackToClass();
         },
       );
     });
   }
+
+  @override
+  var wantKeepAlive = true;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -170,7 +204,7 @@ public class Main {
 
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
-      violations.add(2.5);
+      changeViewViolations++;
     }
   }
 
@@ -180,7 +214,7 @@ public class Main {
 
     goToFullScreen();
     tabController = TabController(length: 1, vsync: this);
-    _codeEditorController.text = script;
+    codeEditorController.text = script;
 
     // ANTI CHEAT
     WidgetsBinding.instance.addObserver(this);
@@ -207,6 +241,8 @@ public class Main {
   Widget build(BuildContext context) {
     int hours = widget.exam['duration']['hours'] * 60;
     int totalMinutes = widget.exam['duration']['minutes'] + hours;
+
+    super.build(context);
 
     return Scaffold(
       appBar: const PreferredSize(
@@ -317,7 +353,19 @@ public class Main {
                                   data: CodeThemeData(styles: vsTheme),
                                   child: SingleChildScrollView(
                                     child: CodeField(
-                                      controller: _codeEditorController,
+                                      controller: codeEditorController,
+                                      onChanged: (code) {
+                                        if (code.length - previousCode.length >
+                                            11) {
+                                          print(code.length);
+                                          print(previousCode.length);
+                                          print('copy paste violation!');
+                                          copyPasteViolations++;
+                                        }
+                                        setState(() {
+                                          previousCode = code;
+                                        });
+                                      },
                                     ),
                                   ),
                                 ),

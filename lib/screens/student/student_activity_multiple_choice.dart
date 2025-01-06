@@ -68,14 +68,13 @@ class _StudentMultipleChoiceActivityScreenState
         child: StudentAppbar(),
       ),
       body: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
         children: [
           // NAVIGATION
           const Expanded(
             child: Column(
-              children: [
-                Placeholder(),
-              ],
+              children: [],
             ),
           ),
 
@@ -111,11 +110,10 @@ class _StudentMultipleChoiceActivityScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // DEADLINE
-                          const Text('Deadline:'),
+                          const Text('Close Schedule:'),
                           Text(
-                            DateFormat.yMMMEd()
-                                .add_jm()
-                                .format(widget.activity['deadline'].toDate()),
+                            DateFormat.yMMMEd().add_jm().format(
+                                widget.activity['closeSchedule'].toDate()),
                           ),
                         ],
                       )

@@ -2,6 +2,7 @@ import 'package:codeodysseyph/components/student/student_appbar.dart';
 import 'package:codeodysseyph/constants/colors.dart';
 import 'package:codeodysseyph/screens/student/student_activity_multiple_choice.dart';
 import 'package:codeodysseyph/screens/student/student_exam_laboratory.dart';
+import 'package:codeodysseyph/screens/student/student_exam_written.dart';
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:disclosure/disclosure.dart';
@@ -66,16 +67,36 @@ class _StudentClassScreenState extends State<StudentClassScreen>
   void goToStudentWrittenExamScreen({
     required int examIndex,
     required dynamic exam,
+    required dynamic violations,
   }) {
-    // to do
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => StudentWrittenExamScreen(
+          classCode: widget.classCode,
+          exam: exam,
+          startTime: DateTime.now(),
+          examIndex: examIndex,
+          violations: violations,
+          studentId: widget.studentId,
+        ),
+      ),
+    );
   }
 
-  void goToStudentLaboratoryExamScreen(dynamic exam) {
+  void goToStudentLaboratoryExamScreen({
+    required dynamic exam,
+    required int examIndex,
+    required dynamic violations,
+  }) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => StudentLaboratoryExamScreen(
+          classCode: widget.classCode,
           exam: exam,
           startTime: DateTime.now(),
+          examIndex: examIndex,
+          violations: violations,
+          studentId: widget.studentId,
         ),
       ),
     );
@@ -181,7 +202,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                       ),
                       // CLASS CODE
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 15),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -564,26 +585,51 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                             itemBuilder: (context, examIndex) {
                                               final exam = examList[examIndex];
 
+                                              final Map<String, dynamic>
+                                                  submissions =
+                                                  exam['submissions'] ?? {};
+
+                                              bool alreadyAnswered =
+                                                  submissions.containsKey(
+                                                      widget.studentId);
+
                                               return Card(
                                                 child: ListTile(
-                                                  enabled: (DateTime.now()
+                                                  enabled: (!DateTime.now()
                                                           .isBefore(exam[
-                                                                  'closeSchedule']
+                                                                  'openSchedule']
                                                               .toDate()) &&
-                                                      DateTime.now().isAfter(
-                                                          exam['openSchedule']
+                                                      !DateTime.now().isAfter(
+                                                          exam['closeSchedule']
                                                               .toDate())),
-                                                  onTap: exam['examType'] ==
-                                                          'Written'
-                                                      ? () =>
-                                                          goToStudentWrittenExamScreen(
-                                                            examIndex:
-                                                                examIndex,
-                                                            exam: exam,
+                                                  onTap: alreadyAnswered
+                                                      ? () => QuickAlert.show(
+                                                            context: context,
+                                                            type: QuickAlertType
+                                                                .error,
+                                                            title:
+                                                                'You have already answered this exam.',
                                                           )
-                                                      : () =>
-                                                          goToStudentLaboratoryExamScreen(
-                                                              exam),
+                                                      : exam['examType'] ==
+                                                              'Written'
+                                                          ? () =>
+                                                              goToStudentWrittenExamScreen(
+                                                                examIndex:
+                                                                    examIndex,
+                                                                exam: exam,
+                                                                violations:
+                                                                    classData[
+                                                                        'violations'],
+                                                              )
+                                                          : () =>
+                                                              goToStudentLaboratoryExamScreen(
+                                                                exam: exam,
+                                                                examIndex:
+                                                                    examIndex,
+                                                                violations:
+                                                                    classData[
+                                                                        'violations'],
+                                                              ),
                                                   title: Text(
                                                     '${exam['exam']} ${exam['examType']} Examination',
                                                     style: const TextStyle(

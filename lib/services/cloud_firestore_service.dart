@@ -773,4 +773,56 @@ class CloudFirestoreService {
         .where('students', arrayContains: studentId)
         .snapshots();
   }
+
+  Future<void> submitExamAnswer({
+    required String classCode,
+    required bool isLab,
+    required int examIndex,
+    required String studentId,
+    required double score,
+    String? laboratoryAnswer,
+    List<String>? writtenAnswer,
+    int? copyPasteViolations,
+    required int changeViewViolations,
+  }) async {
+    // TO DO
+    final classSnapshot =
+        await _firestore.collection('classes').doc(classCode).get();
+    final classData = classSnapshot.data();
+
+    final exams = classData!['exams'];
+
+    final answeredExam = exams[examIndex];
+
+    Map<String, dynamic> submissions = answeredExam['submissions'];
+
+    Map<String, dynamic> submissionContent = {};
+
+    if (isLab) {
+      submissionContent = {
+        'score': score,
+        'laboratoryAnswer': laboratoryAnswer,
+        'copyPasteViolations': copyPasteViolations,
+        'changeViewViolations': changeViewViolations,
+      };
+    } else {
+      submissionContent = {
+        'score': score,
+        'writtenAnswer': writtenAnswer,
+        'changeViewViolations': changeViewViolations,
+      };
+    }
+
+    submissions.addAll({
+      studentId: submissionContent,
+    });
+
+    answeredExam['submissions'] = submissions;
+    exams[examIndex] = answeredExam;
+
+    await _firestore
+        .collection('classes')
+        .doc(classCode)
+        .update({'exams': exams});
+  }
 }

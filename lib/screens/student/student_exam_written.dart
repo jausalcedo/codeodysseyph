@@ -1,28 +1,42 @@
 import 'package:codeodysseyph/components/student/student_appbar.dart';
+import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_timer_countdown/flutter_timer_countdown.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html';
 
-class StudentLaboratoryExamScreen extends StatefulWidget {
-  const StudentLaboratoryExamScreen({
+class StudentWrittenExamScreen extends StatefulWidget {
+  const StudentWrittenExamScreen({
     super.key,
-    required this.examIndex,
+    required this.classCode,
     required this.exam,
+    required this.startTime,
+    required this.examIndex,
+    required this.violations,
+    required this.studentId,
   });
 
-  final int examIndex;
-
+  final String classCode;
   final dynamic exam;
+  final DateTime startTime;
+  final int examIndex;
+  final dynamic violations;
+  final String studentId;
 
   @override
-  State<StudentLaboratoryExamScreen> createState() =>
-      _StudentLaboratoryExamScreenState();
+  State<StudentWrittenExamScreen> createState() =>
+      _StudentWrittenExamScreenState();
 }
 
-class _StudentLaboratoryExamScreenState
-    extends State<StudentLaboratoryExamScreen> {
+class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
+    with WidgetsBindingObserver {
+  // SERVICES
+  final _firestoreService = CloudFirestoreService();
+
   // STUDENT'S ANSWERS
   late List<String?> studentAnswers;
 
@@ -38,8 +52,7 @@ class _StudentLaboratoryExamScreenState
       confirmBtnText: 'Yes',
       confirmBtnColor: Colors.green[800]!,
       onConfirmBtnTap: () {
-        Navigator.of(context).pop();
-        Navigator.of(context).pop();
+        checkAnswers();
       },
       showCancelBtn: true,
       cancelBtnText: 'Not yet',
@@ -47,32 +60,109 @@ class _StudentLaboratoryExamScreenState
     );
   }
 
+  void checkAnswers() {
+    int correctCount = 0;
+
+    // Loop through the student's answers and compare with correct answers
+    for (int i = 0; i < multipleChoiceList!.length; i++) {
+      final correctAnswer = multipleChoiceList![i]['correctAnswer'];
+      final studentAnswer = studentAnswers[i];
+
+      if (studentAnswer == correctAnswer) {
+        correctCount++;
+      }
+    }
+
+    // Calculate the score or percentage
+    int totalQuestions = multipleChoiceList!.length;
+    double score =
+        (correctCount / totalQuestions) * int.parse(widget.exam['maxScore']);
+
+    // Show the result using a dialog or navigation
+    Navigator.of(context).pop(); // Close the confirmation dialog
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.success,
+      title: 'Submission Complete',
+      text:
+          'You answered $correctCount/$totalQuestions correctly (${score.toStringAsFixed(1)}%).',
+      confirmBtnText: 'Okay',
+      onConfirmBtnTap: () {
+        _firestoreService.submitExamAnswer(
+          classCode: widget.classCode,
+          isLab: true,
+          examIndex: widget.examIndex,
+          studentId: widget.studentId,
+          score: score,
+          changeViewViolations: changeViewViolations,
+        );
+
+        Navigator.of(context).pop();
+        goBackToClass();
+      },
+    );
+  }
+
+  void goToFullScreen() {
+    document.documentElement!.requestFullscreen();
+  }
+
+  void exitFullScreen() {
+    document.exitFullscreen();
+  }
+
+  void goBackToClass() {
+    exitFullScreen();
+    Navigator.of(context).pop();
+  }
+
+  // ANTI CHEAT
+  int changeViewViolations = 0;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (!mounted) return;
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      changeViewViolations++;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+
+    goToFullScreen();
+
     multipleChoiceList = widget.exam['content'];
     studentAnswers = List<String?>.generate(
       multipleChoiceList!.length,
       (index) => null,
     );
+
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   Widget build(BuildContext context) {
+    int hours = widget.exam['duration']['hours'] * 60;
+    int totalMinutes = widget.exam['duration']['minutes'] + hours;
+
     return Scaffold(
       appBar: const PreferredSize(
         preferredSize: Size(double.infinity, 75),
-        child: StudentAppbar(),
+        child: StudentAppbar(backButton: false),
       ),
       body: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
         children: [
-          // NAVIGATION
           const Expanded(
             child: Column(
-              children: [
-                Placeholder(),
-              ],
+              children: [],
             ),
           ),
 
@@ -105,7 +195,7 @@ class _StudentLaboratoryExamScreenState
                           Text(
                             DateFormat.yMMMEd()
                                 .add_jm()
-                                .format(widget.exam['deadline'].toDate()),
+                                .format(widget.exam['closeSchedule'].toDate()),
                           ),
                         ],
                       )
@@ -191,11 +281,28 @@ class _StudentLaboratoryExamScreenState
           ),
 
           // INVISIBLE WIDGET
-          const Expanded(
-            child: Column(
-              children: [
-                SizedBox(),
-              ],
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                children: [
+                  const Center(child: Text('Time Left')),
+                  Center(
+                    child: TimerCountdown(
+                      timeTextStyle: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      format: totalMinutes > 60
+                          ? CountDownTimerFormat.hoursMinutesSeconds
+                          : CountDownTimerFormat.minutesSeconds,
+                      endTime: widget.startTime.add(
+                        Duration(minutes: totalMinutes),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
