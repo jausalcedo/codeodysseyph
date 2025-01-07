@@ -1,5 +1,6 @@
 import 'package:codeodysseyph/components/student/student_appbar.dart';
 import 'package:codeodysseyph/constants/colors.dart';
+import 'package:codeodysseyph/screens/student/student_activity_coding_problem.dart';
 import 'package:codeodysseyph/screens/student/student_activity_multiple_choice.dart';
 import 'package:codeodysseyph/screens/student/student_exam_laboratory.dart';
 import 'package:codeodysseyph/screens/student/student_exam_written.dart';
@@ -454,19 +455,29 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                                                   title: 'You have already answered this activity.',
                                                                                 )
                                                                             : activity['activityType'] == 'Multiple Choice'
-                                                                                ? () => Navigator.of(context).push(MaterialPageRoute(
-                                                                                      builder: (context) => StudentMultipleChoiceActivityScreen(
-                                                                                        classCode: widget.classCode,
-                                                                                        studentId: widget.studentId,
-                                                                                        activity: activity,
-                                                                                        lessonIndex: currentlyOpenLesson!,
-                                                                                        lessonTitle: lesson['title'],
-                                                                                        activityIndex: activityIndex,
+                                                                                ? () => Navigator.of(context).push(
+                                                                                      MaterialPageRoute(
+                                                                                        builder: (context) => StudentMultipleChoiceActivityScreen(
+                                                                                          classCode: widget.classCode,
+                                                                                          studentId: widget.studentId,
+                                                                                          activity: activity,
+                                                                                          lessonIndex: currentlyOpenLesson!,
+                                                                                          lessonTitle: lesson['title'],
+                                                                                          activityIndex: activityIndex,
+                                                                                        ),
                                                                                       ),
-                                                                                    ))
-                                                                                : () => () {
-                                                                                      print('ETO YUNG SA CODING PROBLEM ACTIVITY');
-                                                                                    },
+                                                                                    )
+                                                                                : () => Navigator.of(context).push(
+                                                                                      MaterialPageRoute(
+                                                                                        builder: (context) => StudentCodingProblemActivityScreen(
+                                                                                          classCode: widget.classCode,
+                                                                                          lessonIndex: currentlyOpenLesson!,
+                                                                                          activityIndex: activityIndex,
+                                                                                          activity: activity,
+                                                                                          studentId: widget.studentId,
+                                                                                        ),
+                                                                                      ),
+                                                                                    ),
                                                                       ),
                                                                     );
                                                                   },
