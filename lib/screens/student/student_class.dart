@@ -7,6 +7,7 @@ import 'package:codeodysseyph/screens/student/student_exam_written.dart';
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:disclosure/disclosure.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
@@ -85,6 +86,140 @@ class _StudentClassScreenState extends State<StudentClassScreen>
           examIndex: examIndex,
           violations: violations,
           studentId: widget.studentId,
+        ),
+      ),
+    );
+  }
+
+  void openSubmitActivityModal() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: SizedBox(
+          width: 800,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Activity 1',
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Date Assigned
+              const Text(
+                "26 Dec 2024",
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              // Instructions and Points
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Instruction:',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Answer all the problems. Submit your output in a PDF file.',
+                          style: TextStyle(
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Text(
+                    "100 Points",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Color.fromARGB(255, 43, 43, 43),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // File Attachment Button
+              Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      print("Attach file");
+                    },
+                    icon: const Icon(Icons.attach_file_rounded),
+                    label: const Text("Attach File"),
+                  )),
+              const SizedBox(height: 16),
+              // File List
+              Expanded(
+                child: ListView.builder(
+                  itemCount: 2,
+                  itemBuilder: (context, index) {
+                    return Card(
+                      child: ListTile(
+                        title: const Text("Title.pdf"),
+                        trailing: IconButton(
+                          onPressed: () {
+                            print("Delete file");
+                          },
+                          icon: const Icon(
+                            Icons.delete_rounded,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Center(
+                child: ElevatedButton(
+                    onPressed: () {
+                      QuickAlert.show(
+                        context: context,
+                        type: QuickAlertType.warning,
+                        title: 'Are you sure to submit?',
+                        confirmBtnText: 'Yes',
+                        onConfirmBtnTap: () {
+                          // CLEAR ALL FIELDS
+                          Navigator.of(context).pop();
+                          // CLOSE THE ADD ACTIVTIY MODAL
+                          Navigator.of(context).pop();
+                        },
+                        showCancelBtn: true,
+                        cancelBtnText: 'Go Back',
+                        onCancelBtnTap: Navigator.of(context).pop,
+                      );
+                    },
+                    child: const Text("Submit")),
+              )
+            ],
+          ),
         ),
       ),
     );
@@ -434,51 +569,19 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                                             .containsKey(widget.studentId);
 
                                                                     return Card(
-                                                                      child:
-                                                                          ListTile(
-                                                                        title: Text(
-                                                                            'Activity ${activityIndex + 1} ${activity['title'] != '' ? ':${activity['title']}' : ''} (${activity['maxScore']} points)'),
-                                                                        subtitle:
-                                                                            Text('Type: ${activity['activityType']}'),
-                                                                        trailing:
-                                                                            Text(
-                                                                          'Open From: ${DateFormat.yMMMEd().add_jm().format(activity['openSchedule'].toDate())}\nUntil: ${DateFormat.yMMMEd().add_jm().format(activity['closeSchedule'].toDate())}',
-                                                                          style:
-                                                                              const TextStyle(fontSize: 14),
-                                                                          textAlign:
-                                                                              TextAlign.end,
-                                                                        ),
-                                                                        onTap: alreadyAnswered
-                                                                            ? () => QuickAlert.show(
-                                                                                  context: context,
-                                                                                  type: QuickAlertType.error,
-                                                                                  title: 'You have already answered this activity.',
-                                                                                )
-                                                                            : activity['activityType'] == 'Multiple Choice'
-                                                                                ? () => Navigator.of(context).push(
-                                                                                      MaterialPageRoute(
-                                                                                        builder: (context) => StudentMultipleChoiceActivityScreen(
-                                                                                          classCode: widget.classCode,
-                                                                                          studentId: widget.studentId,
-                                                                                          activity: activity,
-                                                                                          lessonIndex: currentlyOpenLesson!,
-                                                                                          lessonTitle: lesson['title'],
-                                                                                          activityIndex: activityIndex,
-                                                                                        ),
-                                                                                      ),
-                                                                                    )
-                                                                                : () => Navigator.of(context).push(
-                                                                                      MaterialPageRoute(
-                                                                                        builder: (context) => StudentCodingProblemActivityScreen(
-                                                                                          classCode: widget.classCode,
-                                                                                          lessonIndex: currentlyOpenLesson!,
-                                                                                          activityIndex: activityIndex,
-                                                                                          activity: activity,
-                                                                                          studentId: widget.studentId,
-                                                                                        ),
-                                                                                      ),
-                                                                                    ),
-                                                                      ),
+                                                                      child: ListTile(
+                                                                          title: Text('Activity ${activityIndex + 1} ${activity['title'] != '' ? ':${activity['title']}' : ''} (${activity['maxScore']} points)'),
+                                                                          subtitle: Text('Type: ${activity['activityType']}'),
+                                                                          trailing: Text(
+                                                                            'Open From: ${DateFormat.yMMMEd().add_jm().format(activity['openSchedule'].toDate())}\nUntil: ${DateFormat.yMMMEd().add_jm().format(activity['closeSchedule'].toDate())}',
+                                                                            style:
+                                                                                const TextStyle(fontSize: 14),
+                                                                            textAlign:
+                                                                                TextAlign.end,
+                                                                          ),
+                                                                          onTap: () {
+                                                                            openSubmitActivityModal();
+                                                                          }),
                                                                     );
                                                                   },
                                                                 ),
