@@ -293,7 +293,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                       onConfirmBtnTap: () => submitActivity(
                         activityIndex: activityIndex,
                         lessonIndex: lessonIndex,
-                        attachments: studentSubmission,
+                        attachments: studentSubmissionAttachments,
                       ),
                       showCancelBtn: true,
                       cancelBtnText: 'Go Back',

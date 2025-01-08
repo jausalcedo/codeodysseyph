@@ -1274,13 +1274,22 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
 
               final classData = snapshot.data!.data();
 
-              final List<dynamic> lessons = classData!['lessons'] ?? [];
+              final dynamic lessons = classData!['lessons'] ?? [];
               final Map<String, dynamic> lesson = lessons[lessonIndex];
               final List<dynamic> activities = lesson['activities'] ?? [];
               final Map<String, dynamic> activity = activities[activityIndex];
               final viewActivityAttachments = activity['attachments'] ?? [];
               final Map<String, dynamic> submissions = activity['submissions'];
-              final List<dynamic> studentSubmission = submissions[studentId];
+              final Map<String, dynamic> studentSubmission =
+                  submissions[studentId];
+
+              if (studentSubmission.containsKey('score')) {
+                submissionScoreController.text =
+                    studentSubmission['score'].toString();
+              }
+
+              final dynamic studentAttachments =
+                  studentSubmission['attachments'];
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1295,15 +1304,43 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(
-                        width: 150,
-                        child: TextField(
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            label: Text('Score'),
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 150,
+                            child: TextField(
+                              decoration: InputDecoration(
+                                border: const OutlineInputBorder(),
+                                label: const Text('Score'),
+                                suffix: Text(
+                                    '/${activity['maxScore'].toString()} points'),
+                              ),
+                              controller: submissionScoreController,
+                            ),
                           ),
-                          controller: submissionScoreController,
-                        ),
+                          const Gap(10),
+                          TextButton(
+                            onPressed: () async {
+                              QuickAlert.show(
+                                context: context,
+                                type: QuickAlertType.loading,
+                              );
+                              await _firestoreService.scoreActivity(
+                                activityIndex: activityIndex,
+                                classCode: widget.classCode,
+                                lessonIndex: lessonIndex,
+                                score: double.parse(
+                                    submissionScoreController.text),
+                                studentId: studentId,
+                              );
+                              // ignore: use_build_context_synchronously
+                              Navigator.of(context).pop();
+                              // ignore: use_build_context_synchronously
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Save'),
+                          )
+                        ],
                       ),
                     ],
                   ),
@@ -1354,9 +1391,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: studentSubmission.length,
+                    itemCount: studentAttachments.length,
                     itemBuilder: (BuildContext context, int index) {
-                      final attachment = studentSubmission[index];
+                      final attachment = studentAttachments[index];
                       return Card(
                         child: ListTile(
                           title: Text(attachment['fileName']),

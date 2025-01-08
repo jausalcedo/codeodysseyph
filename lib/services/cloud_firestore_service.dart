@@ -489,6 +489,40 @@ class CloudFirestoreService {
         .update({'lessons': lessons});
   }
 
+  Future<void> scoreActivity({
+    required String classCode,
+    required int lessonIndex,
+    required int activityIndex,
+    required String studentId,
+    required double score,
+  }) async {
+    final classSnapshot =
+        await _firestore.collection('classes').doc(classCode).get();
+    final classData = classSnapshot.data();
+
+    final List lessons = classData!['lessons'];
+    final List activities = lessons[lessonIndex]['activities'];
+
+    final activity = activities[activityIndex];
+
+    Map<String, dynamic> submissions = activity['submissions'];
+
+    Map<String, dynamic> submissionContent = submissions[studentId];
+
+    submissionContent['score'] = score;
+
+    submissions[studentId] = submissionContent;
+
+    activity['submissions'] = submissions;
+    activities[activityIndex] = activity;
+    lessons[lessonIndex]['activities'] = activities;
+
+    await _firestore
+        .collection('classes')
+        .doc(classCode)
+        .update({'lessons': lessons});
+  }
+
   Future<void> deleteActivityFromLesson({
     required BuildContext context,
     required String classCode,
