@@ -430,35 +430,31 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   }
 
   // ADD ACTIVITY ESSENTIALS
-  final activityTitleController = TextEditingController();
-  String activityType = 'Multiple Choice';
   int? lessonIndexToBindActivity;
   DateTime? activityOpen;
   DateTime? activityClose;
   final maxScoreController = TextEditingController();
+  final instructionsController = TextEditingController();
+  List<Map<String, dynamic>> activityAttachments = [];
 
   // ADD ACTIVITY FORM KEYS
   final chooseLessonFormKey = GlobalKey<FormState>();
   final maxScoreFormKey = GlobalKey<FormState>();
-  final questionFormKey = GlobalKey<FormState>();
-  final problemStatementFormKey = GlobalKey<FormState>();
-  final constraintsFormKey = GlobalKey<FormState>();
-  final inputOutputFormKey = GlobalKey<FormState>();
 
   // MULTIPLE CHOICE ESSENTIALS
   final questionController = TextEditingController();
   final choiceControllers =
       List.generate(4, (index) => TextEditingController());
   final correctAnswerController = TextEditingController();
-  List<Map<String, dynamic>> questions = [];
+  List<Map<String, dynamic>> examQuestions = [];
   int? duplicateChoiceIndex;
 
   // CODING PROBLEM CONTROLLERS
   // List<Map<String, dynamic>> codingProblems = [];
   final problemStatementController = TextEditingController();
   final constraintsController = TextEditingController();
-  List<Map<String, dynamic>> examples = [];
-  List<Map<String, dynamic>> testCases = [];
+  List<Map<String, dynamic>> examExamples = [];
+  List<Map<String, dynamic>> examTestCases = [];
   final inputController = TextEditingController();
   final outputController = TextEditingController();
   String? lessonTag;
@@ -554,92 +550,104 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                   }
                 }
 
-                return ListView(
+                void pickFile() async {
+                  Uint8List? attachmentBytes;
+                  String? attachmentFileName;
+
+                  FilePickerResult? result =
+                      await FilePicker.platform.pickFiles(
+                    allowMultiple: false,
+                    // allowedExtensions: ['pdf', 'pptx', 'ppt'],
+                    allowedExtensions: ['pdf'],
+                    type: FileType.custom,
+                  );
+
+                  if (result != null) {
+                    attachmentBytes = result.files.first.bytes!;
+                    attachmentFileName = result.files.first.name;
+
+                    setState(() {
+                      activityAttachments.add({
+                        'fileBytes': attachmentBytes,
+                        'fileName': attachmentFileName,
+                      });
+                    });
+                  }
+                }
+
+                void removeAttachment(int attachmentIndex) {
+                  setState(() {
+                    activityAttachments.removeAt(attachmentIndex);
+                  });
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // LESSON
                     numberOfLessons != 0
-                        ? Form(
-                            key: chooseLessonFormKey,
-                            child: DropdownButtonFormField(
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                label: Text('Lesson'),
-                              ),
-                              items: List.generate(
-                                lessonList.length,
-                                (index) => DropdownMenuItem(
-                                  value: index,
-                                  child: Text(lessonList[index]['title']),
+                        ? Row(
+                            children: [
+                              Expanded(
+                                child: Form(
+                                  key: chooseLessonFormKey,
+                                  child: DropdownButtonFormField(
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      label: Text('Lesson'),
+                                    ),
+                                    items: List.generate(
+                                      lessonList.length,
+                                      (index) => DropdownMenuItem(
+                                        value: index,
+                                        child: Text(lessonList[index]['title']),
+                                      ),
+                                    ),
+                                    onChanged: (value) {
+                                      lessonIndexToBindActivity = value;
+                                    },
+                                    validator: (value) {
+                                      if (value == null) {
+                                        return 'Required. Please choose a lesson.';
+                                      }
+                                      return null;
+                                    },
+                                  ),
                                 ),
                               ),
-                              onChanged: (value) {
-                                lessonIndexToBindActivity = value;
-                              },
-                              validator: (value) {
-                                if (value == null) {
-                                  return 'Required. Please choose a lesson.';
-                                }
-                                return null;
-                              },
-                            ),
+                              const Gap(10),
+                              SizedBox(
+                                width: 150,
+                                child: Form(
+                                  key: maxScoreFormKey,
+                                  child: TextFormField(
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      label: Text('Max Score'),
+                                    ),
+                                    controller: maxScoreController,
+                                    validator: (value) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
+                                        return 'Required. Please set the max score students can get.';
+                                      }
+
+                                      if (int.tryParse(value) == null) {
+                                        return 'Please input a number';
+                                      }
+
+                                      if (int.parse(value) <= 0) {
+                                        return 'Please enter a non-negative and non-zero score';
+                                      }
+
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
                           )
                         : const SizedBox(),
-                    const Gap(10),
-                    Row(
-                      children: [
-                        // ACTIVITY TYPE
-                        Expanded(
-                          child: DropdownButtonFormField(
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              label: Text('Activity Type'),
-                            ),
-                            value: activityType,
-                            items: ['Multiple Choice', 'Coding Problem']
-                                .map((type) => DropdownMenuItem(
-                                      value: type,
-                                      child: Text(type),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                activityType = value!;
-                              });
-                            },
-                          ),
-                        ),
-                        const Gap(10),
-
-                        // MAX SCORE
-                        Expanded(
-                          child: Form(
-                            key: maxScoreFormKey,
-                            child: TextFormField(
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                label: Text('Max Score'),
-                              ),
-                              controller: maxScoreController,
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Required. Please set the max score students can get.';
-                                }
-
-                                if (int.tryParse(value) == null) {
-                                  return 'Please input a number';
-                                }
-
-                                if (int.parse(value) <= 0) {
-                                  return 'Please enter a non-negative and non-zero score';
-                                }
-
-                                return null;
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                     const Gap(10),
                     Row(
                       children: [
@@ -691,520 +699,70 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                     const Divider(),
                     const Gap(10),
 
-                    // FIELDS FOR EACH ACTIVITY TYPE
-                    activityType == 'Multiple Choice'
-                        ? SizedBox(
-                            width: 750,
-                            height: 365,
-                            child: StatefulBuilder(
-                              builder: (context, setState) {
-                                void addQuestion() {
-                                  if (!questionFormKey.currentState!
-                                      .validate()) {
-                                    return;
-                                  }
+                    const Text(
+                      'Activity Instructions:',
+                      style: TextStyle(fontSize: 20),
+                    ),
+                    const Gap(5),
+                    TextField(
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: 'Type instructions here...',
+                      ),
+                      minLines: 8,
+                      maxLines: 8,
+                      controller: instructionsController,
+                    ),
+                    const Gap(10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Attachments:',
+                          style: TextStyle(fontSize: 20),
+                        ),
+                        TextButton.icon(
+                          style: const ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll(primary),
+                            foregroundColor:
+                                WidgetStatePropertyAll(Colors.white),
+                          ),
+                          onPressed: pickFile,
+                          label: const Text('Add'),
+                          icon: const Icon(Icons.add_rounded),
+                        ),
+                      ],
+                    ),
 
-                                  if (!chooseLessonFormKey.currentState!
-                                      .validate()) {
-                                    return;
-                                  }
-
-                                  final choices = [
-                                    choiceControllers[0].text,
-                                    choiceControllers[1].text,
-                                    choiceControllers[2].text,
-                                    choiceControllers[3].text,
-                                  ];
-
-                                  duplicateChoiceIndex =
-                                      areChoicesUnique(choices);
-
-                                  if (duplicateChoiceIndex != null) {
-                                    QuickAlert.show(
-                                      context: context,
-                                      type: QuickAlertType.error,
-                                      title: 'Error',
-                                      text:
-                                          'Duplicate choice value: ${choiceControllers[duplicateChoiceIndex!].text}. Please make sure that all choices are unique.',
-                                    );
-                                    return;
-                                  }
-
-                                  setState(() {
-                                    questions.add({
-                                      'question': questionController.text,
-                                      'choices': choices,
-                                      'correctAnswer':
-                                          correctAnswerController.text,
-                                    });
-                                    clearMultipleChoiceFields();
-                                  });
-                                }
-
-                                return Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Text('Question List:'),
-                                          questions.isNotEmpty
-                                              ? Expanded(
-                                                  child: ListView.builder(
-                                                    itemCount: questions.length,
-                                                    itemBuilder:
-                                                        (context, index) =>
-                                                            Card(
-                                                      child: ListTile(
-                                                        title: Tooltip(
-                                                          message:
-                                                              questions[index]
-                                                                  ['question'],
-                                                          child: Text(
-                                                            questions[index]
-                                                                ['question'],
-                                                            style:
-                                                                const TextStyle(
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        subtitle: Tooltip(
-                                                          message: questions[
-                                                                  index]
-                                                              ['correctAnswer'],
-                                                          child: Text(
-                                                            'Correct Answer: ${questions[index]['correctAnswer']}',
-                                                            style:
-                                                                const TextStyle(
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                )
-                                              : const Text(
-                                                  'No questions yet. Add your first question now!'),
-                                        ],
-                                      ),
-                                    ),
-                                    const Gap(10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          Form(
-                                            key: questionFormKey,
-                                            child: Expanded(
-                                              child: ListView(
-                                                children: [
-                                                  // QUESTION
-                                                  TextFormField(
-                                                    decoration:
-                                                        const InputDecoration(
-                                                      border:
-                                                          OutlineInputBorder(),
-                                                      label: Text('Question'),
-                                                    ),
-                                                    controller:
-                                                        questionController,
-                                                    validator: (value) {
-                                                      if (value == null ||
-                                                          value
-                                                              .trim()
-                                                              .isEmpty) {
-                                                        return 'Required. Please provide a question.';
-                                                      }
-                                                      return null;
-                                                    },
-                                                  ),
-                                                  const Gap(10),
-
-                                                  // CHOICES
-                                                  ...List.generate(
-                                                    choiceControllers.length,
-                                                    (index) => Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                              bottom: 5),
-                                                      child: TextFormField(
-                                                        decoration:
-                                                            InputDecoration(
-                                                          border:
-                                                              const OutlineInputBorder(),
-                                                          label: Text(
-                                                              'Choice ${String.fromCharCode(index + 65)}'),
-                                                        ),
-                                                        controller:
-                                                            choiceControllers[
-                                                                index],
-                                                        validator: (value) {
-                                                          if (value == null ||
-                                                              value
-                                                                  .trim()
-                                                                  .isEmpty) {
-                                                            return 'Required. Choice ${String.fromCharCode(index + 65)} cannot be empty.';
-                                                          }
-
-                                                          return null;
-                                                        },
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const Gap(5),
-
-                                                  // CORRECT ANSWER
-                                                  TextFormField(
-                                                    decoration:
-                                                        const InputDecoration(
-                                                      border:
-                                                          OutlineInputBorder(),
-                                                      label: Text(
-                                                          'Correct Answer'),
-                                                    ),
-                                                    controller:
-                                                        correctAnswerController,
-                                                    validator: (value) {
-                                                      if (value == null ||
-                                                          value
-                                                              .trim()
-                                                              .isEmpty) {
-                                                        return 'Required. Please provide the correct answer.';
-                                                      }
-
-                                                      if (choiceControllers
-                                                          .every(
-                                                        (controller) =>
-                                                            controller.text !=
-                                                            value,
-                                                      )) {
-                                                        return 'Please input a value from the choices.';
-                                                      }
-
-                                                      return null;
-                                                    },
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          const Gap(10),
-                                          ElevatedButton.icon(
-                                            style: const ButtonStyle(
-                                              backgroundColor:
-                                                  WidgetStatePropertyAll(
-                                                      primary),
-                                              foregroundColor:
-                                                  WidgetStatePropertyAll(
-                                                      Colors.white),
-                                            ),
-                                            onPressed: addQuestion,
-                                            label: const Text('Add Question'),
-                                            icon: const Icon(Icons.add_rounded),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: activityAttachments.length,
+                        itemBuilder: (context, attachmentIndex) {
+                          final Map<String, dynamic> attachment =
+                              activityAttachments[attachmentIndex];
+                          return Card(
+                            child: ListTile(
+                              title: Text(attachment['fileName']),
+                              trailing: IconButton(
+                                onPressed: () => QuickAlert.show(
+                                  context: context,
+                                  type: QuickAlertType.warning,
+                                  title: 'Remove attachment?',
+                                  confirmBtnText: 'Yes',
+                                  onConfirmBtnTap: () {
+                                    Navigator.of(context).pop();
+                                    removeAttachment(attachmentIndex);
+                                  },
+                                  cancelBtnText: 'No',
+                                  showCancelBtn: true,
+                                ),
+                                icon: const Icon(Icons.delete_rounded),
+                              ),
                             ),
-                          )
-                        : SizedBox(
-                            width: 750,
-                            height: 365,
-                            child: StatefulBuilder(
-                              builder: (context, setState) {
-                                void addToExamples() {
-                                  if (!inputOutputFormKey.currentState!
-                                      .validate()) {
-                                    return;
-                                  }
-                                  setState(() {
-                                    examples.add({
-                                      'input': inputController.text,
-                                      'output': outputController.text,
-                                    });
-                                  });
-                                  clearInputOutputControllers();
-                                }
-
-                                void addToTestCases() {
-                                  if (!inputOutputFormKey.currentState!
-                                      .validate()) {
-                                    return;
-                                  }
-                                  setState(() {
-                                    testCases.add({
-                                      'input': inputController.text,
-                                      'output': outputController.text,
-                                    });
-                                  });
-                                  clearInputOutputControllers();
-                                }
-
-                                return Column(
-                                  children: [
-                                    SizedBox(
-                                      height: 315,
-                                      child: ListView(
-                                        children: [
-                                          // PROBLEM STATEMENT
-                                          Form(
-                                            key: problemStatementFormKey,
-                                            child: TextFormField(
-                                              decoration: const InputDecoration(
-                                                border: OutlineInputBorder(),
-                                                label:
-                                                    Text('Problem Statement'),
-                                              ),
-                                              minLines: 1,
-                                              maxLines: 2,
-                                              controller:
-                                                  problemStatementController,
-                                              validator: (value) {
-                                                if (value == null ||
-                                                    value.trim().isEmpty) {
-                                                  return 'Required. Please provide the problem statement.';
-                                                }
-                                                return null;
-                                              },
-                                            ),
-                                          ),
-                                          const Gap(10),
-
-                                          // CONSTRAINTS
-                                          Form(
-                                            key: constraintsFormKey,
-                                            child: TextFormField(
-                                              decoration: const InputDecoration(
-                                                border: OutlineInputBorder(),
-                                                label: Text('Constraints'),
-                                              ),
-                                              minLines: 1,
-                                              maxLines: 2,
-                                              controller: constraintsController,
-                                              validator: (value) {
-                                                if (value == null ||
-                                                    value.trim().isEmpty) {
-                                                  return 'Required. Please provide the constraints.';
-                                                }
-                                                return null;
-                                              },
-                                            ),
-                                          ),
-                                          const Gap(10),
-
-                                          // EXAMPLES AND TEST CASES
-                                          SizedBox(
-                                            height: 140,
-                                            child: Row(
-                                              children: [
-                                                // EXAMPLES
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      const Text('Examples:'),
-                                                      examples.isNotEmpty
-                                                          ? Expanded(
-                                                              child: ListView
-                                                                  .builder(
-                                                                itemCount:
-                                                                    examples
-                                                                        .length,
-                                                                itemBuilder:
-                                                                    (context,
-                                                                            index) =>
-                                                                        Card(
-                                                                  child:
-                                                                      ListTile(
-                                                                    title: Text(
-                                                                        'Input: ${examples[index]['input']}'),
-                                                                    subtitle: Text(
-                                                                        'Output: ${examples[index]['output']}'),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            )
-                                                          : const Text(
-                                                              'No examples yet.'),
-                                                    ],
-                                                  ),
-                                                ),
-
-                                                // TEST CASES
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      const Text('Test Cases:'),
-                                                      testCases.isNotEmpty
-                                                          ? Expanded(
-                                                              child: ListView
-                                                                  .builder(
-                                                                itemCount:
-                                                                    testCases
-                                                                        .length,
-                                                                itemBuilder:
-                                                                    (context,
-                                                                            index) =>
-                                                                        Card(
-                                                                  child:
-                                                                      ListTile(
-                                                                    title: Text(
-                                                                        'Input: ${testCases[index]['input']}'),
-                                                                    subtitle: Text(
-                                                                        'Output: ${testCases[index]['output']}'),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            )
-                                                          : const Text(
-                                                              'No test cases yet.'),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const Gap(10),
-
-                                          Form(
-                                            key: inputOutputFormKey,
-                                            child: Row(
-                                              children: [
-                                                // INPUT
-                                                Expanded(
-                                                  child: TextFormField(
-                                                    decoration:
-                                                        const InputDecoration(
-                                                      border:
-                                                          OutlineInputBorder(),
-                                                      label: Text('Input'),
-                                                    ),
-                                                    controller: inputController,
-                                                    validator: (value) {
-                                                      if (value == null ||
-                                                          value
-                                                              .trim()
-                                                              .isEmpty) {
-                                                        return 'Required. Please provide an input.';
-                                                      }
-                                                      return null;
-                                                    },
-                                                  ),
-                                                ),
-                                                const Gap(10),
-
-                                                // OUTPUT
-                                                Expanded(
-                                                  child: TextFormField(
-                                                    decoration:
-                                                        const InputDecoration(
-                                                      border:
-                                                          OutlineInputBorder(),
-                                                      label: Text('Output'),
-                                                    ),
-                                                    controller:
-                                                        outputController,
-                                                    validator: (value) {
-                                                      if (value == null ||
-                                                          value
-                                                              .trim()
-                                                              .isEmpty) {
-                                                        return 'Required. Please provide an output.';
-                                                      }
-                                                      return null;
-                                                    },
-                                                  ),
-                                                ),
-                                                const Gap(10),
-                                              ],
-                                            ),
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                    const Gap(10),
-                                    MenuAnchor(
-                                      alignmentOffset: const Offset(-100, 0),
-                                      builder: (context, controller, child) {
-                                        return ElevatedButton.icon(
-                                          style: const ButtonStyle(
-                                              backgroundColor:
-                                                  WidgetStatePropertyAll(
-                                                      primary),
-                                              foregroundColor:
-                                                  WidgetStatePropertyAll(
-                                                      Colors.white)),
-                                          onPressed: () {
-                                            if (controller.isOpen) {
-                                              controller.close();
-                                            } else {
-                                              controller.open();
-                                            }
-                                          },
-                                          label: const Text('Add'),
-                                          icon: const Icon(Icons.add_rounded),
-                                        );
-                                      },
-                                      menuChildren: [
-                                        // TO EXAMPLES
-                                        SizedBox(
-                                          width: double.infinity,
-                                          child: TextButton(
-                                            style: const ButtonStyle(
-                                              backgroundColor:
-                                                  WidgetStatePropertyAll(
-                                                      secondary),
-                                              foregroundColor:
-                                                  WidgetStatePropertyAll(
-                                                      Colors.white),
-                                              shape: WidgetStatePropertyAll(
-                                                  ContinuousRectangleBorder()),
-                                            ),
-                                            onPressed: addToExamples,
-                                            child: const Text('to Examples'),
-                                          ),
-                                        ),
-                                        // TO TEST CASES
-                                        SizedBox(
-                                          width: double.infinity,
-                                          child: TextButton(
-                                            style: const ButtonStyle(
-                                              backgroundColor:
-                                                  WidgetStatePropertyAll(
-                                                      secondary),
-                                              foregroundColor:
-                                                  WidgetStatePropertyAll(
-                                                      Colors.white),
-                                              shape: WidgetStatePropertyAll(
-                                                  ContinuousRectangleBorder()),
-                                            ),
-                                            onPressed: addToTestCases,
-                                            child: const Text('to Test Cases'),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
-                          )
+                          );
+                        },
+                      ),
+                    ),
                   ],
                 );
               },
@@ -1230,20 +788,6 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     });
   }
 
-  int? areChoicesUnique(List<String> choices) {
-    final Map<String, int> seenStrings = {};
-    for (int i = 0; i < choices.length; i++) {
-      if (seenStrings.containsKey(choices[i])) {
-        // Return the index of the duplicate
-        return i;
-      } else {
-        // Store the string and its index
-        seenStrings[choices[i]] = i;
-      }
-    }
-    return null;
-  }
-
   Future<void> addActivity() async {
     if (!chooseLessonFormKey.currentState!.validate()) {
       return;
@@ -1256,63 +800,21 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     if (activityOpen == null || activityClose == null) {
       return QuickAlert.show(
         context: context,
-        type: QuickAlertType.error,
-        title: 'Error',
-        text:
-            'Please set a ${activityOpen == null ? 'Open Schedule' : 'Close Schedule'} for the activity.',
+        type: QuickAlertType.warning,
+        title:
+            'Please set ${activityOpen == null ? 'Open Schedule' : 'Close Schedule'} for the Activity!',
       );
     }
 
-    dynamic activityContent;
-
-    if (activityType == 'Multiple Choice') {
-      if (questions.isEmpty) {
-        return QuickAlert.show(
-          context: context,
-          type: QuickAlertType.error,
-          title: 'Error',
-          text: 'Please add at least one question.',
-        );
-      }
-      activityContent = questions;
-    } else {
-      if (examples.isEmpty) {
-        return QuickAlert.show(
-          context: context,
-          type: QuickAlertType.error,
-          title: 'Error',
-          text: 'Please add at least one example.',
-        );
-      }
-      if (testCases.isEmpty) {
-        return QuickAlert.show(
-          context: context,
-          type: QuickAlertType.error,
-          title: 'Error',
-          text: 'Please add at least one test case.',
-        );
-      }
-      activityContent = {
-        'problemStatement': problemStatementController.text,
-        'constraints': constraintsController.text,
-        'examples': examples,
-        'testCases': testCases,
-      };
-    }
-
     final newActivity = {
-      'title': lessonTitleController.text,
-      'activityType': activityType,
+      'maxScore': int.parse(maxScoreController.text),
       'openSchedule': activityOpen,
       'closeSchedule': activityClose,
-      'maxScore': int.parse(maxScoreController.text),
-      'content': activityContent,
+      'instructions': instructionsController.text,
+      'attachments': activityAttachments,
     };
 
-    QuickAlert.show(
-      context: context,
-      type: QuickAlertType.loading,
-    );
+    QuickAlert.show(context: context, type: QuickAlertType.loading);
 
     await _firestoreService
         .addActivityToLesson(
@@ -1323,7 +825,23 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       newActivity: newActivity,
     )
         .then((_) {
-      clearActivityFields();
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
+
+      // DISPLAY SUCCESS MESSAGE
+      QuickAlert.show(
+        // ignore: use_build_context_synchronously
+        context: context,
+        type: QuickAlertType.loading,
+        title:
+            'Successfully added an activity under Lesson ${lessonIndexToBindActivity! + 1}',
+        onConfirmBtnTap: () {
+          // POP SUCCESS
+          Navigator.of(context).pop();
+          // POP ADD ACTIVITY MODAL
+          Navigator.of(context).pop();
+        },
+      );
     });
   }
 
@@ -1359,38 +877,10 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   }
 
   void clearActivityFields() {
-    activityTitleController.clear();
-    activityType = 'Multiple Choice';
     lessonIndexToBindActivity = null;
     activityOpen = null;
     activityClose = null;
     maxScoreController.clear();
-
-    clearMultipleChoiceFields();
-    questions = [];
-
-    clearCodingProblemFields();
-    examples = [];
-    testCases = [];
-  }
-
-  void clearMultipleChoiceFields() {
-    questionController.clear();
-    for (int i = 0; i < choiceControllers.length; i++) {
-      choiceControllers[i].clear();
-    }
-    correctAnswerController.clear();
-    duplicateChoiceIndex = null;
-  }
-
-  void clearCodingProblemFields() {
-    problemStatementController.clear();
-    constraintsController.clear();
-  }
-
-  void clearInputOutputControllers() {
-    inputController.clear();
-    outputController.clear();
   }
 
   void openEditActivityDetailsModal(
@@ -1541,7 +1031,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                         int.parse(activityMaxScoreController.text);
                     activity['openSchedule'] = activityOpenSchedule;
                     activity['closeSchedule'] = activityCloseSchedule;
-                    saveActivityDetails(activityIndex, activity);
+                    saveActivityEdits(activityIndex, activity);
                   }
                 },
                 child: const Text('Save'),
@@ -1553,7 +1043,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     );
   }
 
-  Future<void> saveActivityDetails(
+  Future<void> saveActivityEdits(
     int activityIndex,
     dynamic activity,
   ) async {
@@ -1643,6 +1133,10 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   DateTime? closeTime;
   final hoursController = TextEditingController();
   final minutesController = TextEditingController();
+  final questionFormKey = GlobalKey<FormState>();
+  final problemStatementFormKey = GlobalKey<FormState>();
+  final constraintsFormKey = GlobalKey<FormState>();
+  final inputOutputFormKey = GlobalKey<FormState>();
 
   void openAddExamModal() {
     showDialog(
@@ -1938,7 +1432,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                 }
 
                                 setState(() {
-                                  questions.add({
+                                  examQuestions.add({
                                     'question': questionController.text,
                                     'choices': choices,
                                     'correctAnswer':
@@ -1956,19 +1450,20 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                           CrossAxisAlignment.start,
                                       children: [
                                         const Text('Question List:'),
-                                        questions.isNotEmpty
+                                        examQuestions.isNotEmpty
                                             ? Expanded(
                                                 child: ListView.builder(
-                                                  itemCount: questions.length,
+                                                  itemCount:
+                                                      examQuestions.length,
                                                   itemBuilder:
                                                       (context, index) => Card(
                                                     child: ListTile(
                                                       title: Tooltip(
                                                         message:
-                                                            questions[index]
+                                                            examQuestions[index]
                                                                 ['question'],
                                                         child: Text(
-                                                          questions[index]
+                                                          examQuestions[index]
                                                               ['question'],
                                                           style:
                                                               const TextStyle(
@@ -1979,11 +1474,11 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                         ),
                                                       ),
                                                       subtitle: Tooltip(
-                                                        message: questions[
+                                                        message: examQuestions[
                                                                 index]
                                                             ['correctAnswer'],
                                                         child: Text(
-                                                          'Correct Answer: ${questions[index]['correctAnswer']}',
+                                                          'Correct Answer: ${examQuestions[index]['correctAnswer']}',
                                                           style:
                                                               const TextStyle(
                                                             overflow:
@@ -2129,7 +1624,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                   return;
                                 }
                                 setState(() {
-                                  examples.add({
+                                  examExamples.add({
                                     'input': inputController.text,
                                     'output': outputController.text,
                                   });
@@ -2143,7 +1638,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                   return;
                                 }
                                 setState(() {
-                                  testCases.add({
+                                  examTestCases.add({
                                     'input': inputController.text,
                                     'output': outputController.text,
                                   });
@@ -2214,12 +1709,12 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                       CrossAxisAlignment.start,
                                                   children: [
                                                     const Text('Examples:'),
-                                                    examples.isNotEmpty
+                                                    examExamples.isNotEmpty
                                                         ? Expanded(
                                                             child: ListView
                                                                 .builder(
                                                               itemCount:
-                                                                  examples
+                                                                  examExamples
                                                                       .length,
                                                               itemBuilder:
                                                                   (context,
@@ -2227,9 +1722,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                       Card(
                                                                 child: ListTile(
                                                                   title: Text(
-                                                                      'Input: ${examples[index]['input']}'),
+                                                                      'Input: ${examExamples[index]['input']}'),
                                                                   subtitle: Text(
-                                                                      'Output: ${examples[index]['output']}'),
+                                                                      'Output: ${examExamples[index]['output']}'),
                                                                 ),
                                                               ),
                                                             ),
@@ -2247,12 +1742,12 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                       CrossAxisAlignment.start,
                                                   children: [
                                                     const Text('Test Cases:'),
-                                                    testCases.isNotEmpty
+                                                    examTestCases.isNotEmpty
                                                         ? Expanded(
                                                             child: ListView
                                                                 .builder(
                                                               itemCount:
-                                                                  testCases
+                                                                  examTestCases
                                                                       .length,
                                                               itemBuilder:
                                                                   (context,
@@ -2260,9 +1755,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                       Card(
                                                                 child: ListTile(
                                                                   title: Text(
-                                                                      'Input: ${testCases[index]['input']}'),
+                                                                      'Input: ${examTestCases[index]['input']}'),
                                                                   subtitle: Text(
-                                                                      'Output: ${testCases[index]['output']}'),
+                                                                      'Output: ${examTestCases[index]['output']}'),
                                                                 ),
                                                               ),
                                                             ),
@@ -2448,7 +1943,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     dynamic examContent;
 
     if (examType == 'Written') {
-      if (questions.isEmpty) {
+      if (examQuestions.isEmpty) {
         return QuickAlert.show(
           context: context,
           type: QuickAlertType.error,
@@ -2456,9 +1951,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
           text: 'Please add at least one question.',
         );
       }
-      examContent = questions;
+      examContent = examQuestions;
     } else {
-      if (examples.isEmpty) {
+      if (examExamples.isEmpty) {
         return QuickAlert.show(
           context: context,
           type: QuickAlertType.error,
@@ -2466,7 +1961,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
           text: 'Please add at least one example.',
         );
       }
-      if (testCases.isEmpty) {
+      if (examTestCases.isEmpty) {
         return QuickAlert.show(
           context: context,
           type: QuickAlertType.error,
@@ -2477,8 +1972,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       examContent = {
         'problemStatement': problemStatementController.text,
         'constraints': constraintsController.text,
-        'examples': examples,
-        'testCases': testCases,
+        'examples': examExamples,
+        'testCases': examTestCases,
       };
     }
 
@@ -2515,6 +2010,20 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     });
   }
 
+  int? areChoicesUnique(List<String> choices) {
+    final Map<String, int> seenStrings = {};
+    for (int i = 0; i < choices.length; i++) {
+      if (seenStrings.containsKey(choices[i])) {
+        // Return the index of the duplicate
+        return i;
+      } else {
+        // Store the string and its index
+        seenStrings[choices[i]] = i;
+      }
+    }
+    return null;
+  }
+
   void clearExamFields() {
     exam = 'Midterm';
     examType = 'Written';
@@ -2523,40 +2032,31 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     maxScoreController.clear();
 
     clearMultipleChoiceFields();
-    questions = [];
+    examQuestions = [];
 
     clearCodingProblemFields();
-    examples = [];
-    testCases = [];
+    examExamples = [];
+    examTestCases = [];
     // codingProblems = [];
   }
 
-  void deleteExam(dynamic exam, int examIndex) {
-    QuickAlert.show(
-      context: context,
-      type: QuickAlertType.warning,
-      title: 'Confirm Delete ${exam['exam']} ${exam['examType']} Exam?',
-      text: 'This will also delete all student scores.',
-      confirmBtnText: 'Delete',
-      onConfirmBtnTap: () async {
-        // DISMISS CONFIRMATION
-        Navigator.of(context).pop();
+  void clearMultipleChoiceFields() {
+    questionController.clear();
+    for (int i = 0; i < choiceControllers.length; i++) {
+      choiceControllers[i].clear();
+    }
+    correctAnswerController.clear();
+    duplicateChoiceIndex = null;
+  }
 
-        // SHOW LOADING
-        QuickAlert.show(
-          context: context,
-          type: QuickAlertType.loading,
-        );
+  void clearCodingProblemFields() {
+    problemStatementController.clear();
+    constraintsController.clear();
+  }
 
-        await _firestoreService.deleteExamFromClass(
-          context: context,
-          classCode: widget.classCode,
-          exam: exam,
-          examIndex: examIndex,
-        );
-      },
-      showCancelBtn: true,
-    );
+  void clearInputOutputControllers() {
+    inputController.clear();
+    outputController.clear();
   }
 
   void showEditExamModal(int examIndex, Map<String, dynamic> exam) {
@@ -2772,6 +2272,34 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       _alertService.showBanner(context,
           '${exam['exam']} ${exam['examType']} Exam Details Successfully Edited');
     });
+  }
+
+  void deleteExam(dynamic exam, int examIndex) {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.warning,
+      title: 'Confirm Delete ${exam['exam']} ${exam['examType']} Exam?',
+      text: 'This will also delete all student scores.',
+      confirmBtnText: 'Delete',
+      onConfirmBtnTap: () async {
+        // DISMISS CONFIRMATION
+        Navigator.of(context).pop();
+
+        // SHOW LOADING
+        QuickAlert.show(
+          context: context,
+          type: QuickAlertType.loading,
+        );
+
+        await _firestoreService.deleteExamFromClass(
+          context: context,
+          classCode: widget.classCode,
+          exam: exam,
+          examIndex: examIndex,
+        );
+      },
+      showCancelBtn: true,
+    );
   }
 
   // STUDENT PERFORMANCE ESSENTIALS
@@ -3136,6 +2664,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   }
 
   void exportDynamicScoresToExcel(List<Map<String, dynamic>> students) async {
+    loadStudents();
     try {
       // FETCH STUDENT SCORES AND HEADERS
       Map<String, dynamic> scoresData =
@@ -3737,9 +3266,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                       child:
                                                                           ListTile(
                                                                         title: Text(
-                                                                            'Activity ${activityIndex + 1} ${activity['title'] != '' ? ':${activity['title']}' : ''} (${activity['maxScore']} points)'),
-                                                                        subtitle:
-                                                                            Text('Type: ${activity['activityType']}'),
+                                                                            'Activity ${activityIndex + 1} (${activity['maxScore']} points)'),
                                                                         trailing:
                                                                             SizedBox(
                                                                           width:

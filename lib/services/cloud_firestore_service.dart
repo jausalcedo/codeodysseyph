@@ -197,7 +197,6 @@ class CloudFirestoreService {
           'lessons': FieldValue.arrayUnion([
             {
               'title': lessonTitle,
-              // 'description': lessonDescription,
               'learningMaterial': learningMaterialPath,
               'additionalResources': [],
               'activities': [],
@@ -434,63 +433,54 @@ class CloudFirestoreService {
     required int lessonIndex,
     required Map<String, dynamic> newActivity,
   }) async {
-    final classReference = _firestore.collection('classes').doc(classCode);
-    final activityBankReference = _firestore.collection('activityBank');
+    final attachments = newActivity['attachments'];
 
-    await classReference.get().then((classData) async {
-      List<dynamic> lessons = classData.data()?['lessons'] ?? [];
+    // UPLOAD ATTACHMENTS TO STORAGE
+    if (attachments != []) {
+      for (int i = 0; i < attachments.length; i++) {
+        Map<String, dynamic> attachment = attachments[i];
 
-      if (lessonIndex < lessons.length) {
-        // GET THE LESSON
-        Map<String, dynamic> targetLesson = lessons[lessonIndex];
+        final attachmentPath = await _storageService.uploadFile(
+            'classes/$classCode/lesson${lessonIndex + 1}/activityFiles/',
+            attachment['fileName'],
+            attachment['fileBytes']);
 
-        // ADD LESSON TAG AND METADATA
-        newActivity.addAll({
-          'submissions': {},
-          'lessonTag': targetLesson['title'],
-          'metaData': {
-            'createdBy': instructorId,
-            'dateCreated': DateTime.now(),
-          },
+        attachment.addAll({
+          'attachment': attachmentPath,
         });
 
-        // ADD TO TEST BANK
-        await activityBankReference.add(newActivity);
-
-        // ENSURE ACTIVITIES ARRAY EXISTS
-        List<dynamic> activities = targetLesson['activities'] ?? [];
-
-        // ADD THE NEW ACTIVITY TO THE ACTIVITIES ARRAY
-        activities.add(newActivity);
-        targetLesson['activities'] = activities;
-
-        // REPLACE THE LESSON IN LESSONS ARRAY
-        lessons[lessonIndex] = targetLesson;
-
-        // UPDATE THE DOCUMENT
-        await classReference.update({'lessons': lessons}).then((_) {
-          // DISMISS LOADING
-          // ignore: use_build_context_synchronously
-          Navigator.of(context).pop();
-
-          // DISPLAY SUCCESS
-          QuickAlert.show(
-            // ignore: use_build_context_synchronously
-            context: context,
-            type: QuickAlertType.success,
-            title: 'Success!',
-            text:
-                'You have added a new activity on Lesson ${lessonIndex + 1}: ${targetLesson['title']}',
-            onConfirmBtnTap: () {
-              // DISMISS SUCCESS
-              Navigator.of(context).pop();
-              // CLOSE ADD ACTIVITY MODAL
-              Navigator.of(context).pop();
-            },
-          );
-        });
+        attachments[i] = attachment;
       }
+    }
+
+    newActivity['attachments'] = attachments;
+
+    final classSnapshot =
+        await _firestore.collection('classes').doc(classCode).get();
+    final classData = classSnapshot.data();
+
+    final lessons = classData!['lessons'] ?? [];
+    final lesson = lessons[lessonIndex];
+
+    newActivity.addAll({
+      'submissions': {},
+      'lessonTag': lesson['title'],
+      'metaData': {
+        'createdBy': instructorId,
+        'dateCreated': DateTime.now(),
+      },
     });
+
+    final List activities = lesson['activities'] ?? [];
+    activities.add(newActivity);
+
+    lesson['activities'] = activities;
+    lessons[lessonIndex] = lesson;
+
+    await _firestore
+        .collection('classes')
+        .doc(classCode)
+        .update({'lessons': lessons});
   }
 
   Future<void> editActivityDetails({
