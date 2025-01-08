@@ -967,6 +967,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   }
 
   void openEditActivityDetailsModal(
+    int lessonIndex,
     int activityIndex,
     Map<String, dynamic> activity,
   ) {
@@ -986,7 +987,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Edit Lesson ${currentlyOpenLesson! + 1} - Activity ${activityIndex + 1} Details',
+              'Lesson ${currentlyOpenLesson! + 1} - Activity ${activityIndex + 1}',
             ),
             IconButton(
               onPressed: Navigator.of(context).pop,
@@ -998,6 +999,11 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
           width: 750,
           child: ListView(
             children: [
+              const Text(
+                'Edit Details',
+                style: TextStyle(fontSize: 16),
+              ),
+              const Gap(10),
               StatefulBuilder(
                 builder: (BuildContext context, setState) {
                   Future<void> setDate({required bool isOpen}) async {
@@ -1098,7 +1104,36 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                 },
               ),
               const Gap(10),
-              const Text('Student Submissions:'),
+              Center(
+                child: TextButton(
+                  style: const ButtonStyle(
+                    backgroundColor: WidgetStatePropertyAll(primary),
+                    foregroundColor: WidgetStatePropertyAll(Colors.white),
+                  ),
+                  onPressed: () {
+                    if (activityMaxScoreController.text ==
+                            activity['maxScore'].toString() &&
+                        activityOpenSchedule ==
+                            activity['openSchedule'].toDate() &&
+                        activityCloseSchedule ==
+                            activity['closeSchedule'].toDate()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      activity['maxScore'] =
+                          int.parse(activityMaxScoreController.text);
+                      activity['openSchedule'] = activityOpenSchedule;
+                      activity['closeSchedule'] = activityCloseSchedule;
+                      saveActivityEdits(activityIndex, activity);
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+              ),
+              const Gap(25),
+              const Text(
+                'Student Submissions:',
+                style: TextStyle(fontSize: 16),
+              ),
               FutureBuilder(
                 future: getSortedStudents(
                     studentIdsSubmission: studentIdsSubmission),
@@ -1114,7 +1149,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                   if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return const Center(
                         child: Text(
-                      'No students found.',
+                      'No submissions as of now...',
                       style: TextStyle(fontSize: 18),
                     ));
                   }
@@ -1122,6 +1157,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                   final List students = snapshot.data!;
 
                   return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     itemCount: students.length,
                     itemBuilder: (context, index) {
                       final student = students[index];
@@ -1131,9 +1168,12 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                           title: Text(
                               '${student['lastName']}, ${student['firstName']}'),
                           onTap: () => openCheckActivityModal(
-                            activityIndex: activityIndex,
-                            studentId: student['studentId'],
-                          ),
+                              classCode: widget.classCode,
+                              lessonIndex: lessonIndex,
+                              activityIndex: activityIndex,
+                              studentId: student['studentId'],
+                              studentName:
+                                  '${student['firstName']} ${student['lastName']}'),
                         ),
                       );
                     },
@@ -1143,32 +1183,6 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
             ],
           ),
         ),
-        actions: [
-          Center(
-            child: TextButton(
-              style: const ButtonStyle(
-                backgroundColor: WidgetStatePropertyAll(primary),
-                foregroundColor: WidgetStatePropertyAll(Colors.white),
-              ),
-              onPressed: () {
-                if (activityMaxScoreController.text ==
-                        activity['maxScore'].toString() &&
-                    activityOpenSchedule == activity['openSchedule'].toDate() &&
-                    activityCloseSchedule ==
-                        activity['closeSchedule'].toDate()) {
-                  Navigator.of(context).pop();
-                } else {
-                  activity['maxScore'] =
-                      int.parse(activityMaxScoreController.text);
-                  activity['openSchedule'] = activityOpenSchedule;
-                  activity['closeSchedule'] = activityCloseSchedule;
-                  saveActivityEdits(activityIndex, activity);
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1199,74 +1213,168 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     });
   }
 
+  // CHECK ACTIVITY ESSENTIALS
+  final submissionScoreController = TextEditingController();
+  final submissionFormKey = TextEditingController();
+
+  Future<void> downloadFile(String learningMaterialPath) async {
+    final downloadUrl = await _storageService.storageRef
+        .child(learningMaterialPath)
+        .getDownloadURL();
+    if (!await launchUrl(Uri.parse(downloadUrl))) {
+      QuickAlert.show(
+        // ignore: use_build_context_synchronously
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Error',
+        text:
+            'There was a problem downloading the learning material. Please try again in a few minutes...',
+        confirmBtnText: 'Okay',
+        // ignore: use_build_context_synchronously
+        onCancelBtnTap: Navigator.of(context).pop,
+      );
+    }
+  }
+
   // CHECK ACTIVITY
   void openCheckActivityModal({
+    required String classCode,
+    required int lessonIndex,
     required int activityIndex,
     required String studentId,
+    required String studentName,
   }) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+                'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1} Submission'),
+            IconButton(
+              onPressed: Navigator.of(context).pop,
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ],
+        ),
         content: SizedBox(
           width: 800,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: FutureBuilder(
+            future: _firestoreService.getCourseClassDataFuture(
+                'classes', classCode),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                print('Error: ${snapshot.error}');
+              }
+
+              final classData = snapshot.data!.data();
+
+              final List<dynamic> lessons = classData!['lessons'] ?? [];
+              final Map<String, dynamic> lesson = lessons[lessonIndex];
+              final List<dynamic> activities = lesson['activities'] ?? [];
+              final Map<String, dynamic> activity = activities[activityIndex];
+              final viewActivityAttachments = activity['attachments'] ?? [];
+              final Map<String, dynamic> submissions = activity['submissions'];
+              final List<dynamic> studentSubmission = submissions[studentId];
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        studentName,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 150,
+                        child: TextField(
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            label: Text('Score'),
+                          ),
+                          controller: submissionScoreController,
+                        ),
+                      ),
+                    ],
+                  ),
+                  // INSTRUCTIONS + POINTS
                   const Text(
-                    'Title: Activity 1',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      color: Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Dan galano',
+                    'Instructions:',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    'Score:',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    '${activity['instructions']} ${viewActivityAttachments.isEmpty ? '' : 'Refer to the ${!(viewActivityAttachments.length > 1) ? 'attachment' : 'attachments'} below:'}',
+                    style: const TextStyle(fontSize: 16),
                   ),
-                  // TextField()
-                ],
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: 2,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                        title: const Text("File Title.pdf"),
-                        trailing: ElevatedButton(
-                          onPressed: () {
-                            print("Hello");
+                  viewActivityAttachments.isEmpty
+                      ? const SizedBox()
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: viewActivityAttachments.length,
+                          itemBuilder: (context, index) {
+                            final activityAttachment =
+                                viewActivityAttachments[index];
+                            return Card(
+                              child: ListTile(
+                                title: Text(activityAttachment['fileName']),
+                                trailing: IconButton(
+                                  onPressed: () => downloadFile(
+                                      activityAttachment['attachment']),
+                                  icon: Icon(
+                                    Icons.download_rounded,
+                                    color: Colors.green[800],
+                                  ),
+                                ),
+                              ),
+                            );
                           },
-                          child: const Text("Download File"),
-                        ));
-                  },
-                ),
-              ),
-            ],
+                        ),
+                  const Gap(10),
+                  const Text(
+                    'Student\'s Work',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: studentSubmission.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final attachment = studentSubmission[index];
+                      return Card(
+                        child: ListTile(
+                          title: Text(attachment['fileName']),
+                          trailing: IconButton(
+                            onPressed: () =>
+                                downloadFile(attachment['attachment']),
+                            icon: Icon(
+                              Icons.download_rounded,
+                              color: Colors.green[800],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -2673,9 +2781,13 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                           activity['submissions'] ?? {};
                                       if (submissions
                                           .containsKey(student['studentId'])) {
-                                        score = activity['submissions']
-                                                [student['studentId']]['score']
-                                            .toString();
+                                        score =
+                                            'Score: ${activity['submissions'][student['studentId']]['score']}/${activity['maxScore']}';
+                                        if (!submissions[student['studentId']]
+                                            .containsKey('score')) {
+                                          score =
+                                              'Submitted. Waiting for evaluation.';
+                                        }
                                       }
 
                                       return Card(
@@ -2683,9 +2795,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                           title: Text(
                                               'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}'),
                                           trailing: Text(
-                                            score == null
-                                                ? 'Not yet taken.'
-                                                : "Score: $score/${activity['maxScore']}",
+                                            score ?? 'Not yet submitted.',
                                             style: const TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.bold,
@@ -3518,6 +3628,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                                                         ),
                                                                         onTap: () =>
                                                                             openEditActivityDetailsModal(
+                                                                          lessonIndex,
                                                                           activityIndex,
                                                                           activity,
                                                                         ),

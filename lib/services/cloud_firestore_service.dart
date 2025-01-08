@@ -790,7 +790,9 @@ class CloudFirestoreService {
     Map<String, dynamic> submissions = activity['submissions'];
 
     submissions.addAll({
-      studentId: attachments,
+      studentId: {
+        'attachments': attachments,
+      },
     });
 
     activity['submissions'] = submissions;

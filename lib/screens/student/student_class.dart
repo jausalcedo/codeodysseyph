@@ -76,7 +76,10 @@ class _StudentClassScreenState extends State<StudentClassScreen>
     dynamic activity,
   }) {
     Map<String, dynamic> submissions = activity['submissions'] ?? {};
-    List studentSubmission = submissions[widget.studentId] ?? [];
+    Map<String, dynamic> studentSubmission =
+        submissions[widget.studentId] ?? {};
+    List<Map<String, dynamic>> studentSubmissionAttachments =
+        studentSubmission['attachments'] ?? [];
     List activityAttachments = activity['attachments'] ?? [];
 
     showDialog(
@@ -138,7 +141,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
               Navigator.of(context).pop();
 
               setState(() {
-                studentSubmission.add({
+                studentSubmissionAttachments.add({
                   'fileName': attachmentFileName,
                   'attachment': attachmentPath,
                 });
@@ -148,9 +151,9 @@ class _StudentClassScreenState extends State<StudentClassScreen>
 
           void removeAttachment(int attachmentIndex) async {
             await _storageService
-                .deleteFile([studentSubmission[attachmentIndex]['attachment']]);
+                .deleteFile([studentSubmissionAttachments[attachmentIndex]]);
             setState(() {
-              studentSubmission.removeAt(attachmentIndex);
+              studentSubmissionAttachments.removeAt(attachmentIndex);
             });
           }
 
@@ -251,14 +254,15 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                   ),
                   const Gap(10),
                   // STUDENT ATTACHMENT LIST
-                  studentSubmission.isEmpty
+                  studentSubmissionAttachments.isEmpty
                       ? const Text('No attachments')
                       : ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: studentSubmission.length,
+                          itemCount: studentSubmissionAttachments.length,
                           itemBuilder: (context, index) {
-                            final attachment = studentSubmission[index];
+                            final attachment =
+                                studentSubmissionAttachments[index];
 
                             return Card(
                               child: ListTile(
@@ -995,7 +999,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                           ),
                         ),
 
-                        // MY GRADES
+                        // MY SCORES
                         Column(
                           children: [
                             TabBar(
@@ -1074,13 +1078,17 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                             if (submissions
                                                                 .containsKey(widget
                                                                     .studentId)) {
-                                                              score = activity[
-                                                                              'submissions']
-                                                                          [
-                                                                          widget
-                                                                              .studentId]
-                                                                      ['score']
-                                                                  .toString();
+                                                              score =
+                                                                  'Score: ${submissions[widget.studentId]['score']}/${activity['maxScore']}';
+
+                                                              if (!submissions[
+                                                                      widget
+                                                                          .studentId]
+                                                                  .containsKey(
+                                                                      'score')) {
+                                                                score =
+                                                                    'Submitted. Waiting for evaluation.';
+                                                              }
                                                             }
 
                                                             return Card(
@@ -1088,9 +1096,8 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                                 title: Text(
                                                                     'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}'),
                                                                 trailing: Text(
-                                                                  score == null
-                                                                      ? 'Not yet taken.'
-                                                                      : "Score: $score/${activity['maxScore']}",
+                                                                  score ??
+                                                                      'Not yet submitted.',
                                                                   style:
                                                                       const TextStyle(
                                                                     fontSize:
