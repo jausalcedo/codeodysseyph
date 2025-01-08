@@ -207,6 +207,13 @@ public class Main {
     });
   }
 
+  void disableReload() {
+    html.window.onBeforeUnload.listen((event) {
+      // Prevent the reload
+      event.preventDefault();
+    });
+  }
+
   @override
   var wantKeepAlive = true;
 
@@ -225,6 +232,7 @@ public class Main {
   @override
   void initState() {
     super.initState();
+    disableReload();
 
     goToFullScreen();
     tabController = TabController(length: 1, vsync: this);
@@ -374,9 +382,6 @@ public class Main {
                                           if (code.length -
                                                   previousCode.length >
                                               11) {
-                                            print(code.length);
-                                            print(previousCode.length);
-                                            print('copy paste violation!');
                                             copyPasteViolations++;
                                           }
                                           setState(() {
@@ -448,6 +453,8 @@ public class Main {
                             endTime: widget.startTime.add(
                               Duration(minutes: totalMinutes),
                             ),
+                            onEnd: () => submitSolution(
+                                widget.exam['content']['testCases']),
                           ),
                         ),
                         const Gap(25),

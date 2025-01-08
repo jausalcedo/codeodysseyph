@@ -445,6 +445,8 @@ class CloudFirestoreService {
             attachment['fileName'],
             attachment['fileBytes']);
 
+        await addToFiles('classes', classCode, attachmentPath);
+
         attachment.addAll({
           'attachment': attachmentPath,
         });
@@ -826,6 +828,35 @@ class CloudFirestoreService {
         .collection('classes')
         .doc(classCode)
         .update({'lessons': lessons});
+  }
+
+  Future<void> initializeExamScore({
+    required String classCode,
+    required int examIndex,
+    required String studentId,
+  }) async {
+    final classSnapshot =
+        await _firestore.collection('classes').doc(classCode).get();
+    final classData = classSnapshot.data();
+
+    final List<dynamic> exams = classData!['exams'];
+    final Map<String, dynamic> exam = exams[examIndex];
+    exam.update(
+      'submissions',
+      (value) => {
+        studentId: {
+          'score': 0,
+          'writtenAnswer': 'No Answer',
+        },
+      },
+    );
+
+    exams[examIndex] = exam;
+
+    await _firestore
+        .collection('classes')
+        .doc(classCode)
+        .update({'exams': exams});
   }
 
   Future<void> submitExamAnswer({
