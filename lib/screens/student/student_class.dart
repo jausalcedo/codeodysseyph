@@ -75,7 +75,14 @@ class _StudentClassScreenState extends State<StudentClassScreen>
     required int examIndex,
     required dynamic exam,
     required dynamic violations,
-  }) {
+  }) async {
+    await _firestoreService.initializeExamScore(
+      classCode: widget.classCode,
+      examIndex: examIndex,
+      studentId: widget.studentId,
+    );
+
+    // ignore: use_build_context_synchronously
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => StudentWrittenExamScreen(
@@ -94,7 +101,14 @@ class _StudentClassScreenState extends State<StudentClassScreen>
     required dynamic exam,
     required int examIndex,
     required dynamic violations,
-  }) {
+  }) async {
+    await _firestoreService.initializeExamScore(
+      classCode: widget.classCode,
+      examIndex: examIndex,
+      studentId: widget.studentId,
+    );
+
+    // ignore: use_build_context_synchronously
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => StudentLaboratoryExamScreen(
@@ -659,26 +673,38 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                             title:
                                                                 'You have already answered this exam.',
                                                           )
-                                                      : exam['examType'] ==
-                                                              'Written'
-                                                          ? () =>
-                                                              goToStudentWrittenExamScreen(
-                                                                examIndex:
-                                                                    examIndex,
-                                                                exam: exam,
-                                                                violations:
-                                                                    classData[
-                                                                        'violations'],
-                                                              )
-                                                          : () =>
-                                                              goToStudentLaboratoryExamScreen(
-                                                                exam: exam,
-                                                                examIndex:
-                                                                    examIndex,
-                                                                violations:
-                                                                    classData[
-                                                                        'violations'],
-                                                              ),
+                                                      : () => QuickAlert.show(
+                                                            context: context,
+                                                            type: QuickAlertType
+                                                                .warning,
+                                                            title:
+                                                                'Are you ready to take the exam?',
+                                                            text:
+                                                                'Reloading the exam page is strictly prohibited.\nAny attempt to reload will result in an automatic score of 0.\nChanging views/copy and pasting text will deduct points to your final score.',
+                                                            onConfirmBtnTap: exam[
+                                                                        'examType'] ==
+                                                                    'Written'
+                                                                ? () =>
+                                                                    goToStudentWrittenExamScreen(
+                                                                      examIndex:
+                                                                          examIndex,
+                                                                      exam:
+                                                                          exam,
+                                                                      violations:
+                                                                          classData[
+                                                                              'violations'],
+                                                                    )
+                                                                : () =>
+                                                                    goToStudentLaboratoryExamScreen(
+                                                                      exam:
+                                                                          exam,
+                                                                      examIndex:
+                                                                          examIndex,
+                                                                      violations:
+                                                                          classData[
+                                                                              'violations'],
+                                                                    ),
+                                                          ),
                                                   title: Text(
                                                     '${exam['exam']} ${exam['examType']} Examination',
                                                     style: const TextStyle(
@@ -760,132 +786,158 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                 }
 
                                 final classData = snapshot.data!.data();
-                                final List lessons = classData!['lessons'];
+                                final List lessons =
+                                    classData!['lessons'] ?? [];
 
-                                final List exams = classData['exams'];
+                                bool hasActivities = lessons.any((lesson) =>
+                                    (lesson['activities'] ?? []).isNotEmpty);
+
+                                final List exams = classData['exams'] ?? [];
 
                                 return Expanded(
                                   child: TabBarView(
                                     controller: performanceTabController,
                                     children: [
                                       // COURSE WORK
-                                      Padding(
-                                        padding: const EdgeInsets.all(10),
-                                        child: Column(
-                                          children: [
-                                            Expanded(
-                                              child: ListView.builder(
-                                                itemCount: lessons.length,
-                                                itemBuilder:
-                                                    (context, lessonIndex) {
-                                                  final lesson =
-                                                      lessons[lessonIndex];
-                                                  final List activities =
-                                                      lesson['activities'] ??
-                                                          [];
-
-                                                  return ListView.builder(
-                                                    shrinkWrap: true,
-                                                    physics:
-                                                        const NeverScrollableScrollPhysics(),
-                                                    itemCount:
-                                                        activities.length,
-                                                    itemBuilder: (context,
-                                                        activityIndex) {
-                                                      final activity =
-                                                          activities[
-                                                              activityIndex];
-
-                                                      String? score;
-
-                                                      final Map<String, dynamic>
-                                                          submissions =
-                                                          activity[
-                                                                  'submissions'] ??
-                                                              {};
-                                                      if (submissions
-                                                          .containsKey(widget
-                                                              .studentId)) {
-                                                        score = activity[
-                                                                        'submissions']
-                                                                    [widget
-                                                                        .studentId]
-                                                                ['score']
-                                                            .toString();
-                                                      }
-
-                                                      return Card(
-                                                        child: ListTile(
-                                                          title: Text(
-                                                              'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}'),
-                                                          trailing: Text(
-                                                            score == null
-                                                                ? 'Not yet taken.'
-                                                                : "Score: $score/${activity['maxScore']}",
-                                                            style:
-                                                                const TextStyle(
-                                                              fontSize: 16,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      );
-                                                    },
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      // EXAMS
-                                      Padding(
-                                        padding: const EdgeInsets.all(10),
-                                        child: Column(
-                                          children: [
-                                            Expanded(
-                                              child: ListView.builder(
-                                                itemCount: exams.length,
-                                                itemBuilder:
-                                                    (BuildContext context,
-                                                        int examIndex) {
-                                                  final exam = exams[examIndex];
-
-                                                  String? score;
-
-                                                  final Map<String, dynamic>
-                                                      submissions =
-                                                      exam['submissions'] ?? {};
-
-                                                  if (submissions.containsKey(
-                                                      widget.studentId)) {
-                                                    score = exam['submissions'][
-                                                                widget
-                                                                    .studentId]
-                                                            ['score']
-                                                        .toString();
-                                                  }
-
-                                                  return Card(
-                                                    child: ListTile(
-                                                      title: Text(
-                                                          '${exam['exam']} ${exam['examType']} Exam'),
-                                                      trailing: Text(
-                                                        score == null
-                                                            ? 'Not yet taken.'
-                                                            : "Score: $score/${exam['maxScore']}",
-                                                        style: const TextStyle(
-                                                          fontSize: 18,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
+                                      !hasActivities
+                                          ? const Center(
+                                              child: Text(
+                                                'No activities assigned yet.',
+                                                style: TextStyle(fontSize: 20),
                                               ),
                                             )
-                                          ],
-                                        ),
-                                      ),
+                                          : Padding(
+                                              padding: const EdgeInsets.all(10),
+                                              child: Column(
+                                                children: [
+                                                  Expanded(
+                                                    child: ListView.builder(
+                                                      itemCount: lessons.length,
+                                                      itemBuilder: (context,
+                                                          lessonIndex) {
+                                                        final lesson = lessons[
+                                                            lessonIndex];
+                                                        final List activities =
+                                                            lesson['activities'] ??
+                                                                [];
+
+                                                        return ListView.builder(
+                                                          shrinkWrap: true,
+                                                          physics:
+                                                              const NeverScrollableScrollPhysics(),
+                                                          itemCount:
+                                                              activities.length,
+                                                          itemBuilder: (context,
+                                                              activityIndex) {
+                                                            final activity =
+                                                                activities[
+                                                                    activityIndex];
+
+                                                            String? score;
+
+                                                            final Map<String,
+                                                                    dynamic>
+                                                                submissions =
+                                                                activity[
+                                                                        'submissions'] ??
+                                                                    {};
+                                                            if (submissions
+                                                                .containsKey(widget
+                                                                    .studentId)) {
+                                                              score = activity[
+                                                                              'submissions']
+                                                                          [
+                                                                          widget
+                                                                              .studentId]
+                                                                      ['score']
+                                                                  .toString();
+                                                            }
+
+                                                            return Card(
+                                                              child: ListTile(
+                                                                title: Text(
+                                                                    'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}'),
+                                                                trailing: Text(
+                                                                  score == null
+                                                                      ? 'Not yet taken.'
+                                                                      : "Score: $score/${activity['maxScore']}",
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    fontSize:
+                                                                        16,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            );
+                                                          },
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+
+                                      // EXAMS
+                                      exams.isEmpty
+                                          ? const Center(
+                                              child: Text(
+                                                'No exams assigned yet.',
+                                                style: TextStyle(fontSize: 20),
+                                              ),
+                                            )
+                                          : Padding(
+                                              padding: const EdgeInsets.all(10),
+                                              child: Column(
+                                                children: [
+                                                  Expanded(
+                                                    child: ListView.builder(
+                                                      itemCount: exams.length,
+                                                      itemBuilder:
+                                                          (BuildContext context,
+                                                              int examIndex) {
+                                                        final exam =
+                                                            exams[examIndex];
+
+                                                        String? score;
+
+                                                        final Map<String,
+                                                                dynamic>
+                                                            submissions =
+                                                            exam['submissions'] ??
+                                                                {};
+
+                                                        if (submissions
+                                                            .containsKey(widget
+                                                                .studentId)) {
+                                                          score = exam['submissions']
+                                                                      [widget
+                                                                          .studentId]
+                                                                  ['score']
+                                                              .toString();
+                                                        }
+
+                                                        return Card(
+                                                          child: ListTile(
+                                                            title: Text(
+                                                                '${exam['exam']} ${exam['examType']} Exam'),
+                                                            trailing: Text(
+                                                              score == null
+                                                                  ? 'Not yet taken.'
+                                                                  : "Score: $score/${exam['maxScore']}",
+                                                              style:
+                                                                  const TextStyle(
+                                                                fontSize: 18,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  )
+                                                ],
+                                              ),
+                                            ),
                                     ],
                                   ),
                                 );

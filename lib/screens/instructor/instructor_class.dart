@@ -832,7 +832,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       QuickAlert.show(
         // ignore: use_build_context_synchronously
         context: context,
-        type: QuickAlertType.loading,
+        type: QuickAlertType.success,
         title:
             'Successfully added an activity under Lesson ${lessonIndexToBindActivity! + 1}',
         onConfirmBtnTap: () {
@@ -881,6 +881,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     activityOpen = null;
     activityClose = null;
     maxScoreController.clear();
+    instructionsController.clear();
   }
 
   void openEditActivityDetailsModal(
@@ -2396,6 +2397,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
               final classData = snapshot.data!.data();
 
               final List lessons = classData?['lessons'] ?? [];
+              bool hasActivities = lessons
+                  .any((lesson) => (lesson['activities'] ?? []).isNotEmpty);
 
               final List exams = classData?['exams'] ?? [];
 
@@ -2433,85 +2436,103 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                       controller: studentPerformanceTabController,
                       children: [
                         // COURSE WORK
-                        ListView.builder(
-                          itemCount: lessons.length,
-                          itemBuilder: (context, lessonIndex) {
-                            final lesson = lessons[lessonIndex];
+                        !hasActivities
+                            ? const Center(
+                                child: Text(
+                                  'No activities assigned yet.',
+                                  style: TextStyle(fontSize: 20),
+                                ),
+                              )
+                            : ListView.builder(
+                                itemCount: lessons.length,
+                                itemBuilder: (context, lessonIndex) {
+                                  final lesson = lessons[lessonIndex];
 
-                            final List activities = lesson?['activities'] ?? [];
+                                  final List activities =
+                                      lesson?['activities'] ?? [];
 
-                            return ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: activities.length,
-                              itemBuilder: (context, activityIndex) {
-                                final activity = activities[activityIndex];
+                                  return ListView.builder(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: activities.length,
+                                    itemBuilder: (context, activityIndex) {
+                                      final activity =
+                                          activities[activityIndex];
 
-                                String? score;
+                                      String? score;
 
-                                final Map<String, dynamic> submissions =
-                                    activity['submissions'] ?? {};
-                                if (submissions
-                                    .containsKey(student['studentId'])) {
-                                  score = activity['submissions']
-                                          [student['studentId']]['score']
-                                      .toString();
-                                }
+                                      final Map<String, dynamic> submissions =
+                                          activity['submissions'] ?? {};
+                                      if (submissions
+                                          .containsKey(student['studentId'])) {
+                                        score = activity['submissions']
+                                                [student['studentId']]['score']
+                                            .toString();
+                                      }
 
-                                return Card(
-                                  child: ListTile(
-                                    title: Text(
-                                        'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}'),
-                                    trailing: Text(
-                                      score == null
-                                          ? 'Not yet taken.'
-                                          : "Score: $score/${activity['maxScore']}",
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
+                                      return Card(
+                                        child: ListTile(
+                                          title: Text(
+                                              'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}'),
+                                          trailing: Text(
+                                            score == null
+                                                ? 'Not yet taken.'
+                                                : "Score: $score/${activity['maxScore']}",
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
 
                         // ASSESSMENTS
-                        ListView.builder(
-                          itemCount: exams.length,
-                          itemBuilder: (context, examIndex) {
-                            final exam = exams[examIndex];
-
-                            String? score;
-
-                            final Map<String, dynamic> submissions =
-                                exam['submissions'] ?? {};
-
-                            if (submissions.containsKey(student['studentId'])) {
-                              score = exam['submissions'][student['studentId']]
-                                      ['score']
-                                  .toString();
-                            }
-
-                            return Card(
-                              child: ListTile(
-                                title: Text(
-                                    '${exam['exam']} ${exam['examType']} Exam'),
-                                trailing: Text(
-                                  score == null
-                                      ? 'Not yet taken.'
-                                      : "Score: $score/${exam['maxScore']}",
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                        exams.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'No exams assigned yet.',
+                                  style: TextStyle(fontSize: 20),
                                 ),
-                              ),
-                            );
-                          },
-                        )
+                              )
+                            : ListView.builder(
+                                itemCount: exams.length,
+                                itemBuilder: (context, examIndex) {
+                                  final exam = exams[examIndex];
+
+                                  String? score;
+
+                                  final Map<String, dynamic> submissions =
+                                      exam['submissions'] ?? {};
+
+                                  if (submissions
+                                      .containsKey(student['studentId'])) {
+                                    score = exam['submissions']
+                                            [student['studentId']]['score']
+                                        .toString();
+                                  }
+
+                                  return Card(
+                                    child: ListTile(
+                                      title: Text(
+                                          '${exam['exam']} ${exam['examType']} Exam'),
+                                      trailing: Text(
+                                        score == null
+                                            ? 'Not yet taken.'
+                                            : "Score: $score/${exam['maxScore']}",
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
                       ],
                     ),
                   ),
