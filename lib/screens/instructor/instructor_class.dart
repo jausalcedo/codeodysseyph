@@ -2373,6 +2373,76 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   }
 
   late TabController studentPerformanceTabController;
+//Checking Activities
+  void openCheckingActivity() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: SizedBox(
+          width: 800,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Title: Activity 1',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Dan galano',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Score:',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  // TextField()
+                ],
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: 2,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                        title: const Text("File Title.pdf"),
+                        trailing: ElevatedButton(
+                          onPressed: () {
+                            print("Hello");
+                          },
+                          child: const Text("Download File"),
+                        ));
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   void openIndividualPerformance(Map<String, dynamic> student) {
     showDialog(
@@ -2471,17 +2541,22 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                             .toString();
                                       }
 
-                                      return Card(
-                                        child: ListTile(
-                                          title: Text(
-                                              'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}'),
-                                          trailing: Text(
-                                            score == null
-                                                ? 'Not yet taken.'
-                                                : "Score: $score/${activity['maxScore']}",
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
+                                      return GestureDetector(
+                                        onTap: () {
+                                          openCheckingActivity();
+                                        },
+                                        child: Card(
+                                          child: ListTile(
+                                            title: Text(
+                                                'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}'),
+                                            trailing: Text(
+                                              score == null
+                                                  ? 'Not yet taken.'
+                                                  : "Score: $score/${activity['maxScore']}",
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
                                         ),
