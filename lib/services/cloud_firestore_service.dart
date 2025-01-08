@@ -433,37 +433,17 @@ class CloudFirestoreService {
     required int lessonIndex,
     required Map<String, dynamic> newActivity,
   }) async {
-    final attachments = newActivity['attachments'];
-
-    // UPLOAD ATTACHMENTS TO STORAGE
-    if (attachments != []) {
-      for (int i = 0; i < attachments.length; i++) {
-        Map<String, dynamic> attachment = attachments[i];
-
-        final attachmentPath = await _storageService.uploadFile(
-            'classes/$classCode/lesson${lessonIndex + 1}/activityFiles/',
-            attachment['fileName'],
-            attachment['fileBytes']);
-
-        await addToFiles('classes', classCode, attachmentPath);
-
-        attachment.addAll({
-          'attachment': attachmentPath,
-        });
-
-        attachments[i] = attachment;
-      }
-    }
-
-    newActivity['attachments'] = attachments;
-
+    // FETCH CLASS DATA
     final classSnapshot =
         await _firestore.collection('classes').doc(classCode).get();
     final classData = classSnapshot.data();
 
-    final lessons = classData!['lessons'] ?? [];
-    final lesson = lessons[lessonIndex];
+    final lessons = (classData?['lessons'] as List?) ?? [];
+    if (lessonIndex >= lessons.length) {
+      throw Exception('Invalid lesson index.');
+    }
 
+    final lesson = lessons[lessonIndex] as Map<String, dynamic>;
     newActivity.addAll({
       'submissions': {},
       'lessonTag': lesson['title'],
@@ -473,12 +453,13 @@ class CloudFirestoreService {
       },
     });
 
-    final List activities = lesson['activities'] ?? [];
+    // UPDATE ACTIVITIES
+    final activities = (lesson['activities'] as List?) ?? [];
     activities.add(newActivity);
-
     lesson['activities'] = activities;
     lessons[lessonIndex] = lesson;
 
+    // SAVE BACK TO FIRESTORE
     await _firestore
         .collection('classes')
         .doc(classCode)
@@ -791,13 +772,10 @@ class CloudFirestoreService {
 
   Future<void> submitActivityAnswer({
     required String classCode,
-    required bool isCodingProblem,
+    required String studentId,
     required int lessonIndex,
     required int activityIndex,
-    required String studentId,
-    required double score,
-    String? codingProblemAnswer,
-    List<String?>? multipleChoiceAnswer,
+    dynamic attachments,
   }) async {
     final classSnapshot =
         await _firestore.collection('classes').doc(classCode).get();
@@ -811,13 +789,8 @@ class CloudFirestoreService {
 
     Map<String, dynamic> submissions = activity['submissions'];
 
-    Map<String, dynamic> submissionContent = {
-      'score': score,
-      'answer': isCodingProblem ? codingProblemAnswer : multipleChoiceAnswer,
-    };
-
     submissions.addAll({
-      studentId: submissionContent,
+      studentId: attachments,
     });
 
     activity['submissions'] = submissions;

@@ -471,117 +471,162 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       showDialog(
         // ignore: use_build_context_synchronously
         context: context,
-        builder: (context) => AlertDialog(
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Add New Activity',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                onPressed: () {
-                  QuickAlert.show(
-                    context: context,
-                    type: QuickAlertType.warning,
-                    title: 'Are you sure?',
-                    text: 'Any unsaved data will be lost.',
-                    confirmBtnText: 'Yes',
-                    onConfirmBtnTap: () {
-                      // CLEAR ALL FIELDS
-                      clearActivityFields();
-                      // CLOSE THE ALERT
-                      Navigator.of(context).pop();
-                      // CLOSE THE ADD ACTIVTIY MODAL
-                      Navigator.of(context).pop();
-                    },
-                    showCancelBtn: true,
-                    cancelBtnText: 'Go Back',
-                    onCancelBtnTap: Navigator.of(context).pop,
-                  );
-                },
-                icon: const Icon(Icons.close_rounded),
-                style: const ButtonStyle(
-                  foregroundColor: WidgetStatePropertyAll(Colors.red),
-                ),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: 750,
-            height: 590,
-            child: StatefulBuilder(
-              builder: (BuildContext context, setState) {
-                Future<void> setDeadline({required bool isOpen}) async {
-                  final now = DateTime.now();
-                  final pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: activityClose ?? now,
-                    firstDate: now,
-                    lastDate: DateTime(now.year + 1, now.month - 6, now.day),
-                  );
+        barrierDismissible: false,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) {
+            Future<void> setDeadline({required bool isOpen}) async {
+              final now = DateTime.now();
+              final pickedDate = await showDatePicker(
+                context: context,
+                initialDate: activityClose ?? now,
+                firstDate: now,
+                lastDate: DateTime(now.year + 1, now.month - 6, now.day),
+              );
 
-                  if (pickedDate != null) {
-                    final pickedTime = await showTimePicker(
-                      // ignore: use_build_context_synchronously
-                      context: context,
-                      initialTime: TimeOfDay.now(),
-                    );
+              if (pickedDate != null) {
+                final pickedTime = await showTimePicker(
+                  // ignore: use_build_context_synchronously
+                  context: context,
+                  initialTime: TimeOfDay.now(),
+                );
 
-                    if (pickedTime != null) {
-                      setState(() {
-                        isOpen
-                            ? activityOpen = DateTime(
-                                pickedDate.year,
-                                pickedDate.month,
-                                pickedDate.day,
-                                pickedTime.hour,
-                                pickedTime.minute,
-                              )
-                            : activityClose = DateTime(
-                                pickedDate.year,
-                                pickedDate.month,
-                                pickedDate.day,
-                                pickedTime.hour,
-                                pickedTime.minute,
-                              );
-                      });
-                    }
-                  }
-                }
-
-                void pickFile() async {
-                  Uint8List? attachmentBytes;
-                  String? attachmentFileName;
-
-                  FilePickerResult? result =
-                      await FilePicker.platform.pickFiles(
-                    allowMultiple: false,
-                    // allowedExtensions: ['pdf', 'pptx', 'ppt'],
-                    allowedExtensions: ['pdf'],
-                    type: FileType.custom,
-                  );
-
-                  if (result != null) {
-                    attachmentBytes = result.files.first.bytes!;
-                    attachmentFileName = result.files.first.name;
-
-                    setState(() {
-                      activityAttachments.add({
-                        'fileBytes': attachmentBytes,
-                        'fileName': attachmentFileName,
-                      });
-                    });
-                  }
-                }
-
-                void removeAttachment(int attachmentIndex) {
+                if (pickedTime != null) {
                   setState(() {
-                    activityAttachments.removeAt(attachmentIndex);
+                    isOpen
+                        ? activityOpen = DateTime(
+                            pickedDate.year,
+                            pickedDate.month,
+                            pickedDate.day,
+                            pickedTime.hour,
+                            pickedTime.minute,
+                          )
+                        : activityClose = DateTime(
+                            pickedDate.year,
+                            pickedDate.month,
+                            pickedDate.day,
+                            pickedTime.hour,
+                            pickedTime.minute,
+                          );
                   });
                 }
+              }
+            }
 
-                return Column(
+            void pickFile() async {
+              Uint8List? attachmentBytes;
+              String? attachmentFileName;
+
+              FilePickerResult? result = await FilePicker.platform.pickFiles(
+                allowMultiple: false,
+                allowedExtensions: [
+                  'doc',
+                  'docx',
+                  'pdf',
+                  'txt',
+                  'md',
+                  'ppt',
+                  'pptx',
+                  'xls',
+                  'xlsx',
+                  'csv',
+                  'java',
+                  'c',
+                  'cpp',
+                  'html',
+                  'css',
+                  'js',
+                  'sql',
+                  'php',
+                  'json',
+                  'xml',
+                  'png',
+                  'jpg',
+                  'jpeg',
+                ],
+                type: FileType.custom,
+              );
+
+              if (result != null) {
+                attachmentBytes = result.files.first.bytes!;
+                attachmentFileName = result.files.first.name;
+
+                QuickAlert.show(
+                  // ignore: use_build_context_synchronously
+                  context: context,
+                  type: QuickAlertType.loading,
+                );
+
+                final attachmentPath = await _storageService.uploadFile(
+                  'classes/files/',
+                  attachmentFileName,
+                  attachmentBytes,
+                );
+
+                // ignore: use_build_context_synchronously
+                Navigator.of(context).pop();
+
+                setState(() {
+                  activityAttachments.add({
+                    'fileName': attachmentFileName,
+                    'attachment': attachmentPath,
+                  });
+                });
+              }
+            }
+
+            void removeAttachment(int attachmentIndex) async {
+              await _storageService.deleteFile(
+                  [activityAttachments[attachmentIndex]['attachment']]);
+              setState(() {
+                activityAttachments.removeAt(attachmentIndex);
+              });
+            }
+
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Add New Activity',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    onPressed: activityAttachments.isNotEmpty
+                        ? () => QuickAlert.show(
+                              context: context,
+                              type: QuickAlertType.warning,
+                              title:
+                                  'Please remove attachments before closing this modal.',
+                            )
+                        : () => QuickAlert.show(
+                              context: context,
+                              type: QuickAlertType.warning,
+                              title: 'Are you sure?',
+                              text: 'Any unsaved data will be lost.',
+                              confirmBtnText: 'Yes',
+                              onConfirmBtnTap: () {
+                                // CLEAR ALL FIELDS
+                                clearActivityFields();
+                                // CLOSE THE ALERT
+                                Navigator.of(context).pop();
+                                // CLOSE THE ADD ACTIVTIY MODAL
+                                Navigator.of(context).pop();
+                              },
+                              showCancelBtn: true,
+                              cancelBtnText: 'Go Back',
+                              onCancelBtnTap: Navigator.of(context).pop,
+                            ),
+                    icon: const Icon(Icons.close_rounded),
+                    style: const ButtonStyle(
+                      foregroundColor: WidgetStatePropertyAll(Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 750,
+                height: 590,
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // LESSON
@@ -764,25 +809,27 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                       ),
                     ),
                   ],
-                );
-              },
-            ),
-          ),
-          actions: [
-            Center(
-              child: ElevatedButton(
-                style: ButtonStyle(
-                  backgroundColor: WidgetStatePropertyAll(Colors.green[800]),
-                  foregroundColor: const WidgetStatePropertyAll(Colors.white),
-                ),
-                onPressed: addActivity,
-                child: const Text(
-                  'Save',
-                  style: TextStyle(fontSize: 18),
                 ),
               ),
-            ),
-          ],
+              actions: [
+                Center(
+                  child: ElevatedButton(
+                    style: ButtonStyle(
+                      backgroundColor:
+                          WidgetStatePropertyAll(Colors.green[800]),
+                      foregroundColor:
+                          const WidgetStatePropertyAll(Colors.white),
+                    ),
+                    onPressed: addActivity,
+                    child: const Text(
+                      'Save',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       );
     });
@@ -814,35 +861,67 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       'attachments': activityAttachments,
     };
 
-    QuickAlert.show(context: context, type: QuickAlertType.loading);
+    try {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.loading,
+      );
 
-    await _firestoreService
-        .addActivityToLesson(
-      context: context,
-      instructorId: widget.instructorId,
-      classCode: widget.classCode,
-      lessonIndex: lessonIndexToBindActivity!,
-      newActivity: newActivity,
-    )
-        .then((_) {
+      await _firestoreService.addActivityToLesson(
+        context: context,
+        instructorId: widget.instructorId,
+        classCode: widget.classCode,
+        lessonIndex: lessonIndexToBindActivity!,
+        newActivity: newActivity,
+      );
+
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop();
       // ignore: use_build_context_synchronously
       Navigator.of(context).pop();
 
-      // DISPLAY SUCCESS MESSAGE
       QuickAlert.show(
-        // ignore: use_build_context_synchronously
         context: context,
         type: QuickAlertType.success,
-        title:
-            'Successfully added an activity under Lesson ${lessonIndexToBindActivity! + 1}',
-        onConfirmBtnTap: () {
-          // POP SUCCESS
-          Navigator.of(context).pop();
-          // POP ADD ACTIVITY MODAL
-          Navigator.of(context).pop();
-        },
+        title: "Success!",
+        text: "Activity added successfully.",
       );
-    });
+    } catch (error) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: "Error: $error",
+        text: "Failed to add activity. Please try again.",
+      );
+    }
+
+    // await _firestoreService
+    //     .addActivityToLesson(
+    //   context: context,
+    //   instructorId: widget.instructorId,
+    //   classCode: widget.classCode,
+    //   lessonIndex: lessonIndexToBindActivity!,
+    //   newActivity: newActivity,
+    // )
+    //     .then((_) {
+    //   // ignore: use_build_context_synchronously
+    //   Navigator.of(context).pop();
+
+    //   // DISPLAY SUCCESS MESSAGE
+    //   QuickAlert.show(
+    //     // ignore: use_build_context_synchronously
+    //     context: context,
+    //     type: QuickAlertType.success,
+    //     title:
+    //         'Successfully added an activity under Lesson ${lessonIndexToBindActivity! + 1}',
+    //     onConfirmBtnTap: () {
+    //       // POP SUCCESS
+    //       Navigator.of(context).pop();
+    //       // POP ADD ACTIVITY MODAL
+    //       Navigator.of(context).pop();
+    //     },
+    //   );
+    // });
   }
 
   int? currentlyOpenLesson;
@@ -877,11 +956,14 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   }
 
   void clearActivityFields() {
-    lessonIndexToBindActivity = null;
-    activityOpen = null;
-    activityClose = null;
-    maxScoreController.clear();
-    instructionsController.clear();
+    setState(() {
+      lessonIndexToBindActivity = null;
+      activityOpen = null;
+      activityClose = null;
+      maxScoreController.clear();
+      instructionsController.clear();
+      activityAttachments = [];
+    });
   }
 
   void openEditActivityDetailsModal(
@@ -893,6 +975,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
 
     DateTime activityOpenSchedule = activity['openSchedule'].toDate();
     DateTime activityCloseSchedule = activity['closeSchedule'].toDate();
+
+    final Map<String, dynamic> submissions = activity['submissions'];
+    final List<dynamic> studentIdsSubmission = submissions.keys.toList();
 
     showDialog(
       context: context,
@@ -911,8 +996,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
         ),
         content: SizedBox(
           width: 750,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: ListView(
             children: [
               StatefulBuilder(
                 builder: (BuildContext context, setState) {
@@ -1013,33 +1097,78 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                   );
                 },
               ),
-              const Gap(25),
-              TextButton(
-                style: const ButtonStyle(
-                  backgroundColor: WidgetStatePropertyAll(primary),
-                  foregroundColor: WidgetStatePropertyAll(Colors.white),
-                ),
-                onPressed: () {
-                  if (activityMaxScoreController.text ==
-                          activity['maxScore'].toString() &&
-                      activityOpenSchedule ==
-                          activity['openSchedule'].toDate() &&
-                      activityCloseSchedule ==
-                          activity['closeSchedule'].toDate()) {
-                    Navigator.of(context).pop();
-                  } else {
-                    activity['maxScore'] =
-                        int.parse(activityMaxScoreController.text);
-                    activity['openSchedule'] = activityOpenSchedule;
-                    activity['closeSchedule'] = activityCloseSchedule;
-                    saveActivityEdits(activityIndex, activity);
+              const Gap(10),
+              const Text('Student Submissions:'),
+              FutureBuilder(
+                future: getSortedStudents(
+                    studentIdsSubmission: studentIdsSubmission),
+                builder: (BuildContext context, AsyncSnapshot snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
                   }
+
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                        child: Text(
+                      'No students found.',
+                      style: TextStyle(fontSize: 18),
+                    ));
+                  }
+
+                  final List students = snapshot.data!;
+
+                  return ListView.builder(
+                    itemCount: students.length,
+                    itemBuilder: (context, index) {
+                      final student = students[index];
+
+                      return Card(
+                        child: ListTile(
+                          title: Text(
+                              '${student['lastName']}, ${student['firstName']}'),
+                          onTap: () => openCheckActivityModal(
+                            activityIndex: activityIndex,
+                            studentId: student['studentId'],
+                          ),
+                        ),
+                      );
+                    },
+                  );
                 },
-                child: const Text('Save'),
               ),
             ],
           ),
         ),
+        actions: [
+          Center(
+            child: TextButton(
+              style: const ButtonStyle(
+                backgroundColor: WidgetStatePropertyAll(primary),
+                foregroundColor: WidgetStatePropertyAll(Colors.white),
+              ),
+              onPressed: () {
+                if (activityMaxScoreController.text ==
+                        activity['maxScore'].toString() &&
+                    activityOpenSchedule == activity['openSchedule'].toDate() &&
+                    activityCloseSchedule ==
+                        activity['closeSchedule'].toDate()) {
+                  Navigator.of(context).pop();
+                } else {
+                  activity['maxScore'] =
+                      int.parse(activityMaxScoreController.text);
+                  activity['openSchedule'] = activityOpenSchedule;
+                  activity['closeSchedule'] = activityCloseSchedule;
+                  saveActivityEdits(activityIndex, activity);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1068,6 +1197,80 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
       _alertService.showBanner(context,
           'Successfully edited Lesson ${currentlyOpenLesson! + 1} - Activity ${activityIndex + 1}');
     });
+  }
+
+  // CHECK ACTIVITY
+  void openCheckActivityModal({
+    required int activityIndex,
+    required String studentId,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: SizedBox(
+          width: 800,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Title: Activity 1',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Dan galano',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Score:',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  // TextField()
+                ],
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: 2,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                        title: const Text("File Title.pdf"),
+                        trailing: ElevatedButton(
+                          onPressed: () {
+                            print("Hello");
+                          },
+                          child: const Text("Download File"),
+                        ));
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void openAddAdditionalResourceModal() {
@@ -2026,19 +2229,21 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   }
 
   void clearExamFields() {
-    exam = 'Midterm';
-    examType = 'Written';
-    openTime = null;
-    closeTime = null;
-    maxScoreController.clear();
+    setState(() {
+      exam = 'Midterm';
+      examType = 'Written';
+      openTime = null;
+      closeTime = null;
+      maxScoreController.clear();
 
-    clearMultipleChoiceFields();
-    examQuestions = [];
+      clearMultipleChoiceFields();
+      examQuestions = [];
 
-    clearCodingProblemFields();
-    examExamples = [];
-    examTestCases = [];
-    // codingProblems = [];
+      clearCodingProblemFields();
+      examExamples = [];
+      examTestCases = [];
+      // codingProblems = [];
+    });
   }
 
   void clearMultipleChoiceFields() {
@@ -2312,13 +2517,15 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     });
   }
 
-  Future<List<Map<String, dynamic>>> getSortedStudents() async {
+  Future<List<Map<String, dynamic>>> getSortedStudents(
+      {List<dynamic>? studentIdsSubmission}) async {
     final classData = await _firestoreService.getCourseClassDataFuture(
         'classes', widget.classCode);
 
     if (!classData.exists) return [];
 
-    List<dynamic> studentIds = classData.data()?['students'] ?? [];
+    List<dynamic> studentIds =
+        studentIdsSubmission ?? (classData.data()?['students'] ?? []);
 
     if (studentIds.isEmpty) return [];
 
@@ -2373,76 +2580,6 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
   }
 
   late TabController studentPerformanceTabController;
-//Checking Activities
-  void openCheckingActivity() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        content: SizedBox(
-          width: 800,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Title: Activity 1',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      color: Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Dan galano',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'Score:',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  // TextField()
-                ],
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: 2,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                        title: const Text("File Title.pdf"),
-                        trailing: ElevatedButton(
-                          onPressed: () {
-                            print("Hello");
-                          },
-                          child: const Text("Download File"),
-                        ));
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   void openIndividualPerformance(Map<String, dynamic> student) {
     showDialog(
@@ -2541,22 +2678,17 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                                             .toString();
                                       }
 
-                                      return GestureDetector(
-                                        onTap: () {
-                                          openCheckingActivity();
-                                        },
-                                        child: Card(
-                                          child: ListTile(
-                                            title: Text(
-                                                'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}'),
-                                            trailing: Text(
-                                              score == null
-                                                  ? 'Not yet taken.'
-                                                  : "Score: $score/${activity['maxScore']}",
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                              ),
+                                      return Card(
+                                        child: ListTile(
+                                          title: Text(
+                                              'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}'),
+                                          trailing: Text(
+                                            score == null
+                                                ? 'Not yet taken.'
+                                                : "Score: $score/${activity['maxScore']}",
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                         ),

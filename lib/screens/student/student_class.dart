@@ -1,7 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:codeodysseyph/components/student/student_appbar.dart';
 import 'package:codeodysseyph/constants/colors.dart';
-import 'package:codeodysseyph/screens/student/student_activity_coding_problem.dart';
-import 'package:codeodysseyph/screens/student/student_activity_multiple_choice.dart';
 import 'package:codeodysseyph/screens/student/student_exam_laboratory.dart';
 import 'package:codeodysseyph/screens/student/student_exam_written.dart';
 import 'package:codeodysseyph/services/cloud_firestore_service.dart';
@@ -51,7 +51,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
   // ACTIVITIES
 
   // OPERATIONS
-  Future<void> downloadLearningMaterial(String learningMaterialPath) async {
+  Future<void> downloadFile(String learningMaterialPath) async {
     final downloadUrl = await _storageService.storageRef
         .child(learningMaterialPath)
         .getDownloadURL();
@@ -68,6 +68,268 @@ class _StudentClassScreenState extends State<StudentClassScreen>
         onCancelBtnTap: Navigator.of(context).pop,
       );
     }
+  }
+
+  void openSubmitActivityModal({
+    required int lessonIndex,
+    required int activityIndex,
+    dynamic activity,
+  }) {
+    Map<String, dynamic> submissions = activity['submissions'] ?? {};
+    List studentSubmission = submissions[widget.studentId] ?? [];
+    List activityAttachments = activity['attachments'] ?? [];
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (BuildContext context, setState) {
+          void pickFile() async {
+            Uint8List? attachmentBytes;
+            String? attachmentFileName;
+
+            FilePickerResult? result = await FilePicker.platform.pickFiles(
+              allowMultiple: false,
+              allowedExtensions: [
+                'doc',
+                'docx',
+                'pdf',
+                'txt',
+                'md',
+                'ppt',
+                'pptx',
+                'xls',
+                'xlsx',
+                'csv',
+                'java',
+                'c',
+                'cpp',
+                'html',
+                'css',
+                'js',
+                'sql',
+                'php',
+                'json',
+                'xml',
+                'png',
+                'jpg',
+                'jpeg',
+              ],
+              type: FileType.custom,
+            );
+
+            if (result != null) {
+              attachmentBytes = result.files.first.bytes!;
+              attachmentFileName = result.files.first.name;
+
+              QuickAlert.show(
+                // ignore: use_build_context_synchronously
+                context: context,
+                type: QuickAlertType.loading,
+              );
+
+              final attachmentPath = await _storageService.uploadFile(
+                'classes/files/',
+                attachmentFileName,
+                attachmentBytes,
+              );
+
+              // ignore: use_build_context_synchronously
+              Navigator.of(context).pop();
+
+              setState(() {
+                studentSubmission.add({
+                  'fileName': attachmentFileName,
+                  'attachment': attachmentPath,
+                });
+              });
+            }
+          }
+
+          void removeAttachment(int attachmentIndex) async {
+            await _storageService
+                .deleteFile([studentSubmission[attachmentIndex]['attachment']]);
+            setState(() {
+              studentSubmission.removeAt(attachmentIndex);
+            });
+          }
+
+          return AlertDialog(
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Lesson ${lessonIndex + 1} - Activity ${activityIndex + 1}',
+                ),
+                IconButton(
+                  onPressed: Navigator.of(context).pop,
+                  icon: const Icon(
+                    Icons.close_rounded,
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 750,
+              child: ListView(
+                children: [
+                  // DEADLINE
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Deadline: ${DateFormat.yMMMEd().add_jm().format(activity['closeSchedule'].toDate())}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${activity['maxScore']} points',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // INSTRUCTIONS + POINTS
+                  const Text(
+                    'Instructions:',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '${activity['instructions']} ${activityAttachments.isEmpty ? '' : 'Refer to the ${!(activityAttachments.length > 1) ? 'attachment' : 'attachments'} below:'}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  activityAttachments.isEmpty
+                      ? const SizedBox()
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: activityAttachments.length,
+                          itemBuilder: (context, index) {
+                            final activityAttachment =
+                                activityAttachments[index];
+                            return Card(
+                              child: ListTile(
+                                title: Text(activityAttachment['fileName']),
+                                trailing: IconButton(
+                                  onPressed: () => downloadFile(
+                                      activityAttachment['attachment']),
+                                  icon: Icon(
+                                    Icons.download_rounded,
+                                    color: Colors.green[800],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                  const Gap(10),
+                  // ATTACH FILE BUTTON
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'My Work',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: pickFile,
+                        icon: const Icon(Icons.attach_file_rounded),
+                        label: const Text("Attach File"),
+                      ),
+                    ],
+                  ),
+                  const Gap(10),
+                  // STUDENT ATTACHMENT LIST
+                  studentSubmission.isEmpty
+                      ? const Text('No attachments')
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: studentSubmission.length,
+                          itemBuilder: (context, index) {
+                            final attachment = studentSubmission[index];
+
+                            return Card(
+                              child: ListTile(
+                                title: Text(attachment['fileName']),
+                                trailing: IconButton(
+                                  onPressed: () => removeAttachment(index),
+                                  icon: const Icon(
+                                    Icons.delete_rounded,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ],
+              ),
+            ),
+            actions: [
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    QuickAlert.show(
+                      context: context,
+                      type: QuickAlertType.warning,
+                      title: 'Are you sure to submit?',
+                      confirmBtnText: 'Yes',
+                      onConfirmBtnTap: () => submitActivity(
+                        activityIndex: activityIndex,
+                        lessonIndex: lessonIndex,
+                        attachments: studentSubmission,
+                      ),
+                      showCancelBtn: true,
+                      cancelBtnText: 'Go Back',
+                      onCancelBtnTap: Navigator.of(context).pop,
+                    );
+                  },
+                  child: const Text("Submit"),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void submitActivity({
+    required int lessonIndex,
+    required int activityIndex,
+    dynamic attachments,
+  }) async {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.loading,
+    );
+
+    await _firestoreService.submitActivityAnswer(
+      classCode: widget.classCode,
+      studentId: widget.studentId,
+      lessonIndex: lessonIndex,
+      activityIndex: activityIndex,
+      attachments: attachments,
+    );
+
+    // ignore: use_build_context_synchronously
+    Navigator.of(context).pop();
+    // ignore: use_build_context_synchronously
+    Navigator.of(context).pop();
+    // ignore: use_build_context_synchronously
+    Navigator.of(context).pop();
   }
 
   // ASSESSMENTS
@@ -93,140 +355,6 @@ class _StudentClassScreenState extends State<StudentClassScreen>
           examIndex: examIndex,
           violations: violations,
           studentId: widget.studentId,
-        ),
-      ),
-    );
-  }
-
-  void openSubmitActivityModal() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        content: SizedBox(
-          width: 800,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Activity 1',
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      color: Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // Date Assigned
-              const Text(
-                "26 Dec 2024",
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              // Instructions and Points
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Instruction:',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Answer all the problems. Submit your output in a PDF file.',
-                          style: TextStyle(
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Text(
-                    "100 Points",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: Color.fromARGB(255, 43, 43, 43),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // File Attachment Button
-              Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      print("Attach file");
-                    },
-                    icon: const Icon(Icons.attach_file_rounded),
-                    label: const Text("Attach File"),
-                  )),
-              const SizedBox(height: 16),
-              // File List
-              Expanded(
-                child: ListView.builder(
-                  itemCount: 2,
-                  itemBuilder: (context, index) {
-                    return Card(
-                      child: ListTile(
-                        title: const Text("Title.pdf"),
-                        trailing: IconButton(
-                          onPressed: () {
-                            print("Delete file");
-                          },
-                          icon: const Icon(
-                            Icons.delete_rounded,
-                            color: Colors.red,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Center(
-                child: ElevatedButton(
-                    onPressed: () {
-                      QuickAlert.show(
-                        context: context,
-                        type: QuickAlertType.warning,
-                        title: 'Are you sure to submit?',
-                        confirmBtnText: 'Yes',
-                        onConfirmBtnTap: () {
-                          // CLEAR ALL FIELDS
-                          Navigator.of(context).pop();
-                          // CLOSE THE ADD ACTIVTIY MODAL
-                          Navigator.of(context).pop();
-                        },
-                        showCancelBtn: true,
-                        cancelBtnText: 'Go Back',
-                        onCancelBtnTap: Navigator.of(context).pop,
-                      );
-                    },
-                    child: const Text("Submit")),
-              )
-            ],
-          ),
         ),
       ),
     );
@@ -534,7 +662,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                                             .white),
                                                               ),
                                                               onPressed: () =>
-                                                                  downloadLearningMaterial(
+                                                                  downloadFile(
                                                                       lesson[
                                                                           'learningMaterial']),
                                                               child: const Row(
@@ -570,32 +698,31 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                                         activities[
                                                                             activityIndex];
 
-                                                                    final Map<
-                                                                            String,
-                                                                            dynamic>
-                                                                        submissions =
-                                                                        activity['submissions'] ??
-                                                                            {};
-
-                                                                    bool
-                                                                        alreadyAnswered =
-                                                                        submissions
-                                                                            .containsKey(widget.studentId);
-
                                                                     return Card(
-                                                                      child: ListTile(
-                                                                          title: Text('Activity ${activityIndex + 1} ${activity['title'] != '' ? ':${activity['title']}' : ''} (${activity['maxScore']} points)'),
-                                                                          subtitle: Text('Type: ${activity['activityType']}'),
-                                                                          trailing: Text(
-                                                                            'Open From: ${DateFormat.yMMMEd().add_jm().format(activity['openSchedule'].toDate())}\nUntil: ${DateFormat.yMMMEd().add_jm().format(activity['closeSchedule'].toDate())}',
-                                                                            style:
-                                                                                const TextStyle(fontSize: 14),
-                                                                            textAlign:
-                                                                                TextAlign.end,
-                                                                          ),
-                                                                          onTap: () {
-                                                                            openSubmitActivityModal();
-                                                                          }),
+                                                                      child:
+                                                                          ListTile(
+                                                                        title: Text(
+                                                                            'Activity ${activityIndex + 1} (${activity['maxScore']} points)'),
+                                                                        trailing:
+                                                                            Text(
+                                                                          'Open From: ${DateFormat.yMMMEd().add_jm().format(activity['openSchedule'].toDate())}\nUntil: ${DateFormat.yMMMEd().add_jm().format(activity['closeSchedule'].toDate())}',
+                                                                          style:
+                                                                              const TextStyle(fontSize: 14),
+                                                                          textAlign:
+                                                                              TextAlign.end,
+                                                                        ),
+                                                                        onTap:
+                                                                            () {
+                                                                          openSubmitActivityModal(
+                                                                            lessonIndex:
+                                                                                lessonIndex,
+                                                                            activityIndex:
+                                                                                activityIndex,
+                                                                            activity:
+                                                                                activity,
+                                                                          );
+                                                                        },
+                                                                      ),
                                                                     );
                                                                   },
                                                                 ),
