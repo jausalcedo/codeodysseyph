@@ -850,15 +850,14 @@ class CloudFirestoreService {
 
     final List<dynamic> exams = classData!['exams'];
     final Map<String, dynamic> exam = exams[examIndex];
-    exam.update(
-      'submissions',
-      (value) => {
+    exam.addAll({
+      'submissions': {
         studentId: {
           'score': 0,
           'writtenAnswer': 'No Answer',
         },
       },
-    );
+    });
 
     exams[examIndex] = exam;
 

@@ -1011,8 +1011,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                       context: context,
                       initialDate:
                           isOpen ? activityOpenSchedule : activityCloseSchedule,
-                      firstDate:
-                          isOpen ? activityOpenSchedule : activityCloseSchedule,
+                      firstDate: activityOpenSchedule,
                       lastDate: DateTime(
                         isOpen
                             ? activityOpenSchedule.year + 1
@@ -1095,7 +1094,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                             ),
                             onPressed: () => setDate(isOpen: false),
                             child: Text(
-                                'Open Schedule:\n${DateFormat.yMMMEd().add_jm().format(activityCloseSchedule)}'),
+                                'Close Schedule:\n${DateFormat.yMMMEd().add_jm().format(activityCloseSchedule)}'),
                           ),
                         ),
                       ),
@@ -2487,7 +2486,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                     final pickedDate = await showDatePicker(
                       context: context,
                       initialDate: isOpen ? examOpen : examClose,
-                      firstDate: isOpen ? examOpen : examClose,
+                      firstDate: examOpen,
                       lastDate: DateTime(
                         isOpen ? examOpen.year + 1 : examClose.year + 1,
                         isOpen ? examOpen.month - 6 : examClose.month - 6,

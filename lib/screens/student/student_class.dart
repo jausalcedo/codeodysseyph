@@ -78,7 +78,7 @@ class _StudentClassScreenState extends State<StudentClassScreen>
     Map<String, dynamic> submissions = activity['submissions'] ?? {};
     Map<String, dynamic> studentSubmission =
         submissions[widget.studentId] ?? {};
-    List<Map<String, dynamic>> studentSubmissionAttachments =
+    List<dynamic> studentSubmissionAttachments =
         studentSubmission['attachments'] ?? [];
     List activityAttachments = activity['attachments'] ?? [];
 
@@ -369,25 +369,28 @@ class _StudentClassScreenState extends State<StudentClassScreen>
     required int examIndex,
     required dynamic violations,
   }) async {
-    await _firestoreService.initializeExamScore(
-      classCode: widget.classCode,
-      examIndex: examIndex,
-      studentId: widget.studentId,
-    );
+    await _firestoreService
+        .initializeExamScore(
+          classCode: widget.classCode,
+          examIndex: examIndex,
+          studentId: widget.studentId,
+        )
+        .then(
+          (_) => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => StudentLaboratoryExamScreen(
+                classCode: widget.classCode,
+                exam: exam,
+                startTime: DateTime.now(),
+                examIndex: examIndex,
+                violations: violations,
+                studentId: widget.studentId,
+              ),
+            ),
+          ),
+        );
 
     // ignore: use_build_context_synchronously
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => StudentLaboratoryExamScreen(
-          classCode: widget.classCode,
-          exam: exam,
-          startTime: DateTime.now(),
-          examIndex: examIndex,
-          violations: violations,
-          studentId: widget.studentId,
-        ),
-      ),
-    );
   }
 
   // ANNOUNCEMENT ESSENTIALS
@@ -715,16 +718,40 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                                           textAlign:
                                                                               TextAlign.end,
                                                                         ),
+                                                                        // enabled:
+                                                                        //     (!DateTime.now().isBefore(activity['openSchedule'].toDate()) &&
+                                                                        //         !DateTime.now().isAfter(activity['closeSchedule'].toDate())),
                                                                         onTap:
                                                                             () {
-                                                                          openSubmitActivityModal(
-                                                                            lessonIndex:
-                                                                                lessonIndex,
-                                                                            activityIndex:
-                                                                                activityIndex,
-                                                                            activity:
-                                                                                activity,
-                                                                          );
+                                                                          final DateTime
+                                                                              openSchedule =
+                                                                              activity['openSchedule'].toDate();
+                                                                          final DateTime
+                                                                              closeSchedule =
+                                                                              activity['closeSchedule'].toDate();
+                                                                          if (DateTime.now().isBefore(
+                                                                              openSchedule)) {
+                                                                            QuickAlert.show(
+                                                                              context: context,
+                                                                              type: QuickAlertType.error,
+                                                                              title: 'Activity is not yet open.',
+                                                                              text: 'Please wait for the activity to open before submitting.',
+                                                                            );
+                                                                          } else if (DateTime.now()
+                                                                              .isAfter(closeSchedule)) {
+                                                                            QuickAlert.show(
+                                                                              context: context,
+                                                                              type: QuickAlertType.error,
+                                                                              title: 'Activity is already closed.',
+                                                                              text: 'You can no longer submit your work for this activity.',
+                                                                            );
+                                                                          } else {
+                                                                            openSubmitActivityModal(
+                                                                              lessonIndex: lessonIndex,
+                                                                              activityIndex: activityIndex,
+                                                                              activity: activity,
+                                                                            );
+                                                                          }
                                                                         },
                                                                       ),
                                                                     );
@@ -892,53 +919,94 @@ class _StudentClassScreenState extends State<StudentClassScreen>
 
                                               return Card(
                                                 child: ListTile(
-                                                  enabled: (!DateTime.now()
-                                                          .isBefore(exam[
-                                                                  'openSchedule']
-                                                              .toDate()) &&
-                                                      !DateTime.now().isAfter(
-                                                          exam['closeSchedule']
-                                                              .toDate())),
-                                                  onTap: alreadyAnswered
-                                                      ? () => QuickAlert.show(
-                                                            context: context,
-                                                            type: QuickAlertType
-                                                                .error,
-                                                            title:
-                                                                'You have already answered this exam.',
-                                                          )
-                                                      : () => QuickAlert.show(
-                                                            context: context,
-                                                            type: QuickAlertType
-                                                                .warning,
-                                                            title:
-                                                                'Are you ready to take the exam?',
-                                                            text:
-                                                                'Reloading the exam page is strictly prohibited.\nAny attempt to reload will result in an automatic score of 0.\nChanging views/copy and pasting text will deduct points to your final score.',
-                                                            onConfirmBtnTap: exam[
-                                                                        'examType'] ==
-                                                                    'Written'
-                                                                ? () =>
-                                                                    goToStudentWrittenExamScreen(
-                                                                      examIndex:
-                                                                          examIndex,
-                                                                      exam:
-                                                                          exam,
-                                                                      violations:
-                                                                          classData[
-                                                                              'violations'],
-                                                                    )
-                                                                : () =>
-                                                                    goToStudentLaboratoryExamScreen(
-                                                                      exam:
-                                                                          exam,
-                                                                      examIndex:
-                                                                          examIndex,
-                                                                      violations:
-                                                                          classData[
-                                                                              'violations'],
-                                                                    ),
-                                                          ),
+                                                  // enabled: (!DateTime.now()
+                                                  //         .isBefore(exam[
+                                                  //                 'openSchedule']
+                                                  //             .toDate()) &&
+                                                  //     !DateTime.now().isAfter(
+                                                  //         exam['closeSchedule']
+                                                  //             .toDate())),
+                                                  onTap: () {
+                                                    final DateTime
+                                                        openSchedule =
+                                                        exam['openSchedule']
+                                                            .toDate();
+                                                    final DateTime
+                                                        closeSchedule =
+                                                        exam['closeSchedule']
+                                                            .toDate();
+                                                    if (DateTime.now().isBefore(
+                                                        openSchedule)) {
+                                                      QuickAlert.show(
+                                                        context: context,
+                                                        type: QuickAlertType
+                                                            .error,
+                                                        title:
+                                                            'Activity is not yet open.',
+                                                        text:
+                                                            'Please wait for the activity to open before submitting.',
+                                                      );
+                                                    } else if (DateTime.now()
+                                                        .isAfter(
+                                                            closeSchedule)) {
+                                                      QuickAlert.show(
+                                                        context: context,
+                                                        type: QuickAlertType
+                                                            .error,
+                                                        title:
+                                                            'Activity is already closed.',
+                                                        text:
+                                                            'You can no longer submit your work for this activity.',
+                                                      );
+                                                    } else {
+                                                      alreadyAnswered
+                                                          ? QuickAlert.show(
+                                                              context: context,
+                                                              type:
+                                                                  QuickAlertType
+                                                                      .error,
+                                                              title:
+                                                                  'You have already answered this exam.',
+                                                            )
+                                                          : QuickAlert.show(
+                                                              context: context,
+                                                              type:
+                                                                  QuickAlertType
+                                                                      .warning,
+                                                              title:
+                                                                  'Are you ready to take the exam?',
+                                                              text:
+                                                                  'Reloading the exam page is strictly prohibited.\nAny attempt to reload will result in an automatic score of 0.\nChanging views/copy and pasting text will deduct points to your final score.',
+                                                              onConfirmBtnTap:
+                                                                  exam['examType'] ==
+                                                                          'Written'
+                                                                      ? () {
+                                                                          Navigator.of(context)
+                                                                              .pop();
+                                                                          goToStudentWrittenExamScreen(
+                                                                            examIndex:
+                                                                                examIndex,
+                                                                            exam:
+                                                                                exam,
+                                                                            violations:
+                                                                                classData['violations'],
+                                                                          );
+                                                                        }
+                                                                      : () {
+                                                                          Navigator.of(context)
+                                                                              .pop();
+                                                                          goToStudentLaboratoryExamScreen(
+                                                                            exam:
+                                                                                exam,
+                                                                            examIndex:
+                                                                                examIndex,
+                                                                            violations:
+                                                                                classData['violations'],
+                                                                          );
+                                                                        },
+                                                            );
+                                                    }
+                                                  },
                                                   title: Text(
                                                     '${exam['exam']} ${exam['examType']} Examination',
                                                     style: const TextStyle(
