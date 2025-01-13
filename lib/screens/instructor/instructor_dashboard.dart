@@ -468,7 +468,8 @@ class _InstructorDashboardScreenState extends State<InstructorDashboardScreen> {
       drawer: InstructorDrawer(userId: widget.instructorId),
       appBar: PreferredSize(
         preferredSize: const Size(double.infinity, 75),
-        child: InstructorAppbar(userId: widget.instructorId),
+        child:
+            InstructorAppbar(userId: widget.instructorId, goBackToClass: null),
       ),
       body: Center(
         child: SizedBox(

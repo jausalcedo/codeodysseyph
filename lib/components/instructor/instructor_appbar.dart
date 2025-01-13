@@ -9,9 +9,14 @@ import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 
 class InstructorAppbar extends StatefulWidget {
-  const InstructorAppbar({super.key, required this.userId});
+  const InstructorAppbar({
+    super.key,
+    required this.userId,
+    required this.goBackToClass,
+  });
 
   final String userId;
+  final VoidCallback? goBackToClass;
 
   @override
   State<InstructorAppbar> createState() => _InstructorAppbarState();
@@ -68,6 +73,12 @@ class _InstructorAppbarState extends State<InstructorAppbar> {
       shape: const Border.symmetric(
         horizontal: BorderSide(color: Colors.black87),
       ),
+      leading: widget.goBackToClass != null
+          ? IconButton(
+              onPressed: widget.goBackToClass,
+              icon: const Icon(Icons.arrow_back_rounded),
+            )
+          : null,
       title: Image.asset(
         'assets/images/Logo - Long Row Transparent.png',
         height: 75,

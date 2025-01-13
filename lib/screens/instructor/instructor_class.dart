@@ -571,6 +571,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                     'fileName': attachmentFileName,
                     'attachment': attachmentPath,
                   });
+
+                  attachmentBytes = null;
+                  attachmentFileName = null;
                 });
               }
             }
@@ -2486,7 +2489,8 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size(double.infinity, 75),
-        child: InstructorAppbar(userId: widget.instructorId),
+        child:
+            InstructorAppbar(userId: widget.instructorId, goBackToClass: null),
       ),
       body: Center(
         child: SizedBox(
