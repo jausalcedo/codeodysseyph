@@ -459,6 +459,25 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
 
         final pointsController = TextEditingController();
 
+        void addToTrueOrFalseItems() {
+          if (!formKey.currentState!.validate()) {
+            return;
+          }
+
+          setState(() {
+            writtenItems['True or False']!.add({
+              'question': questionController.text,
+              'attachments': itemAttachments,
+              'answer': correctAnswer,
+              'points': int.parse(pointsController.text),
+            });
+
+            totalPoints += int.parse(pointsController.text);
+
+            maxScoreController.text = totalPoints.toString();
+          });
+        }
+
         return StatefulBuilder(
           builder: (context, setState) {
             void pickFile() async {
@@ -505,23 +524,6 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                 setState(() {
                   itemAttachments.removeAt(index);
                 });
-              });
-            }
-
-            void addToTrueOrFalseItems() {
-              if (!formKey.currentState!.validate()) {
-                return;
-              }
-
-              setState(() {
-                writtenItems['True or False']!.add({
-                  'question': questionController.text,
-                  'attachments': itemAttachments,
-                  'answer': correctAnswer,
-                  'points': int.parse(pointsController.text),
-                });
-
-                totalPoints += int.parse(pointsController.text);
               });
             }
 
@@ -750,11 +752,614 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
   }
 
   void openAddIdentificationModal() async {
-    // TO DO
+    showDialog(
+      context: context,
+      builder: (context) {
+        final formKey = GlobalKey<FormState>();
+
+        final questionController = TextEditingController();
+
+        List<Map<String, dynamic>> itemAttachments = [];
+        String? fileName;
+        Uint8List? fileBytes;
+
+        final answerController = TextEditingController();
+
+        final pointsController = TextEditingController();
+
+        void addToIdentificationItems() {
+          if (!formKey.currentState!.validate()) {
+            return;
+          }
+
+          setState(() {
+            writtenItems['Identification']!.add({
+              'question': questionController.text,
+              'attachments': itemAttachments,
+              'answer': answerController.text,
+              'points': int.parse(pointsController.text),
+            });
+
+            totalPoints += int.parse(pointsController.text);
+
+            maxScoreController.text = totalPoints.toString();
+          });
+
+          Navigator.of(context).pop();
+        }
+
+        return StatefulBuilder(
+          builder: (BuildContext context, setState) {
+            void pickFile() async {
+              FilePickerResult? result = await FilePicker.platform.pickFiles(
+                allowMultiple: false,
+                allowedExtensions: ['jpg', 'jpeg', 'png'],
+                type: FileType.custom,
+              );
+
+              if (result != null) {
+                fileBytes = result.files.first.bytes!;
+                fileName = result.files.first.name;
+
+                QuickAlert.show(
+                  // ignore: use_build_context_synchronously
+                  context: context,
+                  type: QuickAlertType.loading,
+                );
+
+                final attachmentPath = await _storageService.uploadFile(
+                  'classes/files/',
+                  fileName!,
+                  fileBytes!,
+                );
+
+                // ignore: use_build_context_synchronously
+                Navigator.of(context).pop();
+
+                setState(() {
+                  itemAttachments.add({
+                    'fileName': fileName,
+                    'attachment': attachmentPath,
+                  });
+
+                  fileName = null;
+                  fileBytes = null;
+                });
+              }
+            }
+
+            void removeAttachment(int index) {
+              _storageService
+                  .deleteFile([itemAttachments[index]['attachment']]).then((_) {
+                setState(() {
+                  itemAttachments.removeAt(index);
+                });
+              });
+            }
+
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Add Identification'),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => itemAttachments.isEmpty
+                        ? Navigator.of(context).pop()
+                        : QuickAlert.show(
+                            context: context,
+                            type: QuickAlertType.warning,
+                            title: 'Discard Changes?',
+                            text:
+                                'This will remove all exam items you have added. Are you sure you want to proceed?',
+                            confirmBtnText: 'Yes',
+                            onConfirmBtnTap: () {
+                              _storageService.deleteFile(
+                                itemAttachments
+                                    .map((attachment) =>
+                                        attachment['attachment'])
+                                    .toList(),
+                              );
+
+                              Navigator.of(context).pop();
+                              Navigator.of(context).pop();
+                            },
+                            showCancelBtn: true,
+                            onCancelBtnTap: () => Navigator.of(context).pop,
+                          ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 500,
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // QUESTION
+                      TextFormField(
+                        controller: questionController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          label: Text('Question'),
+                        ),
+                        validator: (value) {
+                          if (value!.trim().isEmpty) {
+                            return 'Please input a question';
+                          }
+
+                          return null;
+                        },
+                      ),
+                      const Gap(10),
+
+                      // ATTACHMENTS
+                      ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: itemAttachments.length,
+                        itemBuilder: (context, index) {
+                          return FutureBuilder<String>(
+                            future: _storageService.storageRef
+                                .child(itemAttachments[index]['attachment'])
+                                .getDownloadURL(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const CircularProgressIndicator();
+                              } else if (snapshot.hasError) {
+                                return const Icon(Icons.error);
+                              } else if (snapshot.hasData) {
+                                return ListTile(
+                                  title:
+                                      Text(itemAttachments[index]['fileName']),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // PREVIEW ATTACHMENT BUTTON
+                                      IconButton(
+                                        icon: const Icon(Icons.visibility),
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  const Text(
+                                                      'Attachment Preview'),
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                        Icons.close_rounded),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(),
+                                                  ),
+                                                ],
+                                              ),
+                                              content:
+                                                  Image.network(snapshot.data!),
+                                            ),
+                                          );
+                                        },
+                                      ),
+
+                                      // DELETE ATTACHMENT BUTTON
+                                      IconButton(
+                                        icon: const Icon(Icons.delete),
+                                        onPressed: () => QuickAlert.show(
+                                          context: context,
+                                          type: QuickAlertType.warning,
+                                          title: 'Delete Attachment?',
+                                          text:
+                                              'Are you sure you want to delete this attachment?',
+                                          confirmBtnText: 'Yes',
+                                          onConfirmBtnTap: () =>
+                                              removeAttachment(index),
+                                          showCancelBtn: true,
+                                          onCancelBtnTap: () =>
+                                              Navigator.of(context).pop(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              } else {
+                                return const Icon(Icons.error);
+                              }
+                            },
+                          );
+                        },
+                      ),
+                      itemAttachments.isNotEmpty
+                          ? const Gap(10)
+                          : const SizedBox(),
+
+                      // ATTACH IMAGE BUTTON
+                      TextButton.icon(
+                        style: const ButtonStyle(
+                          backgroundColor: WidgetStatePropertyAll(primary),
+                          foregroundColor: WidgetStatePropertyAll(Colors.white),
+                        ),
+                        onPressed: pickFile,
+                        label: const Text('Attach Image'),
+                        icon: const Icon(Icons.image_rounded),
+                      ),
+                      const Gap(10),
+
+                      // ANSWER
+                      TextFormField(
+                        controller: answerController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          label: Text('Answer'),
+                        ),
+                        validator: (value) {
+                          if (value!.trim().isEmpty) {
+                            return 'Please input an answer';
+                          }
+
+                          return null;
+                        },
+                      ),
+                      const Gap(10),
+
+                      // POINTS
+                      TextFormField(
+                        controller: pointsController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          label: Text('Points'),
+                        ),
+                        validator: (value) {
+                          if (int.tryParse(value!) == null) {
+                            return 'Please input a number';
+                          }
+
+                          return null;
+                        },
+                      ),
+                      const Gap(10),
+
+                      // ADD ITEM BUTTON
+                      Center(
+                        child: ElevatedButton(
+                          style: const ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll(primary),
+                            foregroundColor:
+                                WidgetStatePropertyAll(Colors.white),
+                          ),
+                          onPressed: addToIdentificationItems,
+                          child: const Text('Add to Written Exam Items'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void openAddFillInTheBlanksModal() async {
-    // TO DO
+    showDialog(
+      context: context,
+      builder: (context) {
+        final formKey = GlobalKey<FormState>();
+        final answerFormKey = GlobalKey<FormState>();
+
+        final questionController = TextEditingController();
+
+        List<Map<String, dynamic>> itemAttachments = [];
+        String? fileName;
+        Uint8List? fileBytes;
+
+        final List<TextEditingController> answerControllers = [
+          TextEditingController(),
+        ];
+
+        final pointsController = TextEditingController();
+
+        void addToFillInTheBlanksItems() {
+          if (!formKey.currentState!.validate()) {
+            return;
+          }
+
+          setState(() {
+            writtenItems['Fill in the Blanks']!.add({
+              'question': questionController.text,
+              'attachments': itemAttachments,
+              'answers': answerControllers
+                  .map((controller) => controller.text)
+                  .toList(),
+              'points': int.parse(pointsController.text),
+            });
+
+            totalPoints += int.parse(pointsController.text);
+
+            maxScoreController.text = totalPoints.toString();
+          });
+
+          Navigator.of(context).pop();
+        }
+
+        return StatefulBuilder(
+          builder: (BuildContext context, setState) {
+            void pickFile() async {
+              FilePickerResult? result = await FilePicker.platform.pickFiles(
+                allowMultiple: false,
+                allowedExtensions: ['jpg', 'jpeg', 'png'],
+                type: FileType.custom,
+              );
+
+              if (result != null) {
+                fileBytes = result.files.first.bytes!;
+                fileName = result.files.first.name;
+
+                QuickAlert.show(
+                  // ignore: use_build_context_synchronously
+                  context: context,
+                  type: QuickAlertType.loading,
+                );
+
+                final attachmentPath = await _storageService.uploadFile(
+                  'classes/files/',
+                  fileName!,
+                  fileBytes!,
+                );
+
+                // ignore: use_build_context_synchronously
+                Navigator.of(context).pop();
+
+                setState(() {
+                  itemAttachments.add({
+                    'fileName': fileName,
+                    'attachment': attachmentPath,
+                  });
+
+                  fileName = null;
+                  fileBytes = null;
+                });
+              }
+            }
+
+            void removeAttachment(int index) {
+              _storageService
+                  .deleteFile([itemAttachments[index]['attachment']]).then((_) {
+                setState(() {
+                  itemAttachments.removeAt(index);
+                });
+              });
+            }
+
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Add Fill in the Blanks'),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => itemAttachments.isEmpty
+                        ? Navigator.of(context).pop()
+                        : QuickAlert.show(
+                            context: context,
+                            type: QuickAlertType.warning,
+                            title: 'Discard Changes?',
+                            text:
+                                'This will remove all exam items you have added. Are you sure you want to proceed?',
+                            confirmBtnText: 'Yes',
+                            onConfirmBtnTap: () {
+                              _storageService.deleteFile(
+                                itemAttachments
+                                    .map((attachment) =>
+                                        attachment['attachment'])
+                                    .toList(),
+                              );
+
+                              Navigator.of(context).pop();
+                              Navigator.of(context).pop();
+                            },
+                            showCancelBtn: true,
+                            onCancelBtnTap: () => Navigator.of(context).pop,
+                          ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 500,
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // QUESTION
+                      TextFormField(
+                        controller: questionController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          label: Text('Question'),
+                        ),
+                        validator: (value) {
+                          if (value!.trim().isEmpty) {
+                            return 'Please input a question';
+                          }
+
+                          return null;
+                        },
+                      ),
+                      const Gap(10),
+
+                      // ATTACHMENTS
+                      ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: itemAttachments.length,
+                        itemBuilder: (context, index) {
+                          return FutureBuilder<String>(
+                            future: _storageService.storageRef
+                                .child(itemAttachments[index]['attachment'])
+                                .getDownloadURL(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const CircularProgressIndicator();
+                              } else if (snapshot.hasError) {
+                                return const Icon(Icons.error);
+                              } else if (snapshot.hasData) {
+                                return ListTile(
+                                  title:
+                                      Text(itemAttachments[index]['fileName']),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.visibility),
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  const Text(
+                                                      'Attachment Preview'),
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                        Icons.close_rounded),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(),
+                                                  ),
+                                                ],
+                                              ),
+                                              content:
+                                                  Image.network(snapshot.data!),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete),
+                                        onPressed: () => QuickAlert.show(
+                                          context: context,
+                                          type: QuickAlertType.warning,
+                                          title: 'Delete Attachment?',
+                                          text:
+                                              'Are you sure you want to delete this attachment?',
+                                          confirmBtnText: 'Yes',
+                                          onConfirmBtnTap: () {
+                                            _storageService.deleteFile(
+                                              [
+                                                itemAttachments[index]
+                                                    ['attachment']
+                                              ],
+                                            );
+
+                                            setState(() {
+                                              itemAttachments.removeAt(index);
+                                            });
+
+                                            Navigator.of(context).pop();
+                                          },
+                                          showCancelBtn: true,
+                                          onCancelBtnTap: () =>
+                                              Navigator.of(context).pop(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              } else {
+                                return const Icon(Icons.error);
+                              }
+                            },
+                          );
+                        },
+                      ),
+                      itemAttachments.isNotEmpty
+                          ? const Gap(10)
+                          : const SizedBox(),
+
+                      // ATTACH IMAGE BUTTON
+                      TextButton.icon(
+                        style: const ButtonStyle(
+                          backgroundColor: WidgetStatePropertyAll(primary),
+                          foregroundColor: WidgetStatePropertyAll(Colors.white),
+                        ),
+                        onPressed: pickFile,
+                        label: const Text('Attach Image'),
+                        icon: const Icon(Icons.image_rounded),
+                      ),
+
+                      // ANSWERS
+                      Form(
+                        key: answerFormKey,
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            ...List.generate(answerControllers.length, (index) {
+                              return Column(
+                                children: [
+                                  TextFormField(
+                                    controller: answerControllers[index],
+                                    decoration: InputDecoration(
+                                      border: const OutlineInputBorder(),
+                                      label: Text('Answer ${index + 1}'),
+                                      suffixIcon: index == 0
+                                          ? null
+                                          : IconButton(
+                                              onPressed: () => setState(() {
+                                                answerControllers
+                                                    .removeAt(index);
+                                              }),
+                                              icon: const Icon(
+                                                  Icons.remove_rounded),
+                                            ),
+                                    ),
+                                    onChanged: (value) {
+                                      if (!formKey.currentState!.validate()) {
+                                        return;
+                                      }
+                                    },
+                                    validator: (value) {
+                                      if (value!.trim().isEmpty) {
+                                        return 'Please input an answer';
+                                      }
+                                      if (answerControllers
+                                              .where((controller) =>
+                                                  controller.text.trim() ==
+                                                  value.trim())
+                                              .length >
+                                          1) {
+                                        return 'Answers must be unique';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const Gap(10),
+                                ],
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void openAddShortAnswerModal() async {
