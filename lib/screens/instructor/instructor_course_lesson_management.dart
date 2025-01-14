@@ -329,6 +329,7 @@ class _InstructorCourseLessonManagementState
         preferredSize: const Size(double.infinity, 75),
         child: InstructorAppbar(
           userId: widget.instructorId,
+          goBackToClass: null,
         ),
       ),
       body: StreamBuilder(

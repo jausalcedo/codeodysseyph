@@ -224,7 +224,7 @@ class InstructorProfileScreen extends StatelessWidget {
       ),
       appBar: PreferredSize(
         preferredSize: const Size(double.infinity, 75),
-        child: InstructorAppbar(userId: userId),
+        child: InstructorAppbar(userId: userId, goBackToClass: null),
       ),
     );
   }

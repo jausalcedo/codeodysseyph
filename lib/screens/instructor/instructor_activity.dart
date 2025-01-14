@@ -67,7 +67,10 @@ class _InstructorActivityScreenState extends State<InstructorActivityScreen> {
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size(double.infinity, 75),
-        child: InstructorAppbar(userId: widget.instructorId),
+        child: InstructorAppbar(
+          userId: widget.instructorId,
+          goBackToClass: null,
+        ),
       ),
       body: activityType == 'Multiple Choice'
           ? Row(
