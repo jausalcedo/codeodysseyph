@@ -32,14 +32,16 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
   final _storageService = FirebaseStorageService();
 
   // EXAM ESSENTIALS
+  final durationFormKey = GlobalKey<FormState>();
+
   String exam = 'Midterm';
   String examType = 'Written';
-  final hoursController = TextEditingController();
-  final minutesController = TextEditingController();
   DateTime? openTime;
   DateTime? closeTime;
-  final maxScoreController = TextEditingController();
+  final hoursController = TextEditingController();
+  final minutesController = TextEditingController();
   int totalPoints = 0;
+  final maxScoreController = TextEditingController();
 
   Map<String, dynamic> writtenItems = {
     'Multiple Choice': [],
@@ -478,6 +480,8 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
 
             maxScoreController.text = totalPoints.toString();
           });
+
+          Navigator.of(context).pop();
         }
 
         return StatefulBuilder(
@@ -1054,7 +1058,7 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
       context: context,
       builder: (context) {
         final formKey = GlobalKey<FormState>();
-        final answerFormKey = GlobalKey<FormState>();
+        final answersFormKey = GlobalKey<FormState>();
 
         final questionController = TextEditingController();
 
@@ -1294,7 +1298,7 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
 
                       // ANSWERS
                       Form(
-                        key: answerFormKey,
+                        key: answersFormKey,
                         child: ListView(
                           shrinkWrap: true,
                           children: [
@@ -1318,7 +1322,8 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                                             ),
                                     ),
                                     onChanged: (value) {
-                                      if (!formKey.currentState!.validate()) {
+                                      if (!answersFormKey.currentState!
+                                          .validate()) {
                                         return;
                                       }
                                     },
@@ -1792,149 +1797,154 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
               ),
               content: SizedBox(
                 width: 500,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // QUESTION
-                    TextFormField(
-                      controller: questionController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        label: Text('Question'),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // QUESTION
+                      TextFormField(
+                        controller: questionController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          label: Text('Question'),
+                        ),
+                        validator: (value) {
+                          if (value!.trim().isEmpty) {
+                            return 'Please input a question';
+                          }
+
+                          return null;
+                        },
                       ),
-                      validator: (value) {
-                        if (value!.trim().isEmpty) {
-                          return 'Please input a question';
-                        }
+                      const Gap(10),
 
-                        return null;
-                      },
-                    ),
-                    const Gap(10),
-
-                    // ATTACHMENTS
-                    ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: itemAttachments.length,
-                      itemBuilder: (context, index) {
-                        return FutureBuilder<String>(
-                          future: _storageService.storageRef
-                              .child(itemAttachments[index]['attachment'])
-                              .getDownloadURL(),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const CircularProgressIndicator();
-                            } else if (snapshot.hasError) {
-                              return const Icon(Icons.error);
-                            } else if (snapshot.hasData) {
-                              return ListTile(
-                                title: Text(itemAttachments[index]['fileName']),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // PREVIEW ATTACHMENT BUTTON
-                                    IconButton(
-                                      icon: const Icon(Icons.visibility),
-                                      onPressed: () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                const Text(
-                                                    'Attachment Preview'),
-                                                IconButton(
-                                                  icon: const Icon(
-                                                      Icons.close_rounded),
-                                                  onPressed: () =>
-                                                      Navigator.of(context)
-                                                          .pop(),
-                                                ),
-                                              ],
+                      // ATTACHMENTS
+                      ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: itemAttachments.length,
+                        itemBuilder: (context, index) {
+                          return FutureBuilder<String>(
+                            future: _storageService.storageRef
+                                .child(itemAttachments[index]['attachment'])
+                                .getDownloadURL(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const CircularProgressIndicator();
+                              } else if (snapshot.hasError) {
+                                return const Icon(Icons.error);
+                              } else if (snapshot.hasData) {
+                                return ListTile(
+                                  title:
+                                      Text(itemAttachments[index]['fileName']),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // PREVIEW ATTACHMENT BUTTON
+                                      IconButton(
+                                        icon: const Icon(Icons.visibility),
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  const Text(
+                                                      'Attachment Preview'),
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                        Icons.close_rounded),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(),
+                                                  ),
+                                                ],
+                                              ),
+                                              content:
+                                                  Image.network(snapshot.data!),
                                             ),
-                                            content:
-                                                Image.network(snapshot.data!),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    // DELETE ATTACHMENT BUTTON
-                                    IconButton(
-                                      icon: const Icon(Icons.delete),
-                                      onPressed: () => QuickAlert.show(
-                                        context: context,
-                                        type: QuickAlertType.warning,
-                                        title: 'Delete Attachment?',
-                                        text:
-                                            'Are you sure you want to delete this attachment?',
-                                        confirmBtnText: 'Yes',
-                                        onConfirmBtnTap: () =>
-                                            removeAttachment(index),
-                                        showCancelBtn: true,
-                                        onCancelBtnTap: () =>
-                                            Navigator.of(context).pop(),
+                                          );
+                                        },
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            } else {
-                              return const Icon(Icons.error);
-                            }
-                          },
-                        );
-                      },
-                    ),
-                    itemAttachments.isNotEmpty
-                        ? const Gap(10)
-                        : const SizedBox(),
-
-                    // ATTACH IMAGE BUTTON
-                    TextButton.icon(
-                      style: const ButtonStyle(
-                        backgroundColor: WidgetStatePropertyAll(primary),
-                        foregroundColor: WidgetStatePropertyAll(Colors.white),
+                                      // DELETE ATTACHMENT BUTTON
+                                      IconButton(
+                                        icon: const Icon(Icons.delete),
+                                        onPressed: () => QuickAlert.show(
+                                          context: context,
+                                          type: QuickAlertType.warning,
+                                          title: 'Delete Attachment?',
+                                          text:
+                                              'Are you sure you want to delete this attachment?',
+                                          confirmBtnText: 'Yes',
+                                          onConfirmBtnTap: () =>
+                                              removeAttachment(index),
+                                          showCancelBtn: true,
+                                          onCancelBtnTap: () =>
+                                              Navigator.of(context).pop(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              } else {
+                                return const Icon(Icons.error);
+                              }
+                            },
+                          );
+                        },
                       ),
-                      onPressed: pickFile,
-                      label: const Text('Attach Image'),
-                      icon: const Icon(Icons.image_rounded),
-                    ),
-                    const Gap(10),
+                      itemAttachments.isNotEmpty
+                          ? const Gap(10)
+                          : const SizedBox(),
 
-                    // POINTS
-                    TextFormField(
-                      controller: pointsController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        label: Text('Points'),
-                      ),
-                      validator: (value) {
-                        if (int.tryParse(value!) == null) {
-                          return 'Please input a number';
-                        }
-
-                        return null;
-                      },
-                    ),
-                    const Gap(10),
-
-                    // ADD ITEM BUTTON
-                    Center(
-                      child: ElevatedButton(
+                      // ATTACH IMAGE BUTTON
+                      TextButton.icon(
                         style: const ButtonStyle(
                           backgroundColor: WidgetStatePropertyAll(primary),
                           foregroundColor: WidgetStatePropertyAll(Colors.white),
                         ),
-                        onPressed: addToLongAnswerItems,
-                        child: const Text('Add to Written Exam Items'),
+                        onPressed: pickFile,
+                        label: const Text('Attach Image'),
+                        icon: const Icon(Icons.image_rounded),
                       ),
-                    ),
-                  ],
+                      const Gap(10),
+
+                      // POINTS
+                      TextFormField(
+                        controller: pointsController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          label: Text('Points'),
+                        ),
+                        validator: (value) {
+                          if (int.tryParse(value!) == null) {
+                            return 'Please input a number';
+                          }
+
+                          return null;
+                        },
+                      ),
+                      const Gap(10),
+
+                      // ADD ITEM BUTTON
+                      Center(
+                        child: ElevatedButton(
+                          style: const ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll(primary),
+                            foregroundColor:
+                                WidgetStatePropertyAll(Colors.white),
+                          ),
+                          onPressed: addToLongAnswerItems,
+                          child: const Text('Add to Written Exam Items'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -1947,24 +1957,385 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
   // LABORATORY MODALS
 
   void openAddLaboratoryItemModal() async {
-    // TO DO
-  }
-
-  void addExamToClass() {
-    final newExam = {
-      'exam': exam,
-      'examType': examType,
-      'openTime': openTime,
-      'closeTime': closeTime,
-      'maxScore': int.parse(maxScoreController.text),
-      'content': examType == 'Written' ? writtenItems : labItems,
-    };
-
-    _firestoreService.addExamToClass(
+    showDialog(
       context: context,
-      instructorId: widget.instructorId,
-      classCode: widget.classCode,
-      newExam: newExam,
+      builder: (context) {
+        final formKey = GlobalKey<FormState>();
+
+        final problemStatementController = TextEditingController();
+        final constraintsController = TextEditingController();
+
+        List<Map<String, dynamic>> examples = [];
+        List<Map<String, dynamic>> testCases = [];
+
+        final pointsController = TextEditingController();
+
+        return Form(
+          key: formKey,
+          child: AlertDialog(
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Add Laboratory Item'),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 75,
+                      child: TextFormField(
+                        controller: pointsController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          label: Text('Points'),
+                        ),
+                        validator: (value) {
+                          if (int.tryParse(value!) == null) {
+                            return 'Please input a number';
+                          }
+
+                          return null;
+                        },
+                      ),
+                    ),
+                    const Gap(5),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => examples.isEmpty && testCases.isEmpty
+                          ? Navigator.of(context).pop()
+                          : QuickAlert.show(
+                              context: context,
+                              type: QuickAlertType.warning,
+                              title: 'Discard Changes?',
+                              text:
+                                  'This will remove all examples and test cases you have added. Are you sure you want to proceed?',
+                              confirmBtnText: 'Yes',
+                              onConfirmBtnTap: () {
+                                Navigator.of(context).pop();
+                                Navigator.of(context).pop();
+                              },
+                              showCancelBtn: true,
+                              onCancelBtnTap: () => Navigator.of(context).pop(),
+                            ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 750,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // PROBLEM STATEMENT
+                  TextFormField(
+                    controller: problemStatementController,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      label: Text('Problem Statement'),
+                    ),
+                    minLines: 1,
+                    maxLines: 3,
+                    validator: (value) {
+                      if (value!.trim().isEmpty) {
+                        return 'Please input a problem statement';
+                      }
+
+                      return null;
+                    },
+                  ),
+                  const Gap(10),
+
+                  // CONSTRAINTS
+                  TextFormField(
+                    controller: constraintsController,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      label: Text('Constraints'),
+                    ),
+                    minLines: 1,
+                    maxLines: 3,
+                    validator: (value) {
+                      if (value!.trim().isEmpty) {
+                        return 'Please input constraints';
+                      }
+
+                      return null;
+                    },
+                  ),
+                  const Gap(10),
+
+                  StatefulBuilder(
+                    builder: (BuildContext context, setState) {
+                      void openAddExampleTestCaseModal(bool isExample) {
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            final exampleTestCaseFormKey =
+                                GlobalKey<FormState>();
+
+                            final inputController = TextEditingController();
+                            final outputController = TextEditingController();
+
+                            return AlertDialog(
+                              title: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(isExample
+                                      ? 'Add Example'
+                                      : 'Add Test Case'),
+                                  IconButton(
+                                    icon: const Icon(Icons.close_rounded),
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
+                                  ),
+                                ],
+                              ),
+                              content: SizedBox(
+                                width: 500,
+                                child: Form(
+                                  key: exampleTestCaseFormKey,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // INPUT
+                                      TextFormField(
+                                        controller: inputController,
+                                        decoration: const InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          label: Text('Input'),
+                                        ),
+                                        validator: (value) {
+                                          if (value!.trim().isEmpty) {
+                                            return 'Please input an input';
+                                          }
+
+                                          return null;
+                                        },
+                                      ),
+                                      const Gap(10),
+
+                                      // OUTPUT
+                                      TextFormField(
+                                        controller: outputController,
+                                        decoration: const InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          label: Text('Output'),
+                                        ),
+                                        validator: (value) {
+                                          if (value!.trim().isEmpty) {
+                                            return 'Please input an output';
+                                          }
+
+                                          return null;
+                                        },
+                                      ),
+                                      const Gap(10),
+
+                                      // ADD ITEM BUTTON
+                                      Center(
+                                        child: ElevatedButton(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(primary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white),
+                                          ),
+                                          onPressed: () {
+                                            if (!exampleTestCaseFormKey
+                                                .currentState!
+                                                .validate()) {
+                                              return;
+                                            }
+
+                                            setState(() {
+                                              if (isExample) {
+                                                examples.add({
+                                                  'input': inputController.text,
+                                                  'output':
+                                                      outputController.text,
+                                                });
+                                              } else {
+                                                testCases.add({
+                                                  'input': inputController.text,
+                                                  'output':
+                                                      outputController.text,
+                                                });
+                                              }
+                                            });
+
+                                            Navigator.of(context).pop();
+                                          },
+                                          child: const Text('Add'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      }
+
+                      return Expanded(
+                        child: Row(
+                          children: [
+                            // EXAMPLES
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Examples',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                      // ADD EXAMPLE BUTTON
+                                      Center(
+                                        child: ElevatedButton(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(primary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white),
+                                          ),
+                                          onPressed: () =>
+                                              openAddExampleTestCaseModal(true),
+                                          child: const Text('Add Example'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Gap(10),
+                                  Expanded(
+                                    child: ListView.builder(
+                                      itemCount: examples.length,
+                                      itemBuilder: (context, index) => ListTile(
+                                        leading: CircleAvatar(
+                                          child: Text('${index + 1}'),
+                                        ),
+                                        title: Text(
+                                            'Input: ${examples[index]['input']}'),
+                                        subtitle: Text(
+                                            'Output: ${examples[index]['output']}'),
+                                        trailing: IconButton(
+                                          icon: const Icon(Icons.delete),
+                                          onPressed: () => setState(() {
+                                            examples.removeAt(index);
+                                          }),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Gap(10),
+
+                            // TEST CASES
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Test Cases',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                      // ADD TEST CASE BUTTON
+                                      Center(
+                                        child: ElevatedButton(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(primary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white),
+                                          ),
+                                          onPressed: () =>
+                                              openAddExampleTestCaseModal(
+                                                  false),
+                                          child: const Text('Add Test Case'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Gap(10),
+                                  Expanded(
+                                    child: ListView.builder(
+                                      itemCount: testCases.length,
+                                      itemBuilder: (context, index) => ListTile(
+                                        leading: CircleAvatar(
+                                          child: Text('${index + 1}'),
+                                        ),
+                                        title: Text(
+                                            'Input: ${testCases[index]['input']}'),
+                                        subtitle: Text(
+                                            'Output: ${testCases[index]['output']}'),
+                                        trailing: IconButton(
+                                          icon: const Icon(Icons.delete),
+                                          onPressed: () => setState(() {
+                                            testCases.removeAt(index);
+                                          }),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const Gap(10),
+
+                  // ADD ITEM BUTTON
+                  Center(
+                    child: ElevatedButton(
+                      style: const ButtonStyle(
+                        backgroundColor: WidgetStatePropertyAll(primary),
+                        foregroundColor: WidgetStatePropertyAll(Colors.white),
+                      ),
+                      onPressed: () {
+                        if (!formKey.currentState!.validate()) {
+                          return;
+                        }
+
+                        setState(() {
+                          labItems.add({
+                            'problemStatement': problemStatementController.text,
+                            'constraints': constraintsController.text,
+                            'examples': examples,
+                            'testCases': testCases,
+                            'points': int.parse(pointsController.text),
+                          });
+
+                          totalPoints += int.parse(pointsController.text);
+
+                          maxScoreController.text = totalPoints.toString();
+                        });
+
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Add to Laboratory Exam Items'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1987,6 +2358,65 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
         writtenItems[itemType]!.removeAt(index);
       }
     });
+  }
+
+  // ADD EXAM TO CLASS
+  void addExamToClass() {
+    if (openTime == null || closeTime == null) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Invalid Schedule',
+        text: 'Please input a valid schedule',
+      );
+
+      return;
+    }
+
+    if (!durationFormKey.currentState!.validate()) {
+      return;
+    }
+
+    if (labItems.isEmpty &&
+        writtenItems.values.every((element) => element.isEmpty)) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'No Items Added',
+        text: 'Please add at least one exam item',
+      );
+
+      return;
+    }
+
+    final newExam = {
+      'exam': exam,
+      'examType': examType,
+      'openSchedule': openTime,
+      'closeSchedule': closeTime,
+      'duration': {
+        'hours': hoursController.text.trim().isNotEmpty
+            ? int.parse(hoursController.text)
+            : 0,
+        'minutes': minutesController.text.trim().isNotEmpty
+            ? int.parse(minutesController.text)
+            : 0,
+      },
+      'maxScore': int.parse(maxScoreController.text),
+      'content': examType == 'Written' ? writtenItems : labItems,
+    };
+
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.loading,
+    );
+
+    _firestoreService.addExamToClass(
+      context: context,
+      instructorId: widget.instructorId,
+      classCode: widget.classCode,
+      newExam: newExam,
+    );
   }
 
   // NAVIGATE BACK TO CLASS SCREEN
@@ -2116,9 +2546,66 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                                           ))
                                       .toList(),
                                   onChanged: (value) {
-                                    setState(() {
-                                      examType = value!;
-                                    });
+                                    if (value == 'Laboratory' &&
+                                        writtenItems.values
+                                            .any((items) => items.isNotEmpty)) {
+                                      QuickAlert.show(
+                                        context: context,
+                                        type: QuickAlertType.warning,
+                                        title: 'Discard Written Items?',
+                                        text:
+                                            'This will remove all written exam items you have added.',
+                                        confirmBtnText: 'Yes',
+                                        onConfirmBtnTap: () {
+                                          for (var items
+                                              in writtenItems.values) {
+                                            items.forEach((item) {
+                                              _storageService.deleteFile(
+                                                item['attachments']
+                                                    .map((attachment) =>
+                                                        attachment[
+                                                            'attachment'])
+                                                    .toList(),
+                                              );
+                                            });
+
+                                            items.clear();
+                                          }
+
+                                          setState(() {
+                                            examType = value!;
+                                          });
+                                        },
+                                      );
+                                    } else if (value == 'Written' &&
+                                        labItems.isNotEmpty) {
+                                      QuickAlert.show(
+                                        context: context,
+                                        type: QuickAlertType.warning,
+                                        title: 'Discard Laboratory Items?',
+                                        text:
+                                            'This will remove all laboratory exam items you have added.',
+                                        confirmBtnText: 'Yes',
+                                        onConfirmBtnTap: () {
+                                          _storageService.deleteFile(
+                                            labItems
+                                                .map((item) =>
+                                                    item['attachment'])
+                                                .toList(),
+                                          );
+
+                                          labItems.clear();
+
+                                          setState(() {
+                                            examType = value!;
+                                          });
+                                        },
+                                      );
+                                    } else {
+                                      setState(() {
+                                        examType = value!;
+                                      });
+                                    }
                                   },
                                 ),
                               ),
@@ -2220,59 +2707,63 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                           ),
                           const Gap(10),
 
-                          Row(
-                            children: [
-                              // HOURS
-                              Expanded(
-                                child: TextFormField(
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    label: Text('Duration (Hours)'),
+                          Form(
+                            key: durationFormKey,
+                            child: Row(
+                              children: [
+                                // HOURS
+                                Expanded(
+                                  child: TextFormField(
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      label: Text('Duration (Hours)'),
+                                    ),
+                                    controller: hoursController,
+                                    validator: (value) {
+                                      if (value!.isNotEmpty &&
+                                          int.tryParse(value) == null) {
+                                        return 'Please input a valid duration.';
+                                      }
+                                      return null;
+                                    },
                                   ),
-                                  controller: hoursController,
-                                  validator: (value) {
-                                    if (int.tryParse(value!) == null) {
-                                      return 'Please input a number';
-                                    }
-
-                                    return null;
-                                  },
                                 ),
-                              ),
-                              const Gap(10),
+                                const Gap(10),
 
-                              // MINUTES
-                              Expanded(
-                                child: TextFormField(
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    label: Text('Duration (Minutes)'),
+                                // MINUTES
+                                Expanded(
+                                  child: TextFormField(
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      label: Text('Duration (Minutes)'),
+                                    ),
+                                    controller: minutesController,
+                                    validator: (value) {
+                                      if (hoursController.text.trim().isEmpty &&
+                                          int.tryParse(value!) == null) {
+                                        return 'Please input a valid duration.';
+                                      }
+
+                                      return null;
+                                    },
                                   ),
-                                  controller: minutesController,
-                                  validator: (value) {
-                                    if (int.tryParse(value!) == null) {
-                                      return 'Please input a number';
-                                    }
-
-                                    return null;
-                                  },
                                 ),
-                              ),
-                              const Gap(10),
+                                const Gap(10),
 
-                              // MAX SCORE
-                              Expanded(
-                                child: TextFormField(
-                                  readOnly: true,
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    label: Text('Max Score'),
-                                    suffix: Text('pts'),
+                                // MAX SCORE
+                                Expanded(
+                                  child: TextFormField(
+                                    readOnly: true,
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      label: Text('Max Score'),
+                                      suffix: Text('pts'),
+                                    ),
+                                    controller: maxScoreController,
                                   ),
-                                  controller: maxScoreController,
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           const Divider(),
                           const Gap(10),
@@ -2289,25 +2780,29 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                               // ADD ITEM BUTTON
                               examType == 'Written'
                                   ? MenuAnchor(
-                                      alignmentOffset: const Offset(-75, 0),
+                                      alignmentOffset: const Offset(-30, 0),
                                       builder: (context, controller, child) {
-                                        return ElevatedButton.icon(
-                                          style: const ButtonStyle(
-                                            backgroundColor:
-                                                WidgetStatePropertyAll(primary),
-                                            foregroundColor:
-                                                WidgetStatePropertyAll(
-                                                    Colors.white),
+                                        return SizedBox(
+                                          width: 136.5,
+                                          child: TextButton.icon(
+                                            style: const ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      primary),
+                                              foregroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      Colors.white),
+                                            ),
+                                            onPressed: () {
+                                              if (controller.isOpen) {
+                                                controller.close();
+                                              } else {
+                                                controller.open();
+                                              }
+                                            },
+                                            label: const Text('Add Item'),
+                                            icon: const Icon(Icons.add_rounded),
                                           ),
-                                          onPressed: () {
-                                            if (controller.isOpen) {
-                                              controller.close();
-                                            } else {
-                                              controller.open();
-                                            }
-                                          },
-                                          label: const Text('Add'),
-                                          icon: const Icon(Icons.add_rounded),
                                         );
                                       },
                                       menuChildren: [
@@ -2431,16 +2926,20 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                                         ),
                                       ],
                                     )
-                                  : TextButton.icon(
-                                      style: const ButtonStyle(
-                                        backgroundColor:
-                                            WidgetStatePropertyAll(primary),
-                                        foregroundColor: WidgetStatePropertyAll(
-                                            Colors.white),
+                                  : SizedBox(
+                                      width: 136.5,
+                                      child: TextButton.icon(
+                                        style: const ButtonStyle(
+                                          backgroundColor:
+                                              WidgetStatePropertyAll(primary),
+                                          foregroundColor:
+                                              WidgetStatePropertyAll(
+                                                  Colors.white),
+                                        ),
+                                        onPressed: openAddLaboratoryItemModal,
+                                        label: const Text('Add Item'),
+                                        icon: const Icon(Icons.add_rounded),
                                       ),
-                                      onPressed: openAddLaboratoryItemModal,
-                                      label: const Text('Add'),
-                                      icon: const Icon(Icons.add_rounded),
                                     ),
                             ],
                           ),
@@ -2469,7 +2968,8 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                                               return const SizedBox.shrink();
                                             }
                                             return ExpansionTile(
-                                              title: Text(key),
+                                              title: Text(
+                                                  '$key (${items.length})'),
                                               children: [
                                                 ListView.builder(
                                                   shrinkWrap: true,
@@ -2510,7 +3010,8 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                                       itemCount: labItems.length,
                                       itemBuilder: (context, index) {
                                         return ListTile(
-                                          title: Text(labItems[index]['title']),
+                                          title: Text(labItems[index]
+                                              ['problemStatement']),
                                           subtitle: Text(
                                               'Points: ${labItems[index]['points']}'),
                                           trailing: IconButton(
@@ -2526,13 +3027,23 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                     ),
 
                     // ADD EXAM BUTTON
-                    ElevatedButton(
-                      style: const ButtonStyle(
-                        backgroundColor: WidgetStatePropertyAll(primary),
-                        foregroundColor: WidgetStatePropertyAll(Colors.white),
+                    SizedBox(
+                      height: 40,
+                      width: 150,
+                      child: ElevatedButton(
+                        style: const ButtonStyle(
+                          backgroundColor: WidgetStatePropertyAll(primary),
+                          foregroundColor: WidgetStatePropertyAll(Colors.white),
+                        ),
+                        onPressed: addExamToClass,
+                        child: const Text(
+                          'Add Exam',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      onPressed: addExamToClass,
-                      child: const Text('Add Exam'),
                     ),
                   ],
                 ),
