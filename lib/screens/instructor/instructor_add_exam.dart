@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:codeodysseyph/components/instructor/instructor_appbar.dart';
 import 'package:codeodysseyph/constants/colors.dart';
+import 'package:codeodysseyph/services/cloud_firestore_service.dart';
 import 'package:codeodysseyph/services/firebase_storage_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,7 @@ class InstructorAddExamScreen extends StatefulWidget {
 
 class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
   // SERVICES
+  final _firestoreService = CloudFirestoreService();
   final _storageService = FirebaseStorageService();
 
   // EXAM ESSENTIALS
@@ -1218,6 +1220,7 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      // PREVIEW ATTACHMENT BUTTON
                                       IconButton(
                                         icon: const Icon(Icons.visibility),
                                         onPressed: () {
@@ -1246,6 +1249,7 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                                           );
                                         },
                                       ),
+                                      // DELETE ATTACHMENT BUTTON
                                       IconButton(
                                         icon: const Icon(Icons.delete),
                                         onPressed: () => QuickAlert.show(
@@ -1255,20 +1259,8 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                                           text:
                                               'Are you sure you want to delete this attachment?',
                                           confirmBtnText: 'Yes',
-                                          onConfirmBtnTap: () {
-                                            _storageService.deleteFile(
-                                              [
-                                                itemAttachments[index]
-                                                    ['attachment']
-                                              ],
-                                            );
-
-                                            setState(() {
-                                              itemAttachments.removeAt(index);
-                                            });
-
-                                            Navigator.of(context).pop();
-                                          },
+                                          onConfirmBtnTap: () =>
+                                              removeAttachment(index),
                                           showCancelBtn: true,
                                           onCancelBtnTap: () =>
                                               Navigator.of(context).pop(),
@@ -1298,6 +1290,7 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                         label: const Text('Attach Image'),
                         icon: const Icon(Icons.image_rounded),
                       ),
+                      const Gap(10),
 
                       // ANSWERS
                       Form(
@@ -1351,6 +1344,50 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
                           ],
                         ),
                       ),
+
+                      // ADD ANSWER BUTTON
+                      TextButton.icon(
+                        style: const ButtonStyle(
+                          backgroundColor: WidgetStatePropertyAll(primary),
+                          foregroundColor: WidgetStatePropertyAll(Colors.white),
+                        ),
+                        onPressed: () => setState(() {
+                          answerControllers.add(TextEditingController());
+                        }),
+                        label: const Text('Add Answer'),
+                        icon: const Icon(Icons.add_rounded),
+                      ),
+                      const Gap(10),
+
+                      // POINTS
+                      TextFormField(
+                        controller: pointsController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          label: Text('Points'),
+                        ),
+                        validator: (value) {
+                          if (int.tryParse(value!) == null) {
+                            return 'Please input a number';
+                          }
+
+                          return null;
+                        },
+                      ),
+                      const Gap(10),
+
+                      // ADD ITEM BUTTON
+                      Center(
+                        child: ElevatedButton(
+                          style: const ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll(primary),
+                            foregroundColor:
+                                WidgetStatePropertyAll(Colors.white),
+                          ),
+                          onPressed: addToFillInTheBlanksItems,
+                          child: const Text('Add to Written Exam Items'),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1363,17 +1400,572 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
   }
 
   void openAddShortAnswerModal() async {
-    // TO DO
+    showDialog(
+      context: context,
+      builder: (context) {
+        final formKey = GlobalKey<FormState>();
+
+        final questionController = TextEditingController();
+
+        List<Map<String, dynamic>> itemAttachments = [];
+        String? fileName;
+        Uint8List? fileBytes;
+
+        final pointsController = TextEditingController();
+
+        void addToShortAnswerItems() {
+          if (!formKey.currentState!.validate()) {
+            return;
+          }
+
+          setState(() {
+            writtenItems['Short Answer']!.add({
+              'question': questionController.text,
+              'attachments': itemAttachments,
+              'points': int.parse(pointsController.text),
+            });
+
+            totalPoints += int.parse(pointsController.text);
+
+            maxScoreController.text = totalPoints.toString();
+          });
+
+          Navigator.of(context).pop();
+        }
+
+        return StatefulBuilder(
+          builder: (BuildContext context, setState) {
+            void pickFile() async {
+              FilePickerResult? result = await FilePicker.platform.pickFiles(
+                allowMultiple: false,
+                allowedExtensions: ['jpg', 'jpeg', 'png'],
+                type: FileType.custom,
+              );
+
+              if (result != null) {
+                fileBytes = result.files.first.bytes!;
+                fileName = result.files.first.name;
+
+                QuickAlert.show(
+                  // ignore: use_build_context_synchronously
+                  context: context,
+                  type: QuickAlertType.loading,
+                );
+
+                final attachmentPath = await _storageService.uploadFile(
+                  'classes/files/',
+                  fileName!,
+                  fileBytes!,
+                );
+
+                // ignore: use_build_context_synchronously
+                Navigator.of(context).pop();
+
+                setState(() {
+                  itemAttachments.add({
+                    'fileName': fileName,
+                    'attachment': attachmentPath,
+                  });
+
+                  fileName = null;
+                  fileBytes = null;
+                });
+              }
+            }
+
+            void removeAttachment(int index) {
+              _storageService
+                  .deleteFile([itemAttachments[index]['attachment']]).then((_) {
+                setState(() {
+                  itemAttachments.removeAt(index);
+                });
+              });
+            }
+
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Add Short Answer'),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => itemAttachments.isEmpty
+                        ? Navigator.of(context).pop()
+                        : QuickAlert.show(
+                            context: context,
+                            type: QuickAlertType.warning,
+                            title: 'Discard Changes?',
+                            text:
+                                'This will remove all exam items you have added. Are you sure you want to proceed?',
+                            confirmBtnText: 'Yes',
+                            onConfirmBtnTap: () {
+                              _storageService.deleteFile(
+                                itemAttachments
+                                    .map((attachment) =>
+                                        attachment['attachment'])
+                                    .toList(),
+                              );
+
+                              Navigator.of(context).pop();
+                              Navigator.of(context).pop();
+                            },
+                            showCancelBtn: true,
+                            onCancelBtnTap: () => Navigator.of(context).pop,
+                          ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 500,
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // QUESTION
+                      TextFormField(
+                        controller: questionController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          label: Text('Question'),
+                        ),
+                        validator: (value) {
+                          if (value!.trim().isEmpty) {
+                            return 'Please input a question';
+                          }
+
+                          return null;
+                        },
+                      ),
+                      const Gap(10),
+
+                      // ATTACHMENTS
+                      ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: itemAttachments.length,
+                        itemBuilder: (context, index) {
+                          return FutureBuilder<String>(
+                            future: _storageService.storageRef
+                                .child(itemAttachments[index]['attachment'])
+                                .getDownloadURL(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const CircularProgressIndicator();
+                              } else if (snapshot.hasError) {
+                                return const Icon(Icons.error);
+                              } else if (snapshot.hasData) {
+                                return ListTile(
+                                  title:
+                                      Text(itemAttachments[index]['fileName']),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // PREVIEW ATTACHMENT BUTTON
+                                      IconButton(
+                                        icon: const Icon(Icons.visibility),
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  const Text(
+                                                      'Attachment Preview'),
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                        Icons.close_rounded),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(),
+                                                  ),
+                                                ],
+                                              ),
+                                              content:
+                                                  Image.network(snapshot.data!),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // DELETE ATTACHMENT BUTTON
+                                      IconButton(
+                                        icon: const Icon(Icons.delete),
+                                        onPressed: () => QuickAlert.show(
+                                          context: context,
+                                          type: QuickAlertType.warning,
+                                          title: 'Delete Attachment?',
+                                          text:
+                                              'Are you sure you want to delete this attachment?',
+                                          confirmBtnText: 'Yes',
+                                          onConfirmBtnTap: () =>
+                                              removeAttachment(index),
+                                          showCancelBtn: true,
+                                          onCancelBtnTap: () =>
+                                              Navigator.of(context).pop(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              } else {
+                                return const Icon(Icons.error);
+                              }
+                            },
+                          );
+                        },
+                      ),
+                      itemAttachments.isNotEmpty
+                          ? const Gap(10)
+                          : const SizedBox(),
+
+                      // ATTACH IMAGE BUTTON
+                      TextButton.icon(
+                        style: const ButtonStyle(
+                          backgroundColor: WidgetStatePropertyAll(primary),
+                          foregroundColor: WidgetStatePropertyAll(Colors.white),
+                        ),
+                        onPressed: pickFile,
+                        label: const Text('Attach Image'),
+                        icon: const Icon(Icons.image_rounded),
+                      ),
+                      const Gap(10),
+
+                      // POINTS
+                      TextFormField(
+                        controller: pointsController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          label: Text('Points'),
+                        ),
+                        validator: (value) {
+                          if (int.tryParse(value!) == null) {
+                            return 'Please input a number';
+                          }
+
+                          return null;
+                        },
+                      ),
+                      const Gap(10),
+
+                      // ADD ITEM BUTTON
+                      Center(
+                        child: ElevatedButton(
+                          style: const ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll(primary),
+                            foregroundColor:
+                                WidgetStatePropertyAll(Colors.white),
+                          ),
+                          onPressed: addToShortAnswerItems,
+                          child: const Text('Add to Written Exam Items'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void openAddLongAnswerModal() async {
-    // TO DO
+    showDialog(
+      context: context,
+      builder: (context) {
+        final formKey = GlobalKey<FormState>();
+
+        final questionController = TextEditingController();
+
+        List<Map<String, dynamic>> itemAttachments = [];
+        String? fileName;
+        Uint8List? fileBytes;
+
+        final pointsController = TextEditingController();
+
+        void addToLongAnswerItems() {
+          if (!formKey.currentState!.validate()) {
+            return;
+          }
+
+          setState(() {
+            writtenItems['Long Answer']!.add({
+              'question': questionController.text,
+              'attachments': itemAttachments,
+              'points': int.parse(pointsController.text),
+            });
+
+            totalPoints += int.parse(pointsController.text);
+
+            maxScoreController.text = totalPoints.toString();
+          });
+
+          Navigator.of(context).pop();
+        }
+
+        return StatefulBuilder(
+          builder: (BuildContext context, setState) {
+            void pickFile() async {
+              FilePickerResult? result = await FilePicker.platform.pickFiles(
+                allowMultiple: false,
+                allowedExtensions: ['jpg', 'jpeg', 'png'],
+                type: FileType.custom,
+              );
+
+              if (result != null) {
+                fileBytes = result.files.first.bytes!;
+                fileName = result.files.first.name;
+
+                QuickAlert.show(
+                  // ignore: use_build_context_synchronously
+                  context: context,
+                  type: QuickAlertType.loading,
+                );
+
+                final attachmentPath = await _storageService.uploadFile(
+                  'classes/files/',
+                  fileName!,
+                  fileBytes!,
+                );
+
+                // ignore: use_build_context_synchronously
+                Navigator.of(context).pop();
+
+                setState(() {
+                  itemAttachments.add({
+                    'fileName': fileName,
+                    'attachment': attachmentPath,
+                  });
+
+                  fileName = null;
+                  fileBytes = null;
+                });
+              }
+            }
+
+            void removeAttachment(int index) {
+              _storageService
+                  .deleteFile([itemAttachments[index]['attachment']]).then((_) {
+                setState(() {
+                  itemAttachments.removeAt(index);
+                });
+              });
+            }
+
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Add Long Answer'),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => itemAttachments.isEmpty
+                        ? Navigator.of(context).pop()
+                        : QuickAlert.show(
+                            context: context,
+                            type: QuickAlertType.warning,
+                            title: 'Discard Changes?',
+                            text:
+                                'This will remove all exam items you have added. Are you sure you want to proceed?',
+                            confirmBtnText: 'Yes',
+                            onConfirmBtnTap: () {
+                              _storageService.deleteFile(
+                                itemAttachments
+                                    .map((attachment) =>
+                                        attachment['attachment'])
+                                    .toList(),
+                              );
+
+                              Navigator.of(context).pop();
+                              Navigator.of(context).pop();
+                            },
+                            showCancelBtn: true,
+                            onCancelBtnTap: () => Navigator.of(context).pop,
+                          ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 500,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // QUESTION
+                    TextFormField(
+                      controller: questionController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        label: Text('Question'),
+                      ),
+                      validator: (value) {
+                        if (value!.trim().isEmpty) {
+                          return 'Please input a question';
+                        }
+
+                        return null;
+                      },
+                    ),
+                    const Gap(10),
+
+                    // ATTACHMENTS
+                    ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: itemAttachments.length,
+                      itemBuilder: (context, index) {
+                        return FutureBuilder<String>(
+                          future: _storageService.storageRef
+                              .child(itemAttachments[index]['attachment'])
+                              .getDownloadURL(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const CircularProgressIndicator();
+                            } else if (snapshot.hasError) {
+                              return const Icon(Icons.error);
+                            } else if (snapshot.hasData) {
+                              return ListTile(
+                                title: Text(itemAttachments[index]['fileName']),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // PREVIEW ATTACHMENT BUTTON
+                                    IconButton(
+                                      icon: const Icon(Icons.visibility),
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                const Text(
+                                                    'Attachment Preview'),
+                                                IconButton(
+                                                  icon: const Icon(
+                                                      Icons.close_rounded),
+                                                  onPressed: () =>
+                                                      Navigator.of(context)
+                                                          .pop(),
+                                                ),
+                                              ],
+                                            ),
+                                            content:
+                                                Image.network(snapshot.data!),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    // DELETE ATTACHMENT BUTTON
+                                    IconButton(
+                                      icon: const Icon(Icons.delete),
+                                      onPressed: () => QuickAlert.show(
+                                        context: context,
+                                        type: QuickAlertType.warning,
+                                        title: 'Delete Attachment?',
+                                        text:
+                                            'Are you sure you want to delete this attachment?',
+                                        confirmBtnText: 'Yes',
+                                        onConfirmBtnTap: () =>
+                                            removeAttachment(index),
+                                        showCancelBtn: true,
+                                        onCancelBtnTap: () =>
+                                            Navigator.of(context).pop(),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            } else {
+                              return const Icon(Icons.error);
+                            }
+                          },
+                        );
+                      },
+                    ),
+                    itemAttachments.isNotEmpty
+                        ? const Gap(10)
+                        : const SizedBox(),
+
+                    // ATTACH IMAGE BUTTON
+                    TextButton.icon(
+                      style: const ButtonStyle(
+                        backgroundColor: WidgetStatePropertyAll(primary),
+                        foregroundColor: WidgetStatePropertyAll(Colors.white),
+                      ),
+                      onPressed: pickFile,
+                      label: const Text('Attach Image'),
+                      icon: const Icon(Icons.image_rounded),
+                    ),
+                    const Gap(10),
+
+                    // POINTS
+                    TextFormField(
+                      controller: pointsController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        label: Text('Points'),
+                      ),
+                      validator: (value) {
+                        if (int.tryParse(value!) == null) {
+                          return 'Please input a number';
+                        }
+
+                        return null;
+                      },
+                    ),
+                    const Gap(10),
+
+                    // ADD ITEM BUTTON
+                    Center(
+                      child: ElevatedButton(
+                        style: const ButtonStyle(
+                          backgroundColor: WidgetStatePropertyAll(primary),
+                          foregroundColor: WidgetStatePropertyAll(Colors.white),
+                        ),
+                        onPressed: addToLongAnswerItems,
+                        child: const Text('Add to Written Exam Items'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   // LABORATORY MODALS
 
   void openAddLaboratoryItemModal() async {
     // TO DO
+  }
+
+  void addExamToClass() {
+    final newExam = {
+      'exam': exam,
+      'examType': examType,
+      'openTime': openTime,
+      'closeTime': closeTime,
+      'maxScore': int.parse(maxScoreController.text),
+      'content': examType == 'Written' ? writtenItems : labItems,
+    };
+
+    _firestoreService.addExamToClass(
+      context: context,
+      instructorId: widget.instructorId,
+      classCode: widget.classCode,
+      newExam: newExam,
+    );
   }
 
   // REMOVE ITEM
@@ -1468,435 +2060,480 @@ class _InstructorAddExamScreenState extends State<InstructorAddExamScreen> {
               clipBehavior: Clip.antiAlias,
               child: Padding(
                 padding: const EdgeInsets.all(10),
-                child: ListView(
+                child: Column(
                   children: [
-                    // SCREEN TITLE
-                    const Text(
-                      'Add New Exam',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Divider(),
-                    const Gap(10),
-
-                    Row(
-                      children: [
-                        // EXAM
-                        Expanded(
-                          child: DropdownButtonFormField(
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              label: Text('Exam'),
+                    Expanded(
+                      child: ListView(
+                        children: [
+                          // SCREEN TITLE
+                          const Text(
+                            'Add New Exam',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
-                            value: exam,
-                            items: ['Midterm', 'Final']
-                                .map((type) => DropdownMenuItem(
-                                      value: type,
-                                      child: Text(type),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                exam = value!;
-                              });
-                            },
                           ),
-                        ),
-                        const Gap(10),
+                          const Divider(),
+                          const Gap(10),
 
-                        // EXAM TYPE
-                        Expanded(
-                          child: DropdownButtonFormField(
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              label: Text('Exam Type'),
-                            ),
-                            value: examType,
-                            items: ['Written', 'Laboratory']
-                                .map((type) => DropdownMenuItem(
-                                      value: type,
-                                      child: Text(type),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                examType = value!;
-                              });
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Gap(10),
-
-                    // OPEN AND CLOSE SCHEDULE
-                    StatefulBuilder(
-                      builder: (BuildContext context, setState) {
-                        Future<void> setDate({required bool isOpen}) async {
-                          final now = DateTime.now();
-                          final pickedDate = await showDatePicker(
-                            context: context,
-                            initialDate:
-                                isOpen ? openTime ?? now : closeTime ?? now,
-                            firstDate: now,
-                            lastDate:
-                                DateTime(now.year + 1, now.month - 6, now.day),
-                          );
-
-                          if (pickedDate != null) {
-                            final pickedTime = await showTimePicker(
-                              // ignore: use_build_context_synchronously
-                              context: context,
-                              initialTime: TimeOfDay.now(),
-                            );
-
-                            if (pickedTime != null) {
-                              setState(() {
-                                isOpen == true
-                                    ? openTime = DateTime(
-                                        pickedDate.year,
-                                        pickedDate.month,
-                                        pickedDate.day,
-                                        pickedTime.hour,
-                                        pickedTime.minute,
-                                      )
-                                    : closeTime = DateTime(
-                                        pickedDate.year,
-                                        pickedDate.month,
-                                        pickedDate.day,
-                                        pickedTime.hour,
-                                        pickedTime.minute,
-                                      );
-                              });
-                            }
-                          }
-                        }
-
-                        return Row(
-                          children: [
-                            // EXAM OPEN SCHEDULE
-                            Expanded(
-                              child: SizedBox(
-                                height: 45,
-                                child: ElevatedButton(
-                                  style: const ButtonStyle(
-                                    backgroundColor:
-                                        WidgetStatePropertyAll(primary),
-                                    foregroundColor:
-                                        WidgetStatePropertyAll(Colors.white),
+                          Row(
+                            children: [
+                              // EXAM
+                              Expanded(
+                                child: DropdownButtonFormField(
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    label: Text('Exam'),
                                   ),
-                                  onPressed: () => setDate(isOpen: true),
-                                  child: Text(openTime != null
-                                      ? 'Open Schedule: ${DateFormat.yMMMEd().add_jm().format(openTime!)}'
-                                      : 'Set Open Schedule'),
+                                  value: exam,
+                                  items: ['Midterm', 'Final']
+                                      .map((type) => DropdownMenuItem(
+                                            value: type,
+                                            child: Text(type),
+                                          ))
+                                      .toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      exam = value!;
+                                    });
+                                  },
                                 ),
                               ),
-                            ),
-                            const Gap(10),
+                              const Gap(10),
 
-                            // EXAM CLOSE SCHEDULE
-                            Expanded(
-                              child: SizedBox(
-                                height: 45,
-                                child: ElevatedButton(
-                                  style: ButtonStyle(
-                                    backgroundColor:
-                                        WidgetStatePropertyAll(Colors.red[800]),
-                                    foregroundColor:
-                                        const WidgetStatePropertyAll(
-                                            Colors.white),
+                              // EXAM TYPE
+                              Expanded(
+                                child: DropdownButtonFormField(
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    label: Text('Exam Type'),
                                   ),
-                                  onPressed: () => setDate(isOpen: false),
-                                  child: Text(closeTime != null
-                                      ? 'Close Schedule: ${DateFormat.yMMMEd().add_jm().format(closeTime!)}'
-                                      : 'Set Close Schedule'),
+                                  value: examType,
+                                  items: ['Written', 'Laboratory']
+                                      .map((type) => DropdownMenuItem(
+                                            value: type,
+                                            child: Text(type),
+                                          ))
+                                      .toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      examType = value!;
+                                    });
+                                  },
                                 ),
                               ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                    const Gap(10),
-
-                    Row(
-                      children: [
-                        // HOURS
-                        Expanded(
-                          child: TextFormField(
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              label: Text('Duration (Hours)'),
-                            ),
-                            controller: hoursController,
-                            validator: (value) {
-                              if (int.tryParse(value!) == null) {
-                                return 'Please input a number';
-                              }
-
-                              return null;
-                            },
+                            ],
                           ),
-                        ),
-                        const Gap(10),
+                          const Gap(10),
 
-                        // MINUTES
-                        Expanded(
-                          child: TextFormField(
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              label: Text('Duration (Minutes)'),
-                            ),
-                            controller: minutesController,
-                            validator: (value) {
-                              if (int.tryParse(value!) == null) {
-                                return 'Please input a number';
-                              }
+                          // OPEN AND CLOSE SCHEDULE
+                          StatefulBuilder(
+                            builder: (BuildContext context, setState) {
+                              Future<void> setDate(
+                                  {required bool isOpen}) async {
+                                final now = DateTime.now();
+                                final pickedDate = await showDatePicker(
+                                  context: context,
+                                  initialDate: isOpen
+                                      ? openTime ?? now
+                                      : closeTime ?? now,
+                                  firstDate: now,
+                                  lastDate: DateTime(
+                                      now.year + 1, now.month - 6, now.day),
+                                );
 
-                              return null;
-                            },
-                          ),
-                        ),
-                        const Gap(10),
-
-                        // MAX SCORE
-                        Expanded(
-                          child: TextFormField(
-                            readOnly: true,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              label: Text('Max Score'),
-                              suffix: Text('pts'),
-                            ),
-                            controller: maxScoreController,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(),
-                    const Gap(10),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // ITEMS TITLE
-                        const Text(
-                          'Items',
-                          style: TextStyle(fontSize: 20),
-                        ),
-
-                        // ADD ITEM BUTTON
-                        examType == 'Written'
-                            ? MenuAnchor(
-                                alignmentOffset: const Offset(-75, 0),
-                                builder: (context, controller, child) {
-                                  return ElevatedButton.icon(
-                                    style: const ButtonStyle(
-                                      backgroundColor:
-                                          WidgetStatePropertyAll(primary),
-                                      foregroundColor:
-                                          WidgetStatePropertyAll(Colors.white),
-                                    ),
-                                    onPressed: () {
-                                      if (controller.isOpen) {
-                                        controller.close();
-                                      } else {
-                                        controller.open();
-                                      }
-                                    },
-                                    label: const Text('Add'),
-                                    icon: const Icon(Icons.add_rounded),
+                                if (pickedDate != null) {
+                                  final pickedTime = await showTimePicker(
+                                    // ignore: use_build_context_synchronously
+                                    context: context,
+                                    initialTime: TimeOfDay.now(),
                                   );
-                                },
-                                menuChildren: [
-                                  // MULTIPLE CHOICE
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: TextButton(
-                                      style: const ButtonStyle(
-                                        backgroundColor:
-                                            WidgetStatePropertyAll(secondary),
-                                        foregroundColor: WidgetStatePropertyAll(
-                                            Colors.white),
-                                        shape: WidgetStatePropertyAll(
-                                            ContinuousRectangleBorder()),
+
+                                  if (pickedTime != null) {
+                                    setState(() {
+                                      isOpen == true
+                                          ? openTime = DateTime(
+                                              pickedDate.year,
+                                              pickedDate.month,
+                                              pickedDate.day,
+                                              pickedTime.hour,
+                                              pickedTime.minute,
+                                            )
+                                          : closeTime = DateTime(
+                                              pickedDate.year,
+                                              pickedDate.month,
+                                              pickedDate.day,
+                                              pickedTime.hour,
+                                              pickedTime.minute,
+                                            );
+                                    });
+                                  }
+                                }
+                              }
+
+                              return Row(
+                                children: [
+                                  // EXAM OPEN SCHEDULE
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 45,
+                                      child: ElevatedButton(
+                                        style: const ButtonStyle(
+                                          backgroundColor:
+                                              WidgetStatePropertyAll(primary),
+                                          foregroundColor:
+                                              WidgetStatePropertyAll(
+                                                  Colors.white),
+                                        ),
+                                        onPressed: () => setDate(isOpen: true),
+                                        child: Text(openTime != null
+                                            ? 'Open Schedule: ${DateFormat.yMMMEd().add_jm().format(openTime!)}'
+                                            : 'Set Open Schedule'),
                                       ),
-                                      onPressed: openAddMultipleChoiceModal,
-                                      child: const Text('Add Multiple Choice'),
                                     ),
                                   ),
+                                  const Gap(10),
 
-                                  // TRUE OR FALSE
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: TextButton(
-                                      style: const ButtonStyle(
-                                        backgroundColor:
-                                            WidgetStatePropertyAll(secondary),
-                                        foregroundColor: WidgetStatePropertyAll(
-                                            Colors.white),
-                                        shape: WidgetStatePropertyAll(
-                                            ContinuousRectangleBorder()),
+                                  // EXAM CLOSE SCHEDULE
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 45,
+                                      child: ElevatedButton(
+                                        style: ButtonStyle(
+                                          backgroundColor:
+                                              WidgetStatePropertyAll(
+                                                  Colors.red[800]),
+                                          foregroundColor:
+                                              const WidgetStatePropertyAll(
+                                                  Colors.white),
+                                        ),
+                                        onPressed: () => setDate(isOpen: false),
+                                        child: Text(closeTime != null
+                                            ? 'Close Schedule: ${DateFormat.yMMMEd().add_jm().format(closeTime!)}'
+                                            : 'Set Close Schedule'),
                                       ),
-                                      onPressed: openAddTrueOrFalseModal,
-                                      child: const Text('True or False'),
-                                    ),
-                                  ),
-
-                                  // IDENTIFICATION
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: TextButton(
-                                      style: const ButtonStyle(
-                                        backgroundColor:
-                                            WidgetStatePropertyAll(secondary),
-                                        foregroundColor: WidgetStatePropertyAll(
-                                            Colors.white),
-                                        shape: WidgetStatePropertyAll(
-                                            ContinuousRectangleBorder()),
-                                      ),
-                                      onPressed: openAddIdentificationModal,
-                                      child: const Text('Identification'),
-                                    ),
-                                  ),
-
-                                  // FILL IN THE BLANKS
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: TextButton(
-                                      style: const ButtonStyle(
-                                        backgroundColor:
-                                            WidgetStatePropertyAll(secondary),
-                                        foregroundColor: WidgetStatePropertyAll(
-                                            Colors.white),
-                                        shape: WidgetStatePropertyAll(
-                                            ContinuousRectangleBorder()),
-                                      ),
-                                      onPressed: openAddFillInTheBlanksModal,
-                                      child: const Text('Fill in the Blanks'),
-                                    ),
-                                  ),
-
-                                  // SHORT ANSWER
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: TextButton(
-                                      style: const ButtonStyle(
-                                        backgroundColor:
-                                            WidgetStatePropertyAll(secondary),
-                                        foregroundColor: WidgetStatePropertyAll(
-                                            Colors.white),
-                                        shape: WidgetStatePropertyAll(
-                                            ContinuousRectangleBorder()),
-                                      ),
-                                      onPressed: openAddShortAnswerModal,
-                                      child: const Text('Short Answer'),
-                                    ),
-                                  ),
-
-                                  // LONG ANSWER
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: TextButton(
-                                      style: const ButtonStyle(
-                                        backgroundColor:
-                                            WidgetStatePropertyAll(secondary),
-                                        foregroundColor: WidgetStatePropertyAll(
-                                            Colors.white),
-                                        shape: WidgetStatePropertyAll(
-                                            ContinuousRectangleBorder()),
-                                      ),
-                                      onPressed: openAddLongAnswerModal,
-                                      child: const Text('Long Answer'),
                                     ),
                                   ),
                                 ],
-                              )
-                            : TextButton.icon(
-                                style: const ButtonStyle(
-                                  backgroundColor:
-                                      WidgetStatePropertyAll(primary),
-                                  foregroundColor:
-                                      WidgetStatePropertyAll(Colors.white),
+                              );
+                            },
+                          ),
+                          const Gap(10),
+
+                          Row(
+                            children: [
+                              // HOURS
+                              Expanded(
+                                child: TextFormField(
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    label: Text('Duration (Hours)'),
+                                  ),
+                                  controller: hoursController,
+                                  validator: (value) {
+                                    if (int.tryParse(value!) == null) {
+                                      return 'Please input a number';
+                                    }
+
+                                    return null;
+                                  },
                                 ),
-                                onPressed: openAddLaboratoryItemModal,
-                                label: const Text('Add'),
-                                icon: const Icon(Icons.add_rounded),
                               ),
-                      ],
+                              const Gap(10),
+
+                              // MINUTES
+                              Expanded(
+                                child: TextFormField(
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    label: Text('Duration (Minutes)'),
+                                  ),
+                                  controller: minutesController,
+                                  validator: (value) {
+                                    if (int.tryParse(value!) == null) {
+                                      return 'Please input a number';
+                                    }
+
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              const Gap(10),
+
+                              // MAX SCORE
+                              Expanded(
+                                child: TextFormField(
+                                  readOnly: true,
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    label: Text('Max Score'),
+                                    suffix: Text('pts'),
+                                  ),
+                                  controller: maxScoreController,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Divider(),
+                          const Gap(10),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // ITEMS TITLE
+                              const Text(
+                                'Items',
+                                style: TextStyle(fontSize: 20),
+                              ),
+
+                              // ADD ITEM BUTTON
+                              examType == 'Written'
+                                  ? MenuAnchor(
+                                      alignmentOffset: const Offset(-75, 0),
+                                      builder: (context, controller, child) {
+                                        return ElevatedButton.icon(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(primary),
+                                            foregroundColor:
+                                                WidgetStatePropertyAll(
+                                                    Colors.white),
+                                          ),
+                                          onPressed: () {
+                                            if (controller.isOpen) {
+                                              controller.close();
+                                            } else {
+                                              controller.open();
+                                            }
+                                          },
+                                          label: const Text('Add'),
+                                          icon: const Icon(Icons.add_rounded),
+                                        );
+                                      },
+                                      menuChildren: [
+                                        // MULTIPLE CHOICE
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: TextButton(
+                                            style: const ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      secondary),
+                                              foregroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      Colors.white),
+                                              shape: WidgetStatePropertyAll(
+                                                  ContinuousRectangleBorder()),
+                                            ),
+                                            onPressed:
+                                                openAddMultipleChoiceModal,
+                                            child: const Text(
+                                                'Add Multiple Choice'),
+                                          ),
+                                        ),
+
+                                        // TRUE OR FALSE
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: TextButton(
+                                            style: const ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      secondary),
+                                              foregroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      Colors.white),
+                                              shape: WidgetStatePropertyAll(
+                                                  ContinuousRectangleBorder()),
+                                            ),
+                                            onPressed: openAddTrueOrFalseModal,
+                                            child: const Text('True or False'),
+                                          ),
+                                        ),
+
+                                        // IDENTIFICATION
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: TextButton(
+                                            style: const ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      secondary),
+                                              foregroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      Colors.white),
+                                              shape: WidgetStatePropertyAll(
+                                                  ContinuousRectangleBorder()),
+                                            ),
+                                            onPressed:
+                                                openAddIdentificationModal,
+                                            child: const Text('Identification'),
+                                          ),
+                                        ),
+
+                                        // FILL IN THE BLANKS
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: TextButton(
+                                            style: const ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      secondary),
+                                              foregroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      Colors.white),
+                                              shape: WidgetStatePropertyAll(
+                                                  ContinuousRectangleBorder()),
+                                            ),
+                                            onPressed:
+                                                openAddFillInTheBlanksModal,
+                                            child: const Text(
+                                                'Fill in the Blanks'),
+                                          ),
+                                        ),
+
+                                        // SHORT ANSWER
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: TextButton(
+                                            style: const ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      secondary),
+                                              foregroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      Colors.white),
+                                              shape: WidgetStatePropertyAll(
+                                                  ContinuousRectangleBorder()),
+                                            ),
+                                            onPressed: openAddShortAnswerModal,
+                                            child: const Text('Short Answer'),
+                                          ),
+                                        ),
+
+                                        // LONG ANSWER
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: TextButton(
+                                            style: const ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      secondary),
+                                              foregroundColor:
+                                                  WidgetStatePropertyAll(
+                                                      Colors.white),
+                                              shape: WidgetStatePropertyAll(
+                                                  ContinuousRectangleBorder()),
+                                            ),
+                                            onPressed: openAddLongAnswerModal,
+                                            child: const Text('Long Answer'),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : TextButton.icon(
+                                      style: const ButtonStyle(
+                                        backgroundColor:
+                                            WidgetStatePropertyAll(primary),
+                                        foregroundColor: WidgetStatePropertyAll(
+                                            Colors.white),
+                                      ),
+                                      onPressed: openAddLaboratoryItemModal,
+                                      label: const Text('Add'),
+                                      icon: const Icon(Icons.add_rounded),
+                                    ),
+                            ],
+                          ),
+                          const Gap(10),
+
+                          // ITEM LIST
+                          examType == 'Written'
+                              ? writtenItems.isEmpty
+                                  ? const Center(
+                                      child: Text('No items added yet'),
+                                    )
+                                  : writtenItems.values
+                                          .every((element) => element.isEmpty)
+                                      ? const Center(
+                                          child: Text('No items added yet'),
+                                        )
+                                      : ListView.builder(
+                                          // IF THERE ARE ANY ITEMS ADDED
+                                          shrinkWrap: true,
+                                          itemCount: writtenItems.length,
+                                          itemBuilder: (context, index) {
+                                            final key = writtenItems.keys
+                                                .elementAt(index);
+                                            final items = writtenItems[key]!;
+                                            if (items.isEmpty) {
+                                              return const SizedBox.shrink();
+                                            }
+                                            return ExpansionTile(
+                                              title: Text(key),
+                                              children: [
+                                                ListView.builder(
+                                                  shrinkWrap: true,
+                                                  itemCount: items.length,
+                                                  itemBuilder:
+                                                      (context, itemIndex) {
+                                                    return Card(
+                                                      child: ListTile(
+                                                        title: Text(
+                                                            items[itemIndex]
+                                                                ['question']),
+                                                        subtitle: Text(
+                                                            'Points: ${items[itemIndex]['points']}'),
+                                                        trailing: IconButton(
+                                                          icon: const Icon(
+                                                              Icons.delete),
+                                                          onPressed: () =>
+                                                              removeItem(
+                                                            key,
+                                                            itemIndex,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        )
+                              : labItems.isEmpty
+                                  ? const Center(
+                                      child: Text('No items added yet'),
+                                    )
+                                  : ListView.builder(
+                                      // IF THERE ARE ANY ITEMS ADDED
+                                      shrinkWrap: true,
+                                      itemCount: labItems.length,
+                                      itemBuilder: (context, index) {
+                                        return ListTile(
+                                          title: Text(labItems[index]['title']),
+                                          subtitle: Text(
+                                              'Points: ${labItems[index]['points']}'),
+                                          trailing: IconButton(
+                                            icon: const Icon(Icons.delete),
+                                            onPressed: () =>
+                                                removeItem(null, index),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                        ],
+                      ),
                     ),
 
-                    // ITEM LIST
-                    examType == 'Written'
-                        ? writtenItems.isEmpty
-                            ? const Center(
-                                child: Text('No items added yet'),
-                              )
-                            : writtenItems.values
-                                    .every((element) => element.isEmpty)
-                                ? const Center(
-                                    child: Text('No items added yet'),
-                                  )
-                                : ListView.builder(
-                                    // IF THERE ARE ANY ITEMS ADDED
-                                    shrinkWrap: true,
-                                    itemCount: writtenItems.length,
-                                    itemBuilder: (context, index) {
-                                      final key =
-                                          writtenItems.keys.elementAt(index);
-                                      final items = writtenItems[key]!;
-                                      if (items.isEmpty) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      return ExpansionTile(
-                                        title: Text(key),
-                                        children: [
-                                          ListView.builder(
-                                            shrinkWrap: true,
-                                            itemCount: items.length,
-                                            itemBuilder: (context, itemIndex) {
-                                              return ListTile(
-                                                title: Text(items[itemIndex]
-                                                    ['question']),
-                                                subtitle: Text(
-                                                    'Points: ${items[itemIndex]['points']}'),
-                                                trailing: IconButton(
-                                                  icon:
-                                                      const Icon(Icons.delete),
-                                                  onPressed: () => removeItem(
-                                                    key,
-                                                    itemIndex,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  )
-                        : labItems.isEmpty
-                            ? const Center(
-                                child: Text('No items added yet'),
-                              )
-                            : ListView.builder(
-                                // IF THERE ARE ANY ITEMS ADDED
-                                shrinkWrap: true,
-                                itemCount: labItems.length,
-                                itemBuilder: (context, index) {
-                                  return ListTile(
-                                    title: Text(labItems[index]['title']),
-                                    subtitle: Text(
-                                        'Points: ${labItems[index]['points']}'),
-                                    trailing: IconButton(
-                                      icon: const Icon(Icons.delete),
-                                      onPressed: () => removeItem(null, index),
-                                    ),
-                                  );
-                                },
-                              ),
+                    // ADD EXAM BUTTON
+                    ElevatedButton(
+                      style: const ButtonStyle(
+                        backgroundColor: WidgetStatePropertyAll(primary),
+                        foregroundColor: WidgetStatePropertyAll(Colors.white),
+                      ),
+                      onPressed: addExamToClass,
+                      child: const Text('Add Exam'),
+                    ),
                   ],
                 ),
               ),
