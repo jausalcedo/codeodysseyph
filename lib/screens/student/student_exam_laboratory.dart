@@ -39,11 +39,11 @@ class StudentLaboratoryExamScreen extends StatefulWidget {
 class _StudentLaboratoryExamScreenState
     extends State<StudentLaboratoryExamScreen>
     with
-        SingleTickerProviderStateMixin,
+        TickerProviderStateMixin,
         WidgetsBindingObserver,
         AutomaticKeepAliveClientMixin {
   bool allowPop = false;
-
+  int currentProblemChoice = 0;
   void goToFullScreen() {
     html.document.documentElement!.requestFullscreen();
   }
@@ -83,12 +83,20 @@ public class Main {
   }
 }
 """;
-
+  late List<CodeController> codeControllers; // List to store controllers
+  late List<String> previousCodes;
   // ANTI CHEAT
   int copyPasteViolations = 0;
   int changeViewViolations = 0;
 
-  late List<dynamic> correctTestCases;
+  Map<int, List<bool>> correctTestCases = {};
+  void initializeCorrectTestCases(List<dynamic> problems) {
+    for (int i = 0; i < problems.length; i++) {
+      int testCaseCount = problems[i]['testCases'].length;
+      correctTestCases[i] = List<bool>.filled(
+          testCaseCount, false); // Initialize all test cases as false
+    }
+  }
 
   final apiKey = () {
     const apiKey = String.fromEnvironment(
@@ -101,7 +109,6 @@ public class Main {
 
   Future<String> checkSolution(List<dynamic> testCases) async {
     String? explanation;
-
     final schema = Schema.object(properties: {
       'testCaseResults': Schema.array(
         items: Schema.boolean(
@@ -126,7 +133,7 @@ public class Main {
     );
 
     final prompt =
-        'Check if the Java solution satisfies the results of the test cases when it is compiled, run, and inputted into the program. If the solution does not satisfy the test cases, return false, otherwise true. Java solution: ${codeEditorController.fullText}\n Test Cases: ${testCases.toString()}';
+        'Check if the Java solution satisfies the results of the test cases when it is compiled, run, and inputted into the program. If the solution does not satisfy the test cases, return false, otherwise true. Java solution: ${codeControllers[currentProblemChoice].fullText}\n Test Cases: ${testCases.toString()}';
 
     setState(() {
       allowPop = true;
@@ -144,7 +151,10 @@ public class Main {
         final parsedResponse = jsonDecode(responseData!);
 
         setState(() {
-          correctTestCases = parsedResponse['testCaseResults'];
+          correctTestCases[currentProblemChoice] =
+              List<bool>.from(parsedResponse['testCaseResults']);
+
+          print(correctTestCases);
         });
 
         // POP THE LOADING
@@ -169,42 +179,77 @@ public class Main {
     return explanation ?? '';
   }
 
-  void submitSolution(List<dynamic> testCases) {
-    checkSolution(testCases).then((explanation) {
-      double score = widget.exam['maxScore'] *
-          (correctTestCases.where((value) => value == true).length /
-              widget.exam['content']['testCases'].length);
-      score -= copyPasteViolations * widget.violations['copyPaste'];
-      score -= changeViewViolations * widget.violations['changeView'];
-      if (score < 0) score = 0;
+  void submitSolution() {
+    double totalScore = 0; // Initialize the total score
+    double maxScore = exams[0]['content'].fold(
+        0.0, (sum, problem) => sum + problem['score']); // Total possible score
+    int totalTestCases = 0; // Total test cases count
 
-      setState(() {
-        allowPop = true;
-      });
+    // Calculate the total score across all problems
+    exams[0]['content'].asMap().forEach((problemIndex, problem) {
+      int problemScore = problem['score']; // Get the score for this problem
+      int totalProblemTestCases =
+          problem['testCases'].length; // Total test cases for this problem
+      totalTestCases +=
+          totalProblemTestCases; // Increment total test cases count
 
-      QuickAlert.show(
-        // ignore: use_build_context_synchronously
-        context: context,
-        type: QuickAlertType.success,
-        title: 'You got: $score',
-        text:
-            '$explanation${copyPasteViolations > 0 ? '\nYou copied and pasted text $copyPasteViolations times.' : ''}${changeViewViolations > 0 ? '\nYou left the exam view $changeViewViolations times.' : ''}',
-        onConfirmBtnTap: () {
-          _firestoreService.submitExamAnswer(
-            classCode: widget.classCode,
-            isLab: true,
-            examIndex: widget.examIndex,
-            studentId: widget.studentId,
-            score: score,
-            copyPasteViolations: copyPasteViolations,
-            changeViewViolations: changeViewViolations,
-            laboratoryAnswer: codeEditorController.fullText,
-          );
-          Navigator.of(context).pop();
-          goBackToClass();
-        },
-      );
+      // Safely get correct test cases for this problem
+      int totalCorrect = correctTestCases[problemIndex]
+              ?.where((value) => value == true)
+              .length ??
+          0;
+
+      // Calculate problem-specific score
+      double problemScoreEarned =
+          (problemScore * totalCorrect) / totalProblemTestCases;
+
+      totalScore += problemScoreEarned; // Add the score to the total
     });
+
+    // Apply penalties for violations
+    totalScore -= copyPasteViolations * widget.violations['copyPaste'];
+    totalScore -= changeViewViolations * widget.violations['changeView'];
+    if (totalScore < 0) totalScore = 0; // Ensure the score isn't negative
+
+    // Generate explanation for violations
+    String explanation = '';
+    explanation += copyPasteViolations > 0
+        ? '\nYou copied and pasted text $copyPasteViolations times.'
+        : '';
+    explanation += changeViewViolations > 0
+        ? '\nYou left the exam view $changeViewViolations times.'
+        : '';
+
+    setState(() {
+      allowPop = true; // Allow navigation away from the screen
+    });
+
+    // Show the results in a dialog
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.success,
+      title: 'You got: ${totalScore.toStringAsFixed(2)} / $maxScore',
+      text: explanation,
+      onConfirmBtnTap: () {
+        // Submit results to the Firestore service
+        _firestoreService.submitExamAnswer(
+          classCode: widget.classCode,
+          isLab: true,
+          examIndex: widget.examIndex,
+          studentId: widget.studentId,
+          score: totalScore,
+          copyPasteViolations: copyPasteViolations,
+          changeViewViolations: changeViewViolations,
+          laboratoryAnswer: codeControllers
+              .map((controller) => controller.text)
+              .toList()
+              .toString(),
+        );
+
+        Navigator.of(context).pop(); // Close the dialog
+        goBackToClass(); // Navigate back to the class screen
+      },
+    );
   }
 
   void disableReload() {
@@ -229,23 +274,135 @@ public class Main {
     }
   }
 
+  List<Map<String, dynamic>> exams = [
+    {
+      'exam': 'Midterm',
+      'examType': 'Laboratory',
+      'duration': {
+        'hours': 1,
+        'minutes': 30,
+      },
+      'openSchedule': 'January 10, 2025 at 12:00:00 PM UTC+8',
+      'closeSchedule': 'January 13, 2025 at 3:00:00 PM UTC+8',
+      'content': [
+        {
+          'problemStatement':
+              'Write a program that will display the sum of two numbers.',
+          'constraints': 'The input will be two integers.',
+          'score': 30,
+          'examples': [
+            {
+              'input': '1, 2',
+              'output': '3',
+            },
+          ],
+          'testCases': [
+            {
+              'input': '10, 11',
+              'output': '21',
+            },
+            {
+              'input': '4, 5',
+              'output': '9',
+            },
+            {
+              'input': '101, 2',
+              'output': '103',
+            },
+            {
+              'input': '102, 2',
+              'output': '104',
+            },
+          ],
+        },
+        {
+          'problemStatement':
+              'Write a program that will display the difference of two numbers.',
+          'constraints': 'The input will be two integers.',
+          'score': 20,
+          'examples': [
+            {
+              'input': '17, 4',
+              'output': '13',
+            },
+          ],
+          'testCases': [
+            {
+              'input': '11, 4',
+              'output': '7',
+            },
+            {
+              'input': '28, 16',
+              'output': '12',
+            },
+          ],
+        },
+        {
+          'problemStatement':
+              'Write a program that will display the difference of two numbers.',
+          'constraints': 'The input will be two integers.',
+          'score': 20,
+          'examples': [
+            {
+              'input': '17, 4',
+              'output': '13',
+            },
+          ],
+          'testCases': [
+            {
+              'input': '11, 4',
+              'output': '7',
+            },
+            {
+              'input': '28, 16',
+              'output': '12',
+            },
+          ],
+        }
+      ],
+    },
+  ];
+
+  // List to track previous code for each problem
+
+  void scriptGenerator() {
+    // Initialize the TabController
+    tabController = TabController(
+      length: exams[0]['content'].length,
+      vsync: this,
+    );
+
+    // Initialize CodeControllers and previous code tracking
+    codeControllers = exams[0]['content'].map<CodeController>((problem) {
+      return CodeController(
+        text: """
+public class Main {
+  public static void main(String[] args) {
+    // Solution for: ${problem['problemStatement']}
+  }
+}
+""",
+        language: java,
+      );
+    }).toList();
+
+    previousCodes =
+        codeControllers.map((controller) => controller.text).toList();
+  }
+
   @override
   void initState() {
     super.initState();
     disableReload();
 
     goToFullScreen();
-    tabController = TabController(length: 1, vsync: this);
-    codeEditorController.text = script;
+    tabController =
+        TabController(length: exams[0]['content'].length, vsync: this);
 
+    codeEditorController.text = script;
+    scriptGenerator();
     // ANTI CHEAT
     WidgetsBinding.instance.addObserver(this);
-
-    // INITIALIZE CORRECT TEST CASES
-    correctTestCases = List.generate(
-      widget.exam['content']['testCases'].length,
-      (_) => false,
-    );
   }
 
   final focusNode = FocusNode();
@@ -258,9 +415,20 @@ public class Main {
   //   }
   //   super.dispose();
   // }
+  int expandedIndex = 0;
+  List<int> expandedIndices = [];
 
   @override
   Widget build(BuildContext context) {
+    int selectedProblem = 0;
+
+    void switchTab(int index) {
+      tabController
+          .animateTo(index); // Animate to the tab at the specified index
+    }
+
+    //to know what testCases display
+
     int hours = widget.exam['duration']['hours'] * 60;
     int totalMinutes = widget.exam['duration']['minutes'] + hours;
 
@@ -287,7 +455,7 @@ public class Main {
                     child: Column(
                       children: [
                         Text(
-                          '${widget.exam['exam']} ${widget.exam['examType']} Examination',
+                          '${exams[0]['exam']} ${exams[0]['examType']} Examination',
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -296,52 +464,120 @@ public class Main {
                         const Divider(),
                         const Gap(25),
                         Expanded(
-                          child: ListView(
-                            children: [
-                              // PROBLEM STATEMENT
-                              const Text(
-                                'Problem Statement:',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                            child: ListView.builder(
+                          itemCount: exams[0]['content']
+                              .length, // Number of problems in the exam
+                          itemBuilder: (context, problemIndex) {
+                            var problem = exams[0]['content'][problemIndex];
+
+                            return ExpansionTile(
+                              title: Text(
+                                'Problem ${problemIndex + 1}',
+                                style: const TextStyle(
+                                  color: Color.fromARGB(255, 19, 27, 99),
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                              const Gap(5),
-                              Text(
-                                widget.exam['content']['problemStatement'],
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                              const Gap(25),
-                              // CONSTRAINTS
-                              const Text(
-                                'Constraints:',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const Gap(5),
-                              Text(
-                                widget.exam['content']['constraints'],
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                              const Gap(25),
-                              // EXAMPLE
-                              const Text(
-                                'Example:',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const Gap(5),
-                              // INPUT
-                              const Text('Input:'),
-                              Text(
-                                '${widget.exam['content']['examples'][0]['input'].replaceAll(', ', '\n')}',
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                              const Gap(5),
-                              // OUTPUT
-                              const Text('Output:'),
-                              Text(
-                                widget.exam['content']['examples'][0]['output'],
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                            ],
-                          ),
-                        ),
+                              onExpansionChanged: (expanded) {
+                                setState(() {
+                                  selectedProblem =
+                                      problemIndex; // Update selectedProblem based on tab index
+                                  currentProblemChoice = problemIndex;
+                                  switchTab(problemIndex);
+
+                                  if (expanded) {
+                                    // Add the index of the expanded tile to the list
+                                    expandedIndices
+                                        .clear(); // Clear the previously expanded indices
+                                    expandedIndices.add(problemIndex);
+                                  } else {
+                                    // Remove the index of the collapsed tile from the list
+                                    expandedIndices.remove(problemIndex);
+                                  }
+                                });
+                              },
+                              children: [
+                                if (expandedIndices.contains(
+                                    problemIndex)) // Only show content if the tile is expanded
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // PROBLEM STATEMENT
+                                        const Text(
+                                          'Problem Statement:',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          problem['problemStatement'],
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                        const SizedBox(height: 25),
+
+                                        // CONSTRAINTS
+                                        const Text(
+                                          'Constraints:',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          problem['constraints'],
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                        const SizedBox(height: 25),
+
+                                        // EXAMPLES
+                                        const Text(
+                                          'Examples:',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 5),
+
+                                        // INPUT AND OUTPUT
+                                        ...problem['examples']
+                                            .map<Widget>((example) {
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                                bottom: 15.0),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                const Text('Input:'),
+                                                Text(
+                                                  example['input']
+                                                      .replaceAll(', ', '\n'),
+                                                  style: const TextStyle(
+                                                      fontSize: 16),
+                                                ),
+                                                const SizedBox(height: 5),
+                                                const Text('Output:'),
+                                                Text(
+                                                  example['output'],
+                                                  style: const TextStyle(
+                                                      fontSize: 16),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                        const SizedBox(
+                                            height:
+                                                20), // Space at the end of the group
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        ))
                       ],
                     ),
                   ),
@@ -361,14 +597,17 @@ public class Main {
                     children: [
                       TabBar(
                         controller: tabController,
-                        tabs: const [Tab(text: 'Code Editor')],
+                        tabs: List.generate(
+                          exams[0]['content'].length,
+                          (index) => Tab(text: 'Problem ${index + 1}'),
+                        ),
                       ),
                       Expanded(
                         child: TabBarView(
                           controller: tabController,
-                          children: [
-                            // CODE EDITOR
-                            Column(
+                          children: List.generate(
+                            exams[0]['content'].length, // Number of problems
+                            (index) => Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 // CODE EDITOR
@@ -377,21 +616,23 @@ public class Main {
                                     data: CodeThemeData(styles: vsTheme),
                                     child: SingleChildScrollView(
                                       child: CodeField(
-                                        controller: codeEditorController,
+                                        controller: codeControllers[
+                                            index], // You may need separate controllers for each problem
                                         onChanged: (code) {
                                           if (code.length -
-                                                  previousCode.length >
+                                                  previousCodes[index].length >
                                               11) {
                                             copyPasteViolations++;
                                           }
                                           setState(() {
-                                            previousCode = code;
+                                            previousCodes[index] = code;
                                           });
                                         },
                                       ),
                                     ),
                                   ),
                                 ),
+
                                 const Gap(10),
 
                                 // RUN BUTTON
@@ -408,8 +649,16 @@ public class Main {
                                         foregroundColor: WidgetStatePropertyAll(
                                             Colors.white),
                                       ),
-                                      onPressed: () => checkSolution(
-                                          widget.exam['content']['testCases']),
+                                      onPressed: () {
+                                        checkSolution(exams[0]['content']
+                                                    [currentProblemChoice]
+                                                ['testCases']
+                                            as List<
+                                                dynamic>); // Use the current problem's test cases
+                                        print(exams[0]['content']
+                                                [currentProblemChoice]
+                                            ['testCases']);
+                                      },
                                       label: const Text('Check Solution'),
                                       icon:
                                           const Icon(Icons.play_arrow_rounded),
@@ -419,7 +668,7 @@ public class Main {
                                 const Gap(10),
                               ],
                             ),
-                          ],
+                          ),
                         ),
                       )
                     ],
@@ -453,30 +702,74 @@ public class Main {
                             endTime: widget.startTime.add(
                               Duration(minutes: totalMinutes),
                             ),
-                            onEnd: () => submitSolution(
-                                widget.exam['content']['testCases']),
+                            onEnd: () => submitSolution(),
                           ),
                         ),
                         const Gap(25),
                         // TEST CASES
-                        ...List.generate(
-                          widget.exam['content']['testCases'].length,
-                          (index) => Card(
-                            color: correctTestCases[index] == true
-                                ? Colors.green[800]
-                                : Colors.red[800],
-                            child: ListTile(
-                              textColor: Colors.white,
-                              title: Text('Test Case ${index + 1}'),
-                              trailing: Icon(
-                                correctTestCases[index] == true
-                                    ? Icons.check_rounded
-                                    : Icons.close_rounded,
-                                color: Colors.white,
-                              ),
-                            ),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: exams[0]['content']
+                                .length, // Number of problems in the exam
+                            itemBuilder: (context, problemIndex) {
+                              var problem = exams[0]['content'][problemIndex];
+
+                              return Card(
+                                child: ExpansionTile(
+                                  title: Text(
+                                    'Test Cases for Problem ${problemIndex + 1}',
+                                    style: const TextStyle(
+                                      color: Color.fromARGB(255, 19, 27, 99),
+                                    ),
+                                  ),
+                                  backgroundColor: Colors.white,
+                                  collapsedBackgroundColor: Colors.white,
+                                  textColor:
+                                      const Color.fromARGB(255, 19, 27, 99),
+                                  collapsedTextColor:
+                                      const Color.fromARGB(255, 19, 27, 99),
+                                  iconColor:
+                                      const Color.fromARGB(255, 19, 27, 99),
+                                  collapsedIconColor: Colors.white,
+                                  children: [
+                                    ListView.builder(
+                                      shrinkWrap:
+                                          true, // Ensures the ListView works inside ExpansionTile
+                                      physics:
+                                          const NeverScrollableScrollPhysics(), // Prevents nested scrolling issues
+                                      itemCount: problem['testCases'].length,
+                                      itemBuilder: (context, testCaseIndex) {
+                                        // Access correctTestCases for the current problem and test case
+                                        bool isCorrect =
+                                            correctTestCases[problemIndex]
+                                                    ?[testCaseIndex] ??
+                                                false;
+
+                                        return Card(
+                                          color: isCorrect
+                                              ? Colors.green[800]
+                                              : Colors.red[800],
+                                          child: ListTile(
+                                            textColor: Colors.white,
+                                            title: Text(
+                                                'Test Case ${testCaseIndex + 1}'),
+                                            trailing: Icon(
+                                              isCorrect
+                                                  ? Icons.check_rounded
+                                                  : Icons.close_rounded,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                         ),
+
                         const Gap(25),
 
                         // SUBMIT BUTTON
@@ -490,8 +783,15 @@ public class Main {
                               foregroundColor:
                                   const WidgetStatePropertyAll(Colors.white),
                             ),
-                            onPressed: () => submitSolution(
-                                widget.exam['content']['testCases']),
+                            onPressed: () {
+                              var testCases =
+                                  exams[0]['content'][0]['testCases'];
+                              if (testCases != null) {
+                                submitSolution();
+                              } else {
+                                print('Test cases are null');
+                              }
+                            },
                             child: const Text(
                               'Submit Solution',
                               style: TextStyle(fontSize: 20),
