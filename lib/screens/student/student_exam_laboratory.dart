@@ -181,13 +181,13 @@ public class Main {
 
   void submitSolution() {
     double totalScore = 0; // Initialize the total score
-    double maxScore = exams[0]['content'].fold(
-        0.0, (sum, problem) => sum + problem['score']); // Total possible score
+    double maxScore = widget.exam['content'].fold(
+        0.0, (sum, problem) => sum + problem['points']); // Total possible score
     int totalTestCases = 0; // Total test cases count
 
     // Calculate the total score across all problems
-    exams[0]['content'].asMap().forEach((problemIndex, problem) {
-      int problemScore = problem['score']; // Get the score for this problem
+    widget.exam['content'].asMap().forEach((problemIndex, problem) {
+      int problemScore = problem['points']; // Get the score for this problem
       int totalProblemTestCases =
           problem['testCases'].length; // Total test cases for this problem
       totalTestCases +=
@@ -274,106 +274,106 @@ public class Main {
     }
   }
 
-  List<Map<String, dynamic>> exams = [
-    {
-      'exam': 'Midterm',
-      'examType': 'Laboratory',
-      'duration': {
-        'hours': 1,
-        'minutes': 30,
-      },
-      'openSchedule': 'January 10, 2025 at 12:00:00 PM UTC+8',
-      'closeSchedule': 'January 13, 2025 at 3:00:00 PM UTC+8',
-      'content': [
-        {
-          'problemStatement':
-              'Write a program that will display the sum of two numbers.',
-          'constraints': 'The input will be two integers.',
-          'score': 30,
-          'examples': [
-            {
-              'input': '1, 2',
-              'output': '3',
-            },
-          ],
-          'testCases': [
-            {
-              'input': '10, 11',
-              'output': '21',
-            },
-            {
-              'input': '4, 5',
-              'output': '9',
-            },
-            {
-              'input': '101, 2',
-              'output': '103',
-            },
-            {
-              'input': '102, 2',
-              'output': '104',
-            },
-          ],
-        },
-        {
-          'problemStatement':
-              'Write a program that will display the difference of two numbers.',
-          'constraints': 'The input will be two integers.',
-          'score': 20,
-          'examples': [
-            {
-              'input': '17, 4',
-              'output': '13',
-            },
-          ],
-          'testCases': [
-            {
-              'input': '11, 4',
-              'output': '7',
-            },
-            {
-              'input': '28, 16',
-              'output': '12',
-            },
-          ],
-        },
-        {
-          'problemStatement':
-              'Write a program that will display the difference of two numbers.',
-          'constraints': 'The input will be two integers.',
-          'score': 20,
-          'examples': [
-            {
-              'input': '17, 4',
-              'output': '13',
-            },
-          ],
-          'testCases': [
-            {
-              'input': '11, 4',
-              'output': '7',
-            },
-            {
-              'input': '28, 16',
-              'output': '12',
-            },
-          ],
-        }
-      ],
-    },
-  ];
+  // List<Map<String, dynamic>> exams = [
+  //   {
+  //     'exam': 'Midterm',
+  //     'examType': 'Laboratory',
+  //     'duration': {
+  //       'hours': 1,
+  //       'minutes': 30,
+  //     },
+  //     'openSchedule': 'January 10, 2025 at 12:00:00 PM UTC+8',
+  //     'closeSchedule': 'January 13, 2025 at 3:00:00 PM UTC+8',
+  //     'content': [
+  //       {
+  //         'problemStatement':
+  //             'Write a program that will display the sum of two numbers.',
+  //         'constraints': 'The input will be two integers.',
+  //         'score': 30,
+  //         'examples': [
+  //           {
+  //             'input': '1, 2',
+  //             'output': '3',
+  //           },
+  //         ],
+  //         'testCases': [
+  //           {
+  //             'input': '10, 11',
+  //             'output': '21',
+  //           },
+  //           {
+  //             'input': '4, 5',
+  //             'output': '9',
+  //           },
+  //           {
+  //             'input': '101, 2',
+  //             'output': '103',
+  //           },
+  //           {
+  //             'input': '102, 2',
+  //             'output': '104',
+  //           },
+  //         ],
+  //       },
+  //       {
+  //         'problemStatement':
+  //             'Write a program that will display the difference of two numbers.',
+  //         'constraints': 'The input will be two integers.',
+  //         'score': 20,
+  //         'examples': [
+  //           {
+  //             'input': '17, 4',
+  //             'output': '13',
+  //           },
+  //         ],
+  //         'testCases': [
+  //           {
+  //             'input': '11, 4',
+  //             'output': '7',
+  //           },
+  //           {
+  //             'input': '28, 16',
+  //             'output': '12',
+  //           },
+  //         ],
+  //       },
+  //       {
+  //         'problemStatement':
+  //             'Write a program that will display the difference of two numbers.',
+  //         'constraints': 'The input will be two integers.',
+  //         'score': 20,
+  //         'examples': [
+  //           {
+  //             'input': '17, 4',
+  //             'output': '13',
+  //           },
+  //         ],
+  //         'testCases': [
+  //           {
+  //             'input': '11, 4',
+  //             'output': '7',
+  //           },
+  //           {
+  //             'input': '28, 16',
+  //             'output': '12',
+  //           },
+  //         ],
+  //       }
+  //     ],
+  //   },
+  // ];
 
   // List to track previous code for each problem
 
   void scriptGenerator() {
     // Initialize the TabController
     tabController = TabController(
-      length: exams[0]['content'].length,
+      length: widget.exam['content'].length,
       vsync: this,
     );
 
     // Initialize CodeControllers and previous code tracking
-    codeControllers = exams[0]['content'].map<CodeController>((problem) {
+    codeControllers = widget.exam['content'].map<CodeController>((problem) {
       return CodeController(
         text: """
 public class Main {
@@ -397,7 +397,7 @@ public class Main {
 
     goToFullScreen();
     tabController =
-        TabController(length: exams[0]['content'].length, vsync: this);
+        TabController(length: widget.exam['content'].length, vsync: this);
 
     codeEditorController.text = script;
     scriptGenerator();
@@ -455,7 +455,7 @@ public class Main {
                     child: Column(
                       children: [
                         Text(
-                          '${exams[0]['exam']} ${exams[0]['examType']} Examination',
+                          '${widget.exam['exam']} ${widget.exam['examType']} Examination',
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -465,10 +465,10 @@ public class Main {
                         const Gap(25),
                         Expanded(
                             child: ListView.builder(
-                          itemCount: exams[0]['content']
+                          itemCount: widget.exam['content']
                               .length, // Number of problems in the exam
                           itemBuilder: (context, problemIndex) {
-                            var problem = exams[0]['content'][problemIndex];
+                            var problem = widget.exam['content'][problemIndex];
 
                             return ExpansionTile(
                               title: Text(
@@ -598,7 +598,7 @@ public class Main {
                       TabBar(
                         controller: tabController,
                         tabs: List.generate(
-                          exams[0]['content'].length,
+                          widget.exam['content'].length,
                           (index) => Tab(text: 'Problem ${index + 1}'),
                         ),
                       ),
@@ -606,7 +606,7 @@ public class Main {
                         child: TabBarView(
                           controller: tabController,
                           children: List.generate(
-                            exams[0]['content'].length, // Number of problems
+                            widget.exam['content'].length, // Number of problems
                             (index) => Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
@@ -650,12 +650,12 @@ public class Main {
                                             Colors.white),
                                       ),
                                       onPressed: () {
-                                        checkSolution(exams[0]['content']
+                                        checkSolution(widget.exam['content']
                                                     [currentProblemChoice]
                                                 ['testCases']
                                             as List<
                                                 dynamic>); // Use the current problem's test cases
-                                        print(exams[0]['content']
+                                        print(widget.exam['content']
                                                 [currentProblemChoice]
                                             ['testCases']);
                                       },
@@ -709,10 +709,11 @@ public class Main {
                         // TEST CASES
                         Expanded(
                           child: ListView.builder(
-                            itemCount: exams[0]['content']
+                            itemCount: widget.exam['content']
                                 .length, // Number of problems in the exam
                             itemBuilder: (context, problemIndex) {
-                              var problem = exams[0]['content'][problemIndex];
+                              var problem =
+                                  widget.exam['content'][problemIndex];
 
                               return Card(
                                 child: ExpansionTile(
@@ -785,7 +786,7 @@ public class Main {
                             ),
                             onPressed: () {
                               var testCases =
-                                  exams[0]['content'][0]['testCases'];
+                                  widget.exam['content'][0]['testCases'];
                               if (testCases != null) {
                                 submitSolution();
                               } else {
