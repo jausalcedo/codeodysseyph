@@ -874,9 +874,10 @@ class CloudFirestoreService {
     required String studentId,
     required double score,
     String? laboratoryAnswer,
-    List<String?>? writtenAnswer,
+    Map<String, dynamic>? writtenAnswer,
     int? copyPasteViolations,
     required int changeViewViolations,
+    String? status,
   }) async {
     // TO DO
     final classSnapshot =
@@ -903,6 +904,7 @@ class CloudFirestoreService {
         'score': score,
         'writtenAnswer': writtenAnswer,
         'changeViewViolations': changeViewViolations,
+        'status': status,
       };
     }
 

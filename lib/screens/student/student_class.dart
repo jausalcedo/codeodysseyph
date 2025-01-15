@@ -343,11 +343,11 @@ class _StudentClassScreenState extends State<StudentClassScreen>
     required dynamic exam,
     required dynamic violations,
   }) async {
-    await _firestoreService.initializeExamScore(
-      classCode: widget.classCode,
-      examIndex: examIndex,
-      studentId: widget.studentId,
-    );
+    // await _firestoreService.initializeExamScore(
+    //   classCode: widget.classCode,
+    //   examIndex: examIndex,
+    //   studentId: widget.studentId,
+    // );
 
     // ignore: use_build_context_synchronously
     Navigator.of(context).push(
@@ -1213,13 +1213,30 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                                 {};
 
                                                         if (submissions
-                                                            .containsKey(widget
-                                                                .studentId)) {
+                                                                .containsKey(widget
+                                                                    .studentId) &&
+                                                            submissions[widget
+                                                                        .studentId]
+                                                                    [
+                                                                    'status'] ==
+                                                                'Complete') {
                                                           score = exam['submissions']
                                                                       [widget
                                                                           .studentId]
                                                                   ['score']
                                                               .toString();
+                                                        }
+
+                                                        if (submissions
+                                                                .containsKey(widget
+                                                                    .studentId) &&
+                                                            submissions[widget
+                                                                        .studentId]
+                                                                    [
+                                                                    'status'] ==
+                                                                'Partial') {
+                                                          score =
+                                                              'Submitted. Waiting for full evaluation.';
                                                         }
 
                                                         return Card(
@@ -1229,7 +1246,10 @@ class _StudentClassScreenState extends State<StudentClassScreen>
                                                             trailing: Text(
                                                               score == null
                                                                   ? 'Not yet taken.'
-                                                                  : "Score: $score/${exam['maxScore']}",
+                                                                  : score ==
+                                                                          'Submitted. Waiting for full evaluation.'
+                                                                      ? 'Submitted. Waiting for full evaluation.'
+                                                                      : "Score: $score/${exam['maxScore']}",
                                                               style:
                                                                   const TextStyle(
                                                                 fontSize: 18,

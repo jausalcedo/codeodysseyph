@@ -1170,6 +1170,13 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                         child: ListTile(
                           title: Text(
                               '${student['lastName']}, ${student['firstName']}'),
+                          trailing: SizedBox(
+                            width: 75,
+                            child: Text(
+                              '${activity['submissions'][studentIdsSubmission[index]]['score']} / ${activity['maxScore']}',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
                           onTap: () => openCheckActivityModal(
                               classCode: widget.classCode,
                               lessonIndex: lessonIndex,
@@ -1661,6 +1668,9 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
     DateTime examOpen = exam['openSchedule'].toDate();
     DateTime examClose = exam['closeSchedule'].toDate();
 
+    final Map<String, dynamic> submissions = exam['submissions'];
+    final List<dynamic> studentIdsSubmission = submissions.keys.toList();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1677,7 +1687,7 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
         content: SizedBox(
           width: 750,
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
@@ -1801,39 +1811,99 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                   );
                 },
               ),
-              const Gap(25),
+              const Gap(10),
 
               // SAVE CHANGES
-              TextButton(
-                style: const ButtonStyle(
-                  backgroundColor: WidgetStatePropertyAll(primary),
-                  foregroundColor: WidgetStatePropertyAll(Colors.white),
+              Center(
+                child: TextButton(
+                  style: const ButtonStyle(
+                    backgroundColor: WidgetStatePropertyAll(primary),
+                    foregroundColor: WidgetStatePropertyAll(Colors.white),
+                  ),
+                  onPressed: () {
+                    if (maxScore.text == exam['maxScore'].toString() &&
+                        durationHours.text ==
+                            exam['duration']['hours'].toString() &&
+                        durationMinutes.text ==
+                            exam['duration']['minutes'].toString() &&
+                        examOpen == exam['openSchedule'].toDate() &&
+                        examClose == exam['closeSchedule'].toDate()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      exam['maxScore'] = maxScore.text != ''
+                          ? int.parse(maxScore.text)
+                          : exam['maxScore'];
+                      exam['duration']['hours'] = durationHours.text != ''
+                          ? int.parse(durationHours.text)
+                          : exam['duration']['hours'];
+                      exam['duration']['minutes'] = durationMinutes.text != ''
+                          ? int.parse(durationMinutes.text)
+                          : exam['duration']['minutes'];
+                      exam['openSchedule'] = examOpen;
+                      exam['closeSchedule'] = examClose;
+                      saveExamEdits(examIndex, exam);
+                    }
+                  },
+                  child: const Text('Save Changes'),
                 ),
-                onPressed: () {
-                  if (maxScore.text == exam['maxScore'].toString() &&
-                      durationHours.text ==
-                          exam['duration']['hours'].toString() &&
-                      durationMinutes.text ==
-                          exam['duration']['minutes'].toString() &&
-                      examOpen == exam['openSchedule'].toDate() &&
-                      examClose == exam['closeSchedule'].toDate()) {
-                    Navigator.of(context).pop();
-                  } else {
-                    exam['maxScore'] = maxScore.text != ''
-                        ? int.parse(maxScore.text)
-                        : exam['maxScore'];
-                    exam['duration']['hours'] = durationHours.text != ''
-                        ? int.parse(durationHours.text)
-                        : exam['duration']['hours'];
-                    exam['duration']['minutes'] = durationMinutes.text != ''
-                        ? int.parse(durationMinutes.text)
-                        : exam['duration']['minutes'];
-                    exam['openSchedule'] = examOpen;
-                    exam['closeSchedule'] = examClose;
-                    saveExamEdits(examIndex, exam);
+              ),
+              const Gap(25),
+              const Text(
+                'Student Submissions:',
+                style: TextStyle(fontSize: 16),
+              ),
+              FutureBuilder(
+                future: getSortedStudents(
+                    studentIdsSubmission: studentIdsSubmission),
+                builder: (BuildContext context, AsyncSnapshot snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
                   }
+
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                        child: Text(
+                      'No submissions as of now...',
+                      style: TextStyle(fontSize: 18),
+                    ));
+                  }
+
+                  final List students = snapshot.data!;
+
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: students.length,
+                    itemBuilder: (context, index) {
+                      final student = students[index];
+
+                      return Card(
+                        child: ListTile(
+                          title: Text(
+                              '${student['lastName']}, ${student['firstName']}'),
+                          trailing: SizedBox(
+                            width: 75,
+                            child: Text(
+                              '${exam['submissions'][studentIdsSubmission[index]]['score']} / ${exam['maxScore']}',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
+                          onTap: () => openCheckExamModal(
+                            classCode: widget.classCode,
+                            examIndex: examIndex,
+                            studentId: student['studentId'],
+                            studentName:
+                                '${student['firstName']} ${student['lastName']}',
+                          ),
+                        ),
+                      );
+                    },
+                  );
                 },
-                child: const Text('Save Changes'),
               ),
             ],
           ),
@@ -1889,6 +1959,121 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
         );
       },
       showCancelBtn: true,
+    );
+  }
+
+  void openCheckExamModal({
+    required String classCode,
+    required int examIndex,
+    required String studentId,
+    required String studentName,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Exam Submission'),
+            IconButton(
+              onPressed: Navigator.of(context).pop,
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 800,
+          child: FutureBuilder(
+            future: _firestoreService.getCourseClassDataFuture(
+                'classes', classCode),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                print('Error: ${snapshot.error}');
+              }
+
+              final classData = snapshot.data!.data();
+
+              final dynamic exams = classData!['exams'] ?? [];
+              final Map<String, dynamic> exam = exams[examIndex];
+              final Map<String, dynamic> submissions = exam['submissions'];
+              final Map<String, dynamic> studentSubmission =
+                  submissions[studentId];
+
+              if (studentSubmission.containsKey('score')) {
+                submissionScoreController.text =
+                    studentSubmission['score'].toString();
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        studentName,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 150,
+                            child: TextField(
+                              decoration: InputDecoration(
+                                border: const OutlineInputBorder(),
+                                label: const Text('Score'),
+                                suffix: Text(
+                                    '/${exam['maxScore'].toString()} points'),
+                              ),
+                              controller: submissionScoreController,
+                            ),
+                          ),
+                          const Gap(10),
+                          TextButton(
+                            onPressed: () async {
+                              QuickAlert.show(
+                                context: context,
+                                type: QuickAlertType.loading,
+                              );
+                              // await _firestoreService.scoreActivity(
+                              //   activityIndex: activityIndex,
+                              //   classCode: widget.classCode,
+                              //   lessonIndex: lessonIndex,
+                              //   score: double.parse(
+                              //       submissionScoreController.text),
+                              //   studentId: studentId,
+                              // );
+                              // ignore: use_build_context_synchronously
+                              Navigator.of(context).pop();
+                              // ignore: use_build_context_synchronously
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Save'),
+                          )
+                        ],
+                      ),
+                    ],
+                  ),
+                  const Text(
+                    'Student\'s Work',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 
