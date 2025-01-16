@@ -378,7 +378,7 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
                                   color: Colors.white,
                                   child: ListTile(
                                     title: Text(
-                                        'True or False: ${identificationAnswers.where((item) => item != null).length} / ${identificationAnswers.length}'),
+                                        'Identification: ${identificationAnswers.where((item) => item != null).length} / ${identificationAnswers.length}'),
                                   ),
                                 )
                               : const SizedBox(),
@@ -478,7 +478,8 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          const Text('Multiple Choice'),
+                                          Text(
+                                              'Multiple Choice (${item['points']} ${item['points'] > 1 ? 'points' : 'point'})'),
                                           Text(
                                             '${multipleChoiceIndex + 1}. ${item['question']}',
                                             style: const TextStyle(
@@ -505,8 +506,14 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
                                                       CircularProgressIndicator());
                                             }
 
-                                            return Image.network(
-                                                snapshot.data!);
+                                            return SizedBox(
+                                              width: double.infinity,
+                                              height: 300,
+                                              child: Image.network(
+                                                snapshot.data!,
+                                                fit: BoxFit.scaleDown,
+                                              ),
+                                            );
                                           },
                                         ),
                                       ),
@@ -563,7 +570,8 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          const Text('True or False'),
+                                          Text(
+                                              'True or False (${item['points']} ${item['points'] > 1 ? 'points' : 'point'})'),
                                           Text(
                                             '${trueOrFalseIndex + 1}. ${item['question']}',
                                             style: const TextStyle(
@@ -590,8 +598,14 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
                                                       CircularProgressIndicator());
                                             }
 
-                                            return Image.network(
-                                                snapshot.data!);
+                                            return SizedBox(
+                                              width: double.infinity,
+                                              height: 300,
+                                              child: Image.network(
+                                                snapshot.data!,
+                                                fit: BoxFit.scaleDown,
+                                              ),
+                                            );
                                           },
                                         ),
                                       ),
@@ -651,7 +665,8 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          const Text('Identification'),
+                                          Text(
+                                              'Identification (${item['points']} ${item['points'] > 1 ? 'points' : 'point'})'),
                                           Text(
                                             '${identificationIndex + 1}. ${item['question']}',
                                             style: const TextStyle(
@@ -678,8 +693,14 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
                                                       CircularProgressIndicator());
                                             }
 
-                                            return Image.network(
-                                                snapshot.data!);
+                                            return SizedBox(
+                                              width: double.infinity,
+                                              height: 300,
+                                              child: Image.network(
+                                                snapshot.data!,
+                                                fit: BoxFit.scaleDown,
+                                              ),
+                                            );
                                           },
                                         ),
                                       ),
@@ -735,7 +756,8 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          const Text('Identification'),
+                                          Text(
+                                              'Short Answer (${item['points']} ${item['points'] > 1 ? 'points' : 'point'})'),
                                           Text(
                                             '${shortAnswerIndex + 1}. ${item['question']}',
                                             style: const TextStyle(
@@ -762,8 +784,14 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
                                                       CircularProgressIndicator());
                                             }
 
-                                            return Image.network(
-                                                snapshot.data!);
+                                            return SizedBox(
+                                              width: double.infinity,
+                                              height: 300,
+                                              child: Image.network(
+                                                snapshot.data!,
+                                                fit: BoxFit.scaleDown,
+                                              ),
+                                            );
                                           },
                                         ),
                                       ),
@@ -815,19 +843,14 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
                                         CrossAxisAlignment.start,
                                     children: [
                                       // QUESTION
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Text('Identification'),
-                                          Text(
-                                            '${longAnswerIndex + 1}. ${item['question']}',
-                                            style: const TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
+                                      Text(
+                                          'Long Answer (${item['points']} ${item['points'] > 1 ? 'points' : 'point'})'),
+                                      Text(
+                                        '${longAnswerIndex + 1}. ${item['question']}',
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                       const Gap(5),
 
@@ -846,8 +869,14 @@ class _StudentWrittenExamScreenState extends State<StudentWrittenExamScreen>
                                                       CircularProgressIndicator());
                                             }
 
-                                            return Image.network(
-                                                snapshot.data!);
+                                            return SizedBox(
+                                              width: double.infinity,
+                                              height: 300,
+                                              child: Image.network(
+                                                snapshot.data!,
+                                                fit: BoxFit.scaleDown,
+                                              ),
+                                            );
                                           },
                                         ),
                                       ),

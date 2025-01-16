@@ -523,6 +523,60 @@ class CloudFirestoreService {
         .update({'lessons': lessons});
   }
 
+  Future<void> evaluateExam({
+    required String classCode,
+    required int examIndex,
+    required String studentId,
+    required double score,
+  }) async {
+    final classSnapshot =
+        await _firestore.collection('classes').doc(classCode).get();
+    final classData = classSnapshot.data();
+
+    final List exams = classData!['exams'];
+
+    final exam = exams[examIndex];
+
+    Map<String, dynamic> submissions = exam['submissions'];
+
+    Map<String, dynamic> submissionContent = submissions[studentId];
+
+    submissionContent['score'] = score;
+    submissionContent['status'] = 'Complete';
+
+    submissions[studentId] = submissionContent;
+
+    exam['submissions'] = submissions;
+    exams[examIndex] = exam;
+
+    await _firestore
+        .collection('classes')
+        .doc(classCode)
+        .update({'exams': exams});
+  }
+
+  Future<void> reopenStudentExam({
+    required String classCode,
+    required int examIndex,
+    required String studentId,
+  }) async {
+    final classSnapshot =
+        await _firestore.collection('classes').doc(classCode).get();
+    final Map<String, dynamic>? classData = classSnapshot.data();
+
+    final List exams = classData!['exams'];
+    final Map<String, dynamic> exam = exams[examIndex];
+    final Map<String, dynamic> submissions = exam['submissions'];
+    submissions.remove(studentId);
+    exam['submissions'] = submissions;
+    exams[examIndex] = exam;
+
+    await _firestore
+        .collection('classes')
+        .doc(classCode)
+        .update({'exams': exams});
+  }
+
   Future<void> deleteActivityFromLesson({
     required BuildContext context,
     required String classCode,

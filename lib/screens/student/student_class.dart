@@ -343,11 +343,11 @@ class _StudentClassScreenState extends State<StudentClassScreen>
     required dynamic exam,
     required dynamic violations,
   }) async {
-    // await _firestoreService.initializeExamScore(
-    //   classCode: widget.classCode,
-    //   examIndex: examIndex,
-    //   studentId: widget.studentId,
-    // );
+    await _firestoreService.initializeExamScore(
+      classCode: widget.classCode,
+      examIndex: examIndex,
+      studentId: widget.studentId,
+    );
 
     // ignore: use_build_context_synchronously
     Navigator.of(context).push(

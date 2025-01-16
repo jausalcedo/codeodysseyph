@@ -1882,23 +1882,81 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                       final student = students[index];
 
                       return Card(
+                        color: exam['submissions'][studentIdsSubmission[index]]
+                                    ['status'] ==
+                                'Partial'
+                            ? Colors.amber[300]
+                            : Colors.green[300],
                         child: ListTile(
                           title: Text(
                               '${student['lastName']}, ${student['firstName']}'),
-                          trailing: SizedBox(
-                            width: 75,
-                            child: Text(
-                              '${exam['submissions'][studentIdsSubmission[index]]['score']} / ${exam['maxScore']}',
-                              style: const TextStyle(fontSize: 16),
-                            ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${exam['submissions'][studentIdsSubmission[index]]['score']} / ${exam['maxScore']}',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                              const Gap(10),
+                              IconButton(
+                                onPressed: () {
+                                  QuickAlert.show(
+                                      context: context,
+                                      type: QuickAlertType.confirm,
+                                      title:
+                                          'Re-open exam to ${student['firstName']} ${student['lastName']}?',
+                                      confirmBtnText: 'Yes',
+                                      onConfirmBtnTap: () async {
+                                        Navigator.of(context).pop();
+
+                                        QuickAlert.show(
+                                          context: context,
+                                          type: QuickAlertType.loading,
+                                        );
+
+                                        await _firestoreService
+                                            .reopenStudentExam(
+                                                classCode: widget.classCode,
+                                                examIndex: examIndex,
+                                                studentId:
+                                                    student['studentId']);
+
+                                        // ignore: use_build_context_synchronously
+                                        Navigator.of(context).pop();
+                                        // ignore: use_build_context_synchronously
+                                        Navigator.of(context).pop();
+
+                                        QuickAlert.show(
+                                          // ignore: use_build_context_synchronously
+                                          context: context,
+                                          type: QuickAlertType.info,
+                                          title:
+                                              'Re-opened ${exam['exam']} ${exam['examType']} Exam to ${student['firstName']} ${student['lastName']}',
+                                          // ignore: use_build_context_synchronously
+                                          onConfirmBtnTap:
+                                              Navigator.of(context).pop,
+                                        );
+                                      },
+                                      showCancelBtn: true,
+                                      onCancelBtnTap:
+                                          Navigator.of(context).pop);
+                                },
+                                icon: const Icon(Icons.replay_outlined),
+                              )
+                            ],
                           ),
-                          onTap: () => openCheckExamModal(
-                            classCode: widget.classCode,
-                            examIndex: examIndex,
-                            studentId: student['studentId'],
-                            studentName:
-                                '${student['firstName']} ${student['lastName']}',
-                          ),
+                          onTap: () => exam['examType'] == 'Written'
+                              ? exam['content']['Short Answer'].isNotEmpty ||
+                                      exam['content']['Long Answer'].isNotEmpty
+                                  ? openCheckExamModal(
+                                      classCode: widget.classCode,
+                                      examIndex: examIndex,
+                                      studentId: student['studentId'],
+                                      studentName:
+                                          '${student['firstName']} ${student['lastName']}',
+                                    )
+                                  : null
+                              : null,
                         ),
                       );
                     },
@@ -1999,17 +2057,36 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
 
               final dynamic exams = classData!['exams'] ?? [];
               final Map<String, dynamic> exam = exams[examIndex];
+              final List shortAnswerList = exam['content']['Short Answer'];
+              final List longAnswerList = exam['content']['Long Answer'];
+
+              final shortAnswerScoreControllers =
+                  List<TextEditingController>.generate(
+                shortAnswerList.length,
+                (item) => TextEditingController(),
+              );
+
+              final shortAnswerScoreFormKey = GlobalKey<FormState>();
+
+              final longAnswerScoreControllers =
+                  List<TextEditingController>.generate(
+                longAnswerList.length,
+                (item) => TextEditingController(),
+              );
+
+              final longAnswerScoreFormKey = GlobalKey<FormState>();
+
               final Map<String, dynamic> submissions = exam['submissions'];
               final Map<String, dynamic> studentSubmission =
                   submissions[studentId];
 
+              double score = studentSubmission['score'];
+
               if (studentSubmission.containsKey('score')) {
-                submissionScoreController.text =
-                    studentSubmission['score'].toString();
+                submissionScoreController.text = score.toString();
               }
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              return ListView(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2038,22 +2115,77 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                           const Gap(10),
                           TextButton(
                             onPressed: () async {
+                              if (!shortAnswerScoreFormKey.currentState!
+                                  .validate()) {
+                                return;
+                              }
+
+                              if (!longAnswerScoreFormKey.currentState!
+                                  .validate()) {
+                                return;
+                              }
+
+                              double scoreToBeAdded = 0;
+
+                              if (shortAnswerScoreControllers.every((item) =>
+                                      double.tryParse(item.text) != null) ==
+                                  true) {
+                                for (int i = 0;
+                                    i < shortAnswerScoreControllers.length;
+                                    i++) {
+                                  scoreToBeAdded += double.parse(
+                                      shortAnswerScoreControllers[i].text);
+                                }
+                              }
+
+                              if (longAnswerScoreControllers.every((item) =>
+                                      double.tryParse(item.text) != null) ==
+                                  true) {
+                                for (int i = 0;
+                                    i < longAnswerScoreControllers.length;
+                                    i++) {
+                                  scoreToBeAdded += double.parse(
+                                      longAnswerScoreControllers[i].text);
+                                }
+                              }
+
                               QuickAlert.show(
-                                context: context,
-                                type: QuickAlertType.loading,
-                              );
-                              // await _firestoreService.scoreActivity(
-                              //   activityIndex: activityIndex,
-                              //   classCode: widget.classCode,
-                              //   lessonIndex: lessonIndex,
-                              //   score: double.parse(
-                              //       submissionScoreController.text),
-                              //   studentId: studentId,
-                              // );
-                              // ignore: use_build_context_synchronously
-                              Navigator.of(context).pop();
-                              // ignore: use_build_context_synchronously
-                              Navigator.of(context).pop();
+                                  context: context,
+                                  type: QuickAlertType.confirm,
+                                  title: 'Confirm Score?',
+                                  text: scoreToBeAdded != 0
+                                      ? 'This will add $scoreToBeAdded to the student\'s score.'
+                                      : 'This will set the student\'s score to ${submissionScoreController.text}',
+                                  onConfirmBtnTap: () async {
+                                    Navigator.of(context).pop();
+                                    QuickAlert.show(
+                                      context: context,
+                                      type: QuickAlertType.loading,
+                                    );
+                                    print(int.parse(
+                                            submissionScoreController.text) !=
+                                        score);
+                                    await _firestoreService.evaluateExam(
+                                      examIndex: examIndex,
+                                      classCode: widget.classCode,
+                                      score: double.parse(
+                                                  submissionScoreController
+                                                      .text) !=
+                                              score
+                                          ? double.parse(
+                                              submissionScoreController.text)
+                                          : scoreToBeAdded + score,
+                                      studentId: studentId,
+                                    );
+                                    // ignore: use_build_context_synchronously
+                                    Navigator.of(context).pop();
+                                    // ignore: use_build_context_synchronously
+                                    Navigator.of(context).pop();
+                                    // ignore: use_build_context_synchronously
+                                    Navigator.of(context).pop();
+                                  },
+                                  showCancelBtn: true,
+                                  onCancelBtnTap: Navigator.of(context).pop);
                             },
                             child: const Text('Save'),
                           )
@@ -2062,12 +2194,222 @@ class _InstructorClassScreenState extends State<InstructorClassScreen>
                     ],
                   ),
                   const Text(
-                    'Student\'s Work',
+                    'Student\'s Answers to be Evaluated:',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+
+                  // ANSWERS
+
+                  // SHORT ANSWER
+                  shortAnswerList.isNotEmpty
+                      ? Form(
+                          key: shortAnswerScoreFormKey,
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: shortAnswerList.length,
+                            itemBuilder: (context, shortAnswerIndex) {
+                              final Map<String, dynamic> item =
+                                  shortAnswerList[shortAnswerIndex];
+
+                              final attachments = item['attachments'];
+
+                              return Card(
+                                color: Colors.white,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                          'Short Answer (${item['points']} ${item['points'] > 1 ? 'points' : 'point'})'),
+                                      Text(
+                                        '${shortAnswerIndex + 1}. ${item['question']}',
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const Gap(5),
+
+                                      // ATTACHMENTS
+                                      ListView.builder(
+                                        shrinkWrap: true,
+                                        itemCount: attachments.length,
+                                        itemBuilder: (context, index) =>
+                                            FutureBuilder(
+                                          future: _storageService.storageRef
+                                              .child(attachments[index]
+                                                  ['attachment'])
+                                              .getDownloadURL(),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return const Center(
+                                                  child:
+                                                      CircularProgressIndicator());
+                                            }
+
+                                            return SizedBox(
+                                              width: double.infinity,
+                                              height: 300,
+                                              child: Image.network(
+                                                snapshot.data!,
+                                                fit: BoxFit.scaleDown,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      const Gap(5),
+
+                                      // ANSWER
+                                      const Text('Student\'s Answer: '),
+                                      Text(
+                                        studentSubmission['writtenAnswer']
+                                                    ['shortAAnswers']
+                                                [shortAnswerIndex] ??
+                                            'No Answer',
+                                        style: const TextStyle(fontSize: 20),
+                                      ),
+                                      const Gap(5),
+
+                                      // SCORE
+                                      TextFormField(
+                                        controller: shortAnswerScoreControllers[
+                                            shortAnswerIndex],
+                                        decoration: const InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          label: Text('Item Score'),
+                                        ),
+                                        validator: (value) {
+                                          if (value!.trim().isNotEmpty &&
+                                              int.tryParse(value) != null &&
+                                              int.parse(value) >
+                                                  item['points']) {
+                                            return 'Please input a valid score.';
+                                          }
+
+                                          return null;
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      : const SizedBox(),
+                  shortAnswerList.isNotEmpty ? const Gap(5) : const SizedBox(),
+
+                  // LONG ANSWER
+                  longAnswerList.isNotEmpty
+                      ? Form(
+                          key: longAnswerScoreFormKey,
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: longAnswerList.length,
+                            itemBuilder: (context, longAnswerIndex) {
+                              final Map<String, dynamic> item =
+                                  longAnswerList[longAnswerIndex];
+
+                              final attachments = item['attachments'];
+
+                              return Card(
+                                color: Colors.white,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                          'Long Answer (${item['points']} ${item['points'] > 1 ? 'points' : 'point'})'),
+                                      Text(
+                                        '${longAnswerIndex + 1}. ${item['question']}',
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const Gap(5),
+
+                                      // ATTACHMENTS
+                                      ListView.builder(
+                                        shrinkWrap: true,
+                                        itemCount: attachments.length,
+                                        itemBuilder: (context, index) =>
+                                            FutureBuilder(
+                                          future: _storageService.storageRef
+                                              .child(attachments[index]
+                                                  ['attachment'])
+                                              .getDownloadURL(),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return const Center(
+                                                  child:
+                                                      CircularProgressIndicator());
+                                            }
+
+                                            return SizedBox(
+                                              width: double.infinity,
+                                              height: 300,
+                                              child: Image.network(
+                                                snapshot.data!,
+                                                fit: BoxFit.scaleDown,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      const Gap(5),
+
+                                      // ANSWER
+                                      const Text('Student\'s Answer: '),
+                                      const Gap(3),
+                                      Text(
+                                        studentSubmission['writtenAnswer']
+                                                    ['shortAAnswers']
+                                                [longAnswerIndex] ??
+                                            'No Answer',
+                                        style: const TextStyle(fontSize: 20),
+                                      ),
+                                      const Gap(5),
+
+                                      // SCORE
+                                      TextFormField(
+                                        controller: longAnswerScoreControllers[
+                                            longAnswerIndex],
+                                        decoration: const InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          label: Text('Item Score'),
+                                        ),
+                                        validator: (value) {
+                                          if (value!.trim().isNotEmpty &&
+                                              int.tryParse(value) != null &&
+                                              int.parse(value) >
+                                                  item['points']) {
+                                            return 'Please input a valid score.';
+                                          }
+
+                                          return null;
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      : const SizedBox(),
                 ],
               );
             },
