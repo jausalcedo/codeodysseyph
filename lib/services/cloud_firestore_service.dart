@@ -952,6 +952,7 @@ class CloudFirestoreService {
         'laboratoryAnswer': laboratoryAnswer,
         'copyPasteViolations': copyPasteViolations,
         'changeViewViolations': changeViewViolations,
+        'status': 'Complete',
       };
     } else {
       submissionContent = {
